@@ -1,0 +1,895 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		139016A935D61DBCD073ECA5 /* MotionInputMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22CB95C6460D4B3F4317E005 /* MotionInputMode.swift */; };
+		1EBF733DABC6E2D0D5D8BD82 /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
+		1F33F113962A0342CCBF30E3 /* AudioComfortEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE25798B7BC90E5CC0225B1F /* AudioComfortEngine.swift */; };
+		2585CEBFA3787B05A1BE569F /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
+		2834FAE56C1E4516FDF49EAD /* MotionComfortCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		2DB556654C0D422A23D34F23 /* AudioMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = E596DD7A7552BBD911094E82 /* AudioMode.swift */; };
+		4047511AAA69076A6644324C /* MotionComfortApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C0C127A85D1D9E3A3250555 /* MotionComfortApp.swift */; };
+		49B75F88A3EBE05B4382F2A2 /* MotionSmoother.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAD4558D9028E14BD3D18A5 /* MotionSmoother.swift */; };
+		4B2BB8C22DABFCAF9B7C95E4 /* MotionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D0523F47FAFF246C331DA0E /* MotionManager.swift */; };
+		68AC87E5E852D245DF0A0528 /* MathSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6E9DD2657BEDEECD3072A3F /* MathSupport.swift */; };
+		6FA6B7DE478A03DF6792A031 /* VisualGuideStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED548E8A4B5948ECDC8702F /* VisualGuideStyle.swift */; };
+		7554B2761694F8CB529F8ACB /* FlowFieldSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C87D5E483454F259BE3E6B98 /* FlowFieldSupport.swift */; };
+		76D34D2ADF5EF8A41CEF6FDA /* MotionComfortAudio.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		7866D40E8BD0D22402405151 /* ReferenceFlowOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC269D3D1E1DAF571FA07CF8 /* ReferenceFlowOverlay.swift */; };
+		7D2FE6F586C66150F4F935CE /* CueLayoutEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA128AA038DDA3C04B400478 /* CueLayoutEngine.swift */; };
+		7F3EE2CD8CC5C3AC5B8FF37E /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D3CF65ED7E94C90D977498F /* DashboardView.swift */; };
+		82CE154486A6491F9DDB587A /* MotionFlowStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D3E070D40774EC82E3EC1D6 /* MotionFlowStyle.swift */; };
+		8AF3DDAEB876CF1FDED2D4D3 /* MotionComfortCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		8DEA1804DD3CA5C90C33AA5E /* PeripheralCueOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4A21DC17180624BDB45D2E7 /* PeripheralCueOverlay.swift */; };
+		9472A062B3ED1FD74BE798E0 /* ComfortSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4D41F7A73555BC0B8DC3B0 /* ComfortSessionViewModel.swift */; };
+		9F898868B1A481AE992512EA /* FullscreenSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB452209C83D694142D121F5 /* FullscreenSessionView.swift */; };
+		B3F5147D32C1FE5B12BA3520 /* LiveViewCameraSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65489C6CA0910899D6F95843 /* LiveViewCameraSupport.swift */; };
+		BEB987D491077C389D458E8B /* MotionComfortVisual.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9D576541804142D51D06E41 /* MotionComfortVisual.framework */; };
+		C11B8352EF683FB2C3FA4E89 /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
+		CF464D74364984DFED102293 /* CloudVisualStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F96F34758FAA04D75F9FF4E /* CloudVisualStyle.swift */; };
+		D0364B050A17A07FA925B847 /* MotionFlowOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2990D0D202301558CDF2A5D1 /* MotionFlowOverlay.swift */; };
+		D0E7EFEB74D3B209F29C9445 /* MotionComfortAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */; };
+		D89298D90E2D8999CE56A5E1 /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
+		E2AE1751622914086F5DAD61 /* MotionSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77CC77D34BEE923AF3B0B2A5 /* MotionSample.swift */; };
+		E988AE247BF96F068C25D48D /* CueState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4915CA173CE00311FADAE505 /* CueState.swift */; };
+		EA82D86667A905D7779E5BEA /* MotionComfortVisual.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E9D576541804142D51D06E41 /* MotionComfortVisual.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		EB531C5D92DAAA6EF71682BE /* CueStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11682D824853FBBBEA3C1F16 /* CueStateTests.swift */; };
+		F9163169B9D3C5A506E88017 /* MotionCloudOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A17BECD61391825D42CCBBB /* MotionCloudOverlay.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		1E12C4AECE4D37DEF3F03904 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DF78F3399681127337512D0E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C741237864A32D9464BFC3CC;
+			remoteInfo = MotionComfortCore;
+		};
+		27F5FB015917391857F9521D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DF78F3399681127337512D0E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C741237864A32D9464BFC3CC;
+			remoteInfo = MotionComfortCore;
+		};
+		28BB3FCEFD2DB7A8B6479B37 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DF78F3399681127337512D0E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C741237864A32D9464BFC3CC;
+			remoteInfo = MotionComfortCore;
+		};
+		5C713DC4B08C80FD87F00C20 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DF78F3399681127337512D0E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ED67040FDE2A6D537413A368;
+			remoteInfo = MotionComfortVisual;
+		};
+		A69949FC0B71C00461CB8ABA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DF78F3399681127337512D0E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 33CF73E190B63CED57C969D7;
+			remoteInfo = MotionComfortAudio;
+		};
+		D37E7FD09D879BD77B4878E4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DF78F3399681127337512D0E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C741237864A32D9464BFC3CC;
+			remoteInfo = MotionComfortCore;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		1B7C34807440C15319896974 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				8AF3DDAEB876CF1FDED2D4D3 /* MotionComfortCore.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B94EC5244A27B33A377C2205 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				2834FAE56C1E4516FDF49EAD /* MotionComfortCore.framework in Embed Frameworks */,
+				EA82D86667A905D7779E5BEA /* MotionComfortVisual.framework in Embed Frameworks */,
+				76D34D2ADF5EF8A41CEF6FDA /* MotionComfortAudio.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		11682D824853FBBBEA3C1F16 /* CueStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueStateTests.swift; sourceTree = "<group>"; };
+		1A17BECD61391825D42CCBBB /* MotionCloudOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionCloudOverlay.swift; sourceTree = "<group>"; };
+		1F96F34758FAA04D75F9FF4E /* CloudVisualStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudVisualStyle.swift; sourceTree = "<group>"; };
+		22CB95C6460D4B3F4317E005 /* MotionInputMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionInputMode.swift; sourceTree = "<group>"; };
+		2990D0D202301558CDF2A5D1 /* MotionFlowOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionFlowOverlay.swift; sourceTree = "<group>"; };
+		3D0523F47FAFF246C331DA0E /* MotionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionManager.swift; sourceTree = "<group>"; };
+		4915CA173CE00311FADAE505 /* CueState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueState.swift; sourceTree = "<group>"; };
+		5D3CF65ED7E94C90D977498F /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		65489C6CA0910899D6F95843 /* LiveViewCameraSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveViewCameraSupport.swift; sourceTree = "<group>"; };
+		75A6908D8E63FDED07FDD9E0 /* MotionComfortApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MotionComfortApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		77CC77D34BEE923AF3B0B2A5 /* MotionSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionSample.swift; sourceTree = "<group>"; };
+		7D3E070D40774EC82E3EC1D6 /* MotionFlowStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionFlowStyle.swift; sourceTree = "<group>"; };
+		91B5EC0182C29C428285C38E /* MotionComfortCoreTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MotionComfortCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9C0C127A85D1D9E3A3250555 /* MotionComfortApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionComfortApp.swift; sourceTree = "<group>"; };
+		AB452209C83D694142D121F5 /* FullscreenSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenSessionView.swift; sourceTree = "<group>"; };
+		AC269D3D1E1DAF571FA07CF8 /* ReferenceFlowOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceFlowOverlay.swift; sourceTree = "<group>"; };
+		AED548E8A4B5948ECDC8702F /* VisualGuideStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualGuideStyle.swift; sourceTree = "<group>"; };
+		C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MotionComfortCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		C87D5E483454F259BE3E6B98 /* FlowFieldSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowFieldSupport.swift; sourceTree = "<group>"; };
+		CA128AA038DDA3C04B400478 /* CueLayoutEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueLayoutEngine.swift; sourceTree = "<group>"; };
+		CFAD4558D9028E14BD3D18A5 /* MotionSmoother.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionSmoother.swift; sourceTree = "<group>"; };
+		DE25798B7BC90E5CC0225B1F /* AudioComfortEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioComfortEngine.swift; sourceTree = "<group>"; };
+		E4A21DC17180624BDB45D2E7 /* PeripheralCueOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeripheralCueOverlay.swift; sourceTree = "<group>"; };
+		E596DD7A7552BBD911094E82 /* AudioMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMode.swift; sourceTree = "<group>"; };
+		E9D576541804142D51D06E41 /* MotionComfortVisual.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MotionComfortVisual.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MotionComfortAudio.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		F6E9DD2657BEDEECD3072A3F /* MathSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathSupport.swift; sourceTree = "<group>"; };
+		FD4D41F7A73555BC0B8DC3B0 /* ComfortSessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComfortSessionViewModel.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		3C36993BC3109F227DEA39FB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D89298D90E2D8999CE56A5E1 /* MotionComfortCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A492C3B88AADCDF79D3D56D4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2585CEBFA3787B05A1BE569F /* MotionComfortCore.framework in Frameworks */,
+				BEB987D491077C389D458E8B /* MotionComfortVisual.framework in Frameworks */,
+				D0E7EFEB74D3B209F29C9445 /* MotionComfortAudio.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B3ABF78993143A1AFBBCEBC7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C11B8352EF683FB2C3FA4E89 /* MotionComfortCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EF2F95025F1D12435243FC47 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1EBF733DABC6E2D0D5D8BD82 /* MotionComfortCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		13C572B481556EB25489E1E2 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				CA128AA038DDA3C04B400478 /* CueLayoutEngine.swift */,
+				4915CA173CE00311FADAE505 /* CueState.swift */,
+				F6E9DD2657BEDEECD3072A3F /* MathSupport.swift */,
+				77CC77D34BEE923AF3B0B2A5 /* MotionSample.swift */,
+				CFAD4558D9028E14BD3D18A5 /* MotionSmoother.swift */,
+			);
+			name = Sources;
+			path = Core/Sources;
+			sourceTree = "<group>";
+		};
+		3AF0618018DA868692371376 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				75A6908D8E63FDED07FDD9E0 /* MotionComfortApp.app */,
+				F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */,
+				C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */,
+				91B5EC0182C29C428285C38E /* MotionComfortCoreTests.xctest */,
+				E9D576541804142D51D06E41 /* MotionComfortVisual.framework */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4F8C8B7B0D65DBA136CC436E /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				DE25798B7BC90E5CC0225B1F /* AudioComfortEngine.swift */,
+				E596DD7A7552BBD911094E82 /* AudioMode.swift */,
+			);
+			name = Sources;
+			path = Audio/Sources;
+			sourceTree = "<group>";
+		};
+		5F7CF635C4D8AAD7FA7BBB6A = {
+			isa = PBXGroup;
+			children = (
+				75B8DA8081C929A3CB0FA7C4 /* MotionComfortCoreTests */,
+				B089A1907D5C9576FE823964 /* Sources */,
+				4F8C8B7B0D65DBA136CC436E /* Sources */,
+				13C572B481556EB25489E1E2 /* Sources */,
+				CB94E36AF8122CFCBE1A6782 /* Sources */,
+				3AF0618018DA868692371376 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		75B8DA8081C929A3CB0FA7C4 /* MotionComfortCoreTests */ = {
+			isa = PBXGroup;
+			children = (
+				11682D824853FBBBEA3C1F16 /* CueStateTests.swift */,
+			);
+			name = MotionComfortCoreTests;
+			path = Tests/MotionComfortCoreTests;
+			sourceTree = "<group>";
+		};
+		B089A1907D5C9576FE823964 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				FD4D41F7A73555BC0B8DC3B0 /* ComfortSessionViewModel.swift */,
+				5D3CF65ED7E94C90D977498F /* DashboardView.swift */,
+				AB452209C83D694142D121F5 /* FullscreenSessionView.swift */,
+				9C0C127A85D1D9E3A3250555 /* MotionComfortApp.swift */,
+			);
+			name = Sources;
+			path = App/Sources;
+			sourceTree = "<group>";
+		};
+		CB94E36AF8122CFCBE1A6782 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				1F96F34758FAA04D75F9FF4E /* CloudVisualStyle.swift */,
+				C87D5E483454F259BE3E6B98 /* FlowFieldSupport.swift */,
+				65489C6CA0910899D6F95843 /* LiveViewCameraSupport.swift */,
+				1A17BECD61391825D42CCBBB /* MotionCloudOverlay.swift */,
+				2990D0D202301558CDF2A5D1 /* MotionFlowOverlay.swift */,
+				7D3E070D40774EC82E3EC1D6 /* MotionFlowStyle.swift */,
+				22CB95C6460D4B3F4317E005 /* MotionInputMode.swift */,
+				3D0523F47FAFF246C331DA0E /* MotionManager.swift */,
+				E4A21DC17180624BDB45D2E7 /* PeripheralCueOverlay.swift */,
+				AC269D3D1E1DAF571FA07CF8 /* ReferenceFlowOverlay.swift */,
+				AED548E8A4B5948ECDC8702F /* VisualGuideStyle.swift */,
+			);
+			name = Sources;
+			path = Visual/Sources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1731D51D32D5B3A5D6C2F82F /* MotionComfortCoreTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1BDA0BC12FF9A351248A2DA2 /* Build configuration list for PBXNativeTarget "MotionComfortCoreTests" */;
+			buildPhases = (
+				E9A9B8ED60033F3729CE469F /* Sources */,
+				3C36993BC3109F227DEA39FB /* Frameworks */,
+				1B7C34807440C15319896974 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				117395F7CD2B7A6A2C8A5ABD /* PBXTargetDependency */,
+			);
+			name = MotionComfortCoreTests;
+			packageProductDependencies = (
+			);
+			productName = MotionComfortCoreTests;
+			productReference = 91B5EC0182C29C428285C38E /* MotionComfortCoreTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		33CF73E190B63CED57C969D7 /* MotionComfortAudio */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 411357F2F8C8A7ADC3210062 /* Build configuration list for PBXNativeTarget "MotionComfortAudio" */;
+			buildPhases = (
+				FC1C6FCACFCEDD1713865503 /* Sources */,
+				EF2F95025F1D12435243FC47 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F2D825564ADBA66BACA207DA /* PBXTargetDependency */,
+			);
+			name = MotionComfortAudio;
+			packageProductDependencies = (
+			);
+			productName = MotionComfortAudio;
+			productReference = F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		4F4108D2ACF64EE49210BFF1 /* MotionComfortApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A5D9E5B00C7F94582074DD28 /* Build configuration list for PBXNativeTarget "MotionComfortApp" */;
+			buildPhases = (
+				B47A7A073160E617DF89414E /* Sources */,
+				A492C3B88AADCDF79D3D56D4 /* Frameworks */,
+				B94EC5244A27B33A377C2205 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				497BE09B98CF810DDF4D7590 /* PBXTargetDependency */,
+				136C3115688BE8D2B1862C31 /* PBXTargetDependency */,
+				0908BAEA34BB3AD46BEAE80F /* PBXTargetDependency */,
+			);
+			name = MotionComfortApp;
+			packageProductDependencies = (
+			);
+			productName = MotionComfortApp;
+			productReference = 75A6908D8E63FDED07FDD9E0 /* MotionComfortApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		C741237864A32D9464BFC3CC /* MotionComfortCore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F30712FE7927BA55AE8357D0 /* Build configuration list for PBXNativeTarget "MotionComfortCore" */;
+			buildPhases = (
+				D6549A7B6DE88A65DF578434 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MotionComfortCore;
+			packageProductDependencies = (
+			);
+			productName = MotionComfortCore;
+			productReference = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		ED67040FDE2A6D537413A368 /* MotionComfortVisual */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 288ABB46EEAE47951314A3A2 /* Build configuration list for PBXNativeTarget "MotionComfortVisual" */;
+			buildPhases = (
+				22AD26BF01999DB02D3DF124 /* Sources */,
+				B3ABF78993143A1AFBBCEBC7 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E717E131F6E64F9625F12829 /* PBXTargetDependency */,
+			);
+			name = MotionComfortVisual;
+			packageProductDependencies = (
+			);
+			productName = MotionComfortVisual;
+			productReference = E9D576541804142D51D06E41 /* MotionComfortVisual.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DF78F3399681127337512D0E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+			};
+			buildConfigurationList = EC5AFAD05542F096D9FD937F /* Build configuration list for PBXProject "MotionComfort" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 5F7CF635C4D8AAD7FA7BBB6A;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3AF0618018DA868692371376 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4F4108D2ACF64EE49210BFF1 /* MotionComfortApp */,
+				33CF73E190B63CED57C969D7 /* MotionComfortAudio */,
+				C741237864A32D9464BFC3CC /* MotionComfortCore */,
+				1731D51D32D5B3A5D6C2F82F /* MotionComfortCoreTests */,
+				ED67040FDE2A6D537413A368 /* MotionComfortVisual */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		22AD26BF01999DB02D3DF124 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CF464D74364984DFED102293 /* CloudVisualStyle.swift in Sources */,
+				7554B2761694F8CB529F8ACB /* FlowFieldSupport.swift in Sources */,
+				B3F5147D32C1FE5B12BA3520 /* LiveViewCameraSupport.swift in Sources */,
+				F9163169B9D3C5A506E88017 /* MotionCloudOverlay.swift in Sources */,
+				D0364B050A17A07FA925B847 /* MotionFlowOverlay.swift in Sources */,
+				82CE154486A6491F9DDB587A /* MotionFlowStyle.swift in Sources */,
+				139016A935D61DBCD073ECA5 /* MotionInputMode.swift in Sources */,
+				4B2BB8C22DABFCAF9B7C95E4 /* MotionManager.swift in Sources */,
+				8DEA1804DD3CA5C90C33AA5E /* PeripheralCueOverlay.swift in Sources */,
+				7866D40E8BD0D22402405151 /* ReferenceFlowOverlay.swift in Sources */,
+				6FA6B7DE478A03DF6792A031 /* VisualGuideStyle.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B47A7A073160E617DF89414E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9472A062B3ED1FD74BE798E0 /* ComfortSessionViewModel.swift in Sources */,
+				7F3EE2CD8CC5C3AC5B8FF37E /* DashboardView.swift in Sources */,
+				9F898868B1A481AE992512EA /* FullscreenSessionView.swift in Sources */,
+				4047511AAA69076A6644324C /* MotionComfortApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D6549A7B6DE88A65DF578434 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7D2FE6F586C66150F4F935CE /* CueLayoutEngine.swift in Sources */,
+				E988AE247BF96F068C25D48D /* CueState.swift in Sources */,
+				68AC87E5E852D245DF0A0528 /* MathSupport.swift in Sources */,
+				E2AE1751622914086F5DAD61 /* MotionSample.swift in Sources */,
+				49B75F88A3EBE05B4382F2A2 /* MotionSmoother.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E9A9B8ED60033F3729CE469F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EB531C5D92DAAA6EF71682BE /* CueStateTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FC1C6FCACFCEDD1713865503 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1F33F113962A0342CCBF30E3 /* AudioComfortEngine.swift in Sources */,
+				2DB556654C0D422A23D34F23 /* AudioMode.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		0908BAEA34BB3AD46BEAE80F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 33CF73E190B63CED57C969D7 /* MotionComfortAudio */;
+			targetProxy = A69949FC0B71C00461CB8ABA /* PBXContainerItemProxy */;
+		};
+		117395F7CD2B7A6A2C8A5ABD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C741237864A32D9464BFC3CC /* MotionComfortCore */;
+			targetProxy = 1E12C4AECE4D37DEF3F03904 /* PBXContainerItemProxy */;
+		};
+		136C3115688BE8D2B1862C31 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ED67040FDE2A6D537413A368 /* MotionComfortVisual */;
+			targetProxy = 5C713DC4B08C80FD87F00C20 /* PBXContainerItemProxy */;
+		};
+		497BE09B98CF810DDF4D7590 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C741237864A32D9464BFC3CC /* MotionComfortCore */;
+			targetProxy = 27F5FB015917391857F9521D /* PBXContainerItemProxy */;
+		};
+		E717E131F6E64F9625F12829 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C741237864A32D9464BFC3CC /* MotionComfortCore */;
+			targetProxy = 28BB3FCEFD2DB7A8B6479B37 /* PBXContainerItemProxy */;
+		};
+		F2D825564ADBA66BACA207DA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C741237864A32D9464BFC3CC /* MotionComfortCore */;
+			targetProxy = D37E7FD09D879BD77B4878E4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		15F2771AAA660706FF2A4397 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MotionComfortCore;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
+		};
+		28F87700A716811F73E8DDEA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 6KPBAP8F89;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MotionComfortApp;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		3C52EAD73A9CDB7BE9C920A2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = 6KPBAP8F89;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MotionComfortApp;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5774A518487A3410C74371EA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MotionComfortVisual;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
+		};
+		5F55A05688E5D73459EDC9A3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MotionComfortCoreTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		683FAF6914600EBE7414667A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MotionComfortCore;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		75B3D14715F33D663C30421B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MotionComfortVisual;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		7BC1702CA660EF1D23835599 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MotionComfortCoreTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7DFFB9B8FC8EAC9AB2282AE9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MotionComfortAudio;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		879BDE64577E4458283B1414 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		96F5E8A347BEAE5900EE4766 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.MotionComfortAudio;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
+		};
+		A50F0A170D4AB07A167D3CBD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1BDA0BC12FF9A351248A2DA2 /* Build configuration list for PBXNativeTarget "MotionComfortCoreTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7BC1702CA660EF1D23835599 /* Debug */,
+				5F55A05688E5D73459EDC9A3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		288ABB46EEAE47951314A3A2 /* Build configuration list for PBXNativeTarget "MotionComfortVisual" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5774A518487A3410C74371EA /* Debug */,
+				75B3D14715F33D663C30421B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		411357F2F8C8A7ADC3210062 /* Build configuration list for PBXNativeTarget "MotionComfortAudio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				96F5E8A347BEAE5900EE4766 /* Debug */,
+				7DFFB9B8FC8EAC9AB2282AE9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A5D9E5B00C7F94582074DD28 /* Build configuration list for PBXNativeTarget "MotionComfortApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3C52EAD73A9CDB7BE9C920A2 /* Debug */,
+				28F87700A716811F73E8DDEA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EC5AFAD05542F096D9FD937F /* Build configuration list for PBXProject "MotionComfort" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A50F0A170D4AB07A167D3CBD /* Debug */,
+				879BDE64577E4458283B1414 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F30712FE7927BA55AE8357D0 /* Build configuration list for PBXNativeTarget "MotionComfortCore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				15F2771AAA660706FF2A4397 /* Debug */,
+				683FAF6914600EBE7414667A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = DF78F3399681127337512D0E /* Project object */;
+}

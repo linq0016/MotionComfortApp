@@ -1,0 +1,75 @@
+name: MotionComfort
+options:
+  bundleIdPrefix: com.example
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+    IPHONEOS_DEPLOYMENT_TARGET: 26.0
+targets:
+  MotionComfortApp:
+    type: application
+    platform: iOS
+    deploymentTarget: "26.0"
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: App/Info.plist
+    sources:
+      - App/Sources
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: MotionComfort
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        NSCameraUsageDescription: Camera access is used to show the live-view comfort mode with real-world scene guidance and adaptive edge overlays.
+        NSMotionUsageDescription: Motion data is used to draw peripheral comfort guides that help reduce passenger discomfort in vehicles.
+        UIBackgroundModes:
+          - audio
+    dependencies:
+      - target: MotionComfortCore
+      - target: MotionComfortVisual
+      - target: MotionComfortAudio
+  MotionComfortCore:
+    type: framework
+    platform: iOS
+    deploymentTarget: "26.0"
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    sources:
+      - Core/Sources
+  MotionComfortVisual:
+    type: framework
+    platform: iOS
+    deploymentTarget: "26.0"
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    sources:
+      - Visual/Sources
+    dependencies:
+      - target: MotionComfortCore
+  MotionComfortAudio:
+    type: framework
+    platform: iOS
+    deploymentTarget: "26.0"
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    sources:
+      - Audio/Sources
+    dependencies:
+      - target: MotionComfortCore
+  MotionComfortCoreTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "26.0"
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    sources:
+      - Tests/MotionComfortCoreTests
+    dependencies:
+      - target: MotionComfortCore
