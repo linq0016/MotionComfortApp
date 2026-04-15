@@ -27,6 +27,10 @@ targets:
         NSMotionUsageDescription: Motion data is used to draw peripheral comfort guides that help reduce passenger discomfort in vehicles.
         UIBackgroundModes:
           - audio
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
     dependencies:
       - target: MotionComfortCore
       - target: MotionComfortVisual

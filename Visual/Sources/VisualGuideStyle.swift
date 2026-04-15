@@ -25,7 +25,7 @@ public enum VisualGuideStyle: String, CaseIterable, Identifiable, Sendable {
         case .dynamic:
             return "Parallel mode placeholder for future colorful cloud flow and richer atmospheric cues."
         case .liveView:
-            return "Full-screen camera preview with adaptive edge flow. HDR turns on automatically when the device path supports it."
+            return "Full-screen camera preview with adaptive edge flow and a stable SDR live camera feed."
         }
     }
 

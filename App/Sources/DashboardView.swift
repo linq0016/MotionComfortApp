@@ -5,6 +5,7 @@ import SwiftUI
 // 首页配置页：负责模式选择、状态查看和进入全屏会话。
 struct DashboardView: View {
     @ObservedObject var model: ComfortSessionViewModel
+    @ObservedObject var orientationObserver: InterfaceOrientationObserver
     @State private var isSessionPresented = false
 
     var body: some View {
@@ -23,8 +24,12 @@ struct DashboardView: View {
             .scrollContentBackground(.hidden)
         }
         .preferredColorScheme(.dark)
+        .background {
+            InterfaceOrientationReader(observer: orientationObserver)
+                .frame(width: 0.0, height: 0.0)
+        }
         .fullScreenCover(isPresented: $isSessionPresented, onDismiss: handleSessionDismiss) {
-            FullscreenSessionView(model: model) {
+            FullscreenSessionView(model: model, orientationObserver: orientationObserver) {
                 isSessionPresented = false
             }
             .interactiveDismissDisabled()
@@ -114,6 +119,7 @@ struct DashboardView: View {
                     Text(style.title).tag(style)
                 }
             }
+            .pickerStyle(.menu)
 
             Text(model.visualGuideStyleNote)
                 .font(.system(.caption, design: .rounded))
@@ -129,6 +135,7 @@ struct DashboardView: View {
                     Text(mode.title).tag(mode)
                 }
             }
+            .pickerStyle(.menu)
 
             Text(model.motionModeNote)
                 .font(.system(.caption, design: .rounded))
@@ -144,6 +151,7 @@ struct DashboardView: View {
                     Text(mode.title).tag(mode)
                 }
             }
+            .pickerStyle(.menu)
 
             Text(model.audioMode.note)
                 .font(.system(.caption, design: .rounded))
@@ -165,7 +173,7 @@ struct DashboardView: View {
             Text("Passenger use only. Keep the volume low. Monotone remains a conservative 100 Hz signal path, and melodic is still a placeholder.")
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("Real-time mode reads deviceMotion.userAcceleration directly. Live View now runs the real camera preview, with HDR enabled automatically when the device path supports it.")
+            Text("Real-time mode reads deviceMotion.userAcceleration directly. Live View now runs the real camera preview in a stable SDR path.")
                 .font(.system(.caption, design: .rounded))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

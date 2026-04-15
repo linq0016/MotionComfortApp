@@ -6,26 +6,29 @@ public struct PeripheralCueOverlay: View {
     public var cueState: CueState
     public var sample: MotionSample
     public var visualStyle: VisualGuideStyle
+    public var orientation: InterfaceRenderOrientation
 
     public init(
         cueState: CueState,
         sample: MotionSample = .neutral,
-        visualStyle: VisualGuideStyle = .minimal
+        visualStyle: VisualGuideStyle = .minimal,
+        orientation: InterfaceRenderOrientation = .portrait
     ) {
         self.cueState = cueState
         self.sample = sample
         self.visualStyle = visualStyle
+        self.orientation = orientation
     }
 
     public var body: some View {
         Group {
             switch visualStyle {
             case .minimal:
-                MinimalFlowOverlay(sample: sample)
+                MinimalFlowOverlay(sample: sample, orientation: orientation)
             case .dynamic:
                 DynamicFlowOverlay(style: visualStyle)
             case .liveView:
-                LiveViewOverlay(sample: sample, style: visualStyle)
+                LiveViewOverlay(sample: sample, style: visualStyle, orientation: orientation)
             }
         }
         .allowsHitTesting(false)

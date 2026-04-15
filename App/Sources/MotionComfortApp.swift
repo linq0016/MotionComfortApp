@@ -4,10 +4,11 @@ import SwiftUI
 @main
 struct MotionComfortApp: App {
     @StateObject private var model = ComfortSessionViewModel()
+    @StateObject private var orientationObserver = InterfaceOrientationObserver()
 
     var body: some Scene {
         WindowGroup {
-            DashboardView(model: model)
+            DashboardView(model: model, orientationObserver: orientationObserver)
         }
     }
 }

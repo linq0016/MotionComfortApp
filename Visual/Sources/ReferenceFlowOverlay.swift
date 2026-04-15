@@ -4,18 +4,21 @@ import SwiftUI
 // Minimal 当前的主视觉实现：黑底、白点、连续光流。
 public struct MinimalFlowOverlay: View {
     public var sample: MotionSample
+    public var orientation: InterfaceRenderOrientation
 
     @State private var phase = FlowGridPhase()
 
-    public init(sample: MotionSample) {
+    public init(sample: MotionSample, orientation: InterfaceRenderOrientation = .portrait) {
         self.sample = sample
+        self.orientation = orientation
     }
 
     public var body: some View {
         FlowGridOverlay(
             sample: sample,
             configuration: .minimal,
-            phase: $phase
+            phase: $phase,
+            orientation: orientation
         )
     }
 }
@@ -25,6 +28,7 @@ private struct FlowGridOverlay: View {
     var sample: MotionSample
     var configuration: FlowGridConfiguration
     @Binding var phase: FlowGridPhase
+    var orientation: InterfaceRenderOrientation
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
@@ -32,6 +36,7 @@ private struct FlowGridOverlay: View {
                 let timestamp = timeline.date.timeIntervalSinceReferenceDate
                 let size = proxy.size
                 let coreSafeRect = makeSafeRect(in: size, marginRatio: configuration.marginRatio)
+                let orientedSample = sample.rotatedForDisplay(orientation)
 
                 Canvas(opaque: true, rendersAsynchronously: true) { context, canvasSize in
                     context.fill(
@@ -92,10 +97,13 @@ private struct FlowGridOverlay: View {
                 }
                 .onChange(of: timeline.date) { _, date in
                     phase.advance(
-                        sample: sample,
+                        sample: orientedSample,
                         timestamp: date.timeIntervalSinceReferenceDate,
                         configuration: configuration
                     )
+                }
+                .onChange(of: orientation) { _, _ in
+                    phase.reset(at: timestamp)
                 }
             }
         }

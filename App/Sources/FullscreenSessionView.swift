@@ -4,6 +4,7 @@ import SwiftUI
 // 全屏会话页：真正承载运行中的视觉引导效果。
 struct FullscreenSessionView: View {
     @ObservedObject var model: ComfortSessionViewModel
+    @ObservedObject var orientationObserver: InterfaceOrientationObserver
     var onClose: () -> Void
 
     var body: some View {
@@ -14,7 +15,8 @@ struct FullscreenSessionView: View {
                 PeripheralCueOverlay(
                     cueState: model.cueState,
                     sample: model.sample,
-                    visualStyle: model.visualGuideStyle
+                    visualStyle: model.visualGuideStyle,
+                    orientation: orientationObserver.orientation
                 )
                     .ignoresSafeArea()
             }
@@ -34,6 +36,10 @@ struct FullscreenSessionView: View {
             LiveMotionDebugOverlay(model: model)
                 .padding(.trailing, 16.0)
                 .padding(.bottom, 18.0)
+        }
+        .background {
+            InterfaceOrientationReader(observer: orientationObserver)
+                .frame(width: 0.0, height: 0.0)
         }
         .preferredColorScheme(.dark)
         .statusBarHidden()

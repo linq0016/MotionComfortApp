@@ -8,24 +8,31 @@ import SwiftUI
 public struct LiveViewOverlay: View {
     let sample: MotionSample
     let style: VisualGuideStyle
+    let orientation: InterfaceRenderOrientation
 
     @StateObject private var camera = LiveViewCameraModel()
     @State private var phase = FlowGridPhase()
 
-    public init(sample: MotionSample, style: VisualGuideStyle = .liveView) {
+    public init(
+        sample: MotionSample,
+        style: VisualGuideStyle = .liveView,
+        orientation: InterfaceRenderOrientation = .portrait
+    ) {
         self.sample = sample
         self.style = style
+        self.orientation = orientation
     }
 
     public var body: some View {
         ZStack {
             if camera.canShowPreview {
-                LiveViewCameraPreview(session: camera.session)
+                LiveViewCameraPreview(session: camera.session, orientation: orientation)
                     .overlay {
                         LiveViewEdgeFlowOverlay(
                             sample: sample,
                             sceneAnalysis: camera.sceneAnalysis,
-                            phase: $phase
+                            phase: $phase,
+                            orientation: orientation
                         )
                     }
             } else {
@@ -40,9 +47,14 @@ public struct LiveViewOverlay: View {
         .ignoresSafeArea()
         .onAppear {
             camera.start()
+            camera.updateOrientation(orientation)
         }
         .onDisappear {
             camera.stop()
+        }
+        .onChange(of: orientation) { _, nextOrientation in
+            camera.updateOrientation(nextOrientation)
+            phase.reset(at: Date().timeIntervalSinceReferenceDate)
         }
     }
 }
@@ -79,27 +91,22 @@ enum LiveViewPreviewState: String, Sendable {
 enum LiveViewDynamicRangeState: Sendable {
     case pending
     case standard
-    case hdr
 
     var statusTitle: String {
         switch self {
         case .pending:
-            return "HDR CHECK"
+            return "PREPARING"
         case .standard:
             return "SDR"
-        case .hdr:
-            return "HDR"
         }
     }
 
     var note: String {
         switch self {
         case .pending:
-            return "Dynamic range check is still in progress."
+            return "Camera preview is still preparing its standard dynamic range pipeline."
         case .standard:
             return "Preview is running in standard dynamic range."
-        case .hdr:
-            return "Preview is running with HDR enabled."
         }
     }
 }
@@ -121,6 +128,7 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
     private var latestSceneAnalysis = LiveViewSceneAnalysis()
     private var smoothedLuminance: Double?
     private var lastPolaritySwitchAt: TimeInterval?
+    private var currentOrientation: InterfaceRenderOrientation = .portrait
 
     private let luminanceEmaAlpha = 0.18
     private let polarityHoldDuration: TimeInterval = 0.45
@@ -138,6 +146,7 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
         let currentStatus = AVCaptureDevice.authorizationStatus(for: .video)
         DispatchQueue.main.async {
             self.status = currentStatus
+            self.previewDynamicRangeState = .pending
             if currentStatus == .authorized {
                 self.previewState = .starting
             }
@@ -154,6 +163,7 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
 
                 DispatchQueue.main.async {
                     self.status = granted ? .authorized : .denied
+                    self.previewDynamicRangeState = granted ? .pending : .standard
                     self.previewState = granted ? .starting : .unavailable
                 }
 
@@ -193,6 +203,23 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
         }
     }
 
+    func updateOrientation(_ orientation: InterfaceRenderOrientation) {
+        analysisQueue.async { [weak self] in
+            self?.currentOrientation = orientation
+        }
+
+        sessionQueue.async { [weak self] in
+            guard let self else {
+                return
+            }
+
+            if let connection = self.videoOutput.connection(with: .video),
+               connection.isVideoOrientationSupported {
+                connection.videoOrientation = orientation.captureVideoOrientation
+            }
+        }
+    }
+
     private func configureAndRunIfNeeded() {
         sessionQueue.async { [weak self] in
             guard let self else {
@@ -226,7 +253,7 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
             session.commitConfiguration()
         }
 
-        session.automaticallyConfiguresCaptureDeviceForWideColor = false
+        session.automaticallyConfiguresCaptureDeviceForWideColor = true
 
         if session.canSetSessionPreset(.hd1280x720) {
             session.sessionPreset = .hd1280x720
@@ -242,7 +269,7 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
         }
 
         do {
-            let dynamicRangeState = try configureVideoDevice(on: device)
+            try configureVideoDevice(on: device)
             let input = try AVCaptureDeviceInput(device: device)
 
             guard session.canAddInput(input) else {
@@ -253,7 +280,7 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
             configureVideoOutput()
 
             DispatchQueue.main.async {
-                self.previewDynamicRangeState = dynamicRangeState
+                self.previewDynamicRangeState = .standard
             }
 
             isConfigured = true
@@ -271,9 +298,9 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
             ?? AVCaptureDevice.default(for: .video)
     }
 
-    private func configureVideoDevice(on device: AVCaptureDevice) throws -> LiveViewDynamicRangeState {
+    private func configureVideoDevice(on device: AVCaptureDevice) throws {
         guard let selectedFormat = bestFormat(for: device) else {
-            return .standard
+            return
         }
 
         try device.lockForConfiguration()
@@ -281,25 +308,10 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
 
         device.activeFormat = selectedFormat
 
-        if let hdrColorSpace = bestColorSpace(in: selectedFormat.supportedColorSpaces, rawValue: 2) {
-            device.activeColorSpace = hdrColorSpace
-        } else if let wideColorSpace = bestColorSpace(in: selectedFormat.supportedColorSpaces, rawValue: 1) {
-            device.activeColorSpace = wideColorSpace
-        }
-
         let desiredDuration = CMTime(value: 1, timescale: 60)
         if selectedFormat.videoSupportedFrameRateRanges.contains(where: { $0.maxFrameRate >= 60.0 }) {
             device.activeVideoMinFrameDuration = desiredDuration
             device.activeVideoMaxFrameDuration = desiredDuration
-        }
-
-        if selectedFormat.isVideoHDRSupported {
-            device.automaticallyAdjustsVideoHDREnabled = false
-            device.isVideoHDREnabled = true
-            return .hdr
-        } else {
-            device.automaticallyAdjustsVideoHDREnabled = true
-            return .standard
         }
     }
 
@@ -322,26 +334,12 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
         let maxFrameRate = Int(format.videoSupportedFrameRateRanges.map(\.maxFrameRate).max() ?? 0.0)
         let supports60fps = maxFrameRate >= 60 ? 1 : 0
         let mediumResolution = (960...1920).contains(Int(dimensions.width)) ? 1 : 0
-        let hdrSupport = format.isVideoHDRSupported ? 1 : 0
         let distancePenalty = abs(Int(dimensions.width) - targetWidth) + abs(Int(dimensions.height) - targetHeight)
 
         return (supports60fps * 1_000_000)
             + (mediumResolution * 100_000)
-            + (hdrSupport * 10_000)
             + (maxFrameRate * 10)
             - distancePenalty
-    }
-
-    private func bestColorSpace(
-        in supportedColorSpaces: [AVCaptureColorSpace],
-        rawValue: Int
-    ) -> AVCaptureColorSpace? {
-        guard let colorSpace = AVCaptureColorSpace(rawValue: rawValue),
-              supportedColorSpaces.contains(colorSpace) else {
-            return nil
-        }
-
-        return colorSpace
     }
 
     private func configureVideoOutput() {
@@ -425,7 +423,7 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
         let filteredLuminance = applyLuminanceSmoothing(overallLuminance)
         let timestamp = ProcessInfo.processInfo.systemUptime
 
-        return LiveViewSceneAnalysis(
+        let rawAnalysis = LiveViewSceneAnalysis(
             leadingBandLuminance: leadingLuminance,
             trailingBandLuminance: trailingLuminance,
             topBandLuminance: topLuminance,
@@ -436,6 +434,8 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
                 timestamp: timestamp
             )
         )
+
+        return rawAnalysis.rotatedForDisplay(currentOrientation)
     }
 
     private func applyLuminanceSmoothing(_ luminance: Double) -> Double {
@@ -541,17 +541,24 @@ extension LiveViewCameraModel: AVCaptureVideoDataOutputSampleBufferDelegate {
 
 private struct LiveViewCameraPreview: UIViewRepresentable {
     let session: AVCaptureSession
+    let orientation: InterfaceRenderOrientation
 
     func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
         view.previewLayer.session = session
         view.previewLayer.videoGravity = .resizeAspectFill
+        if let connection = view.previewLayer.connection, connection.isVideoOrientationSupported {
+            connection.videoOrientation = orientation.captureVideoOrientation
+        }
         return view
     }
 
     func updateUIView(_ uiView: PreviewView, context: Context) {
         uiView.previewLayer.session = session
         uiView.previewLayer.videoGravity = .resizeAspectFill
+        if let connection = uiView.previewLayer.connection, connection.isVideoOrientationSupported {
+            connection.videoOrientation = orientation.captureVideoOrientation
+        }
     }
 
     final class PreviewView: UIView {
@@ -570,8 +577,9 @@ private struct LiveViewEdgeFlowOverlay: View {
     let sample: MotionSample
     let sceneAnalysis: LiveViewSceneAnalysis
     @Binding var phase: FlowGridPhase
+    let orientation: InterfaceRenderOrientation
 
-    private let configuration = FlowGridConfiguration.minimal
+    private let configuration = FlowGridConfiguration.liveViewEdge
     private let safeZoneSoftInset: CGFloat = 18.0
     private let safeZoneSoftRadiusAttenuation: CGFloat = 0.35
 
@@ -581,6 +589,7 @@ private struct LiveViewEdgeFlowOverlay: View {
                 let timestamp = timeline.date.timeIntervalSinceReferenceDate
                 let size = proxy.size
                 let safeRect = makeSafeRect(in: size, marginRatio: configuration.marginRatio)
+                let orientedSample = sample.rotatedForDisplay(orientation)
 
                 Canvas(opaque: false, rendersAsynchronously: true) { context, canvasSize in
                     let renderState = phase.renderState
@@ -643,10 +652,13 @@ private struct LiveViewEdgeFlowOverlay: View {
                 }
                 .onChange(of: timeline.date) { _, date in
                     phase.advance(
-                        sample: sample,
+                        sample: orientedSample,
                         timestamp: date.timeIntervalSinceReferenceDate,
                         configuration: configuration
                     )
+                }
+                .onChange(of: orientation) { _, _ in
+                    phase.reset(at: timestamp)
                 }
             }
         }
@@ -701,6 +713,44 @@ private struct LiveViewEdgeFlowOverlay: View {
         let maxDistance = max(cornerDistances.max() ?? 1.0, 1.0)
         let normalized = min(max(distanceFromSafeZone / maxDistance, 0.0), 1.0)
         return normalized
+    }
+}
+
+private extension InterfaceRenderOrientation {
+    var captureVideoOrientation: AVCaptureVideoOrientation {
+        switch self {
+        case .portrait:
+            return .portrait
+        case .landscapeLeft:
+            return .landscapeLeft
+        case .landscapeRight:
+            return .landscapeRight
+        }
+    }
+}
+
+private extension LiveViewSceneAnalysis {
+    func rotatedForDisplay(_ orientation: InterfaceRenderOrientation) -> LiveViewSceneAnalysis {
+        switch orientation {
+        case .portrait:
+            return self
+        case .landscapeLeft:
+            return LiveViewSceneAnalysis(
+                leadingBandLuminance: topBandLuminance,
+                trailingBandLuminance: bottomBandLuminance,
+                topBandLuminance: trailingBandLuminance,
+                bottomBandLuminance: leadingBandLuminance,
+                dominantDotPolarity: dominantDotPolarity
+            )
+        case .landscapeRight:
+            return LiveViewSceneAnalysis(
+                leadingBandLuminance: bottomBandLuminance,
+                trailingBandLuminance: topBandLuminance,
+                topBandLuminance: leadingBandLuminance,
+                bottomBandLuminance: trailingBandLuminance,
+                dominantDotPolarity: dominantDotPolarity
+            )
+        }
     }
 }
 

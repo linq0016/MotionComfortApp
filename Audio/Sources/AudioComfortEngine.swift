@@ -12,8 +12,9 @@ public final class AudioComfortEngine: ObservableObject {
     private let player: AVAudioPlayerNode
     private let format: AVAudioFormat
     private var buffers: [AudioMode: AVAudioPCMBuffer]
+    private let monotoneAssetURL: URL?
 
-    public init(sampleRate: Double = 22_050.0) {
+    public init(sampleRate: Double = 44_100.0) {
         guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2) else {
             fatalError("Unable to create stereo audio format.")
         }
@@ -24,6 +25,7 @@ public final class AudioComfortEngine: ObservableObject {
         self.isPlaying = false
         self.activeMode = .off
         self.buffers = [:]
+        self.monotoneAssetURL = Self.prepareMonotoneAsset(sampleRate: sampleRate)
 
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: format)
@@ -56,7 +58,7 @@ public final class AudioComfortEngine: ObservableObject {
         player.stop()
         player.reset()
         player.scheduleBuffer(buffer(for: mode), at: nil, options: [.loops], completionHandler: nil)
-        player.volume = 0.05
+        player.volume = 0.14
         player.play()
 
         activeMode = mode
@@ -83,9 +85,9 @@ public final class AudioComfortEngine: ObservableObject {
             return
         }
 
-        let baseVolume: Double = activeMode == .monotone ? 0.04 : 0.06
-        let dynamicGain = sample.intensity * 0.12
-        player.volume = Float(clamp(baseVolume + dynamicGain, minimum: 0.02, maximum: 0.18))
+        let baseVolume: Double = activeMode == .monotone ? 0.10 : 0.12
+        let dynamicGain = sample.intensity * 0.16
+        player.volume = Float(clamp(baseVolume + dynamicGain, minimum: 0.06, maximum: 0.28))
     }
 
     private func configureAudioSession() throws {
@@ -115,11 +117,11 @@ public final class AudioComfortEngine: ObservableObject {
         case .off:
             return makeLoopBuffer(duration: 1.0, layers: [(220.0, 0.0)], modulationFrequency: 0.0)
         case .monotone:
-            return makeLoopBuffer(
-                duration: 2.0,
-                layers: [(100.0, 0.10), (200.0, 0.03)],
-                modulationFrequency: 0.10
-            )
+            if let url = monotoneAssetURL, let loaded = loadBuffer(from: url) {
+                return loaded
+            }
+
+            return makeLoopBuffer(duration: 1.0, layers: [(100.0, 0.18)], modulationFrequency: 0.0)
         case .melodic:
             return makeLoopBuffer(duration: 1.0, layers: [(220.0, 0.0)], modulationFrequency: 0.0)
         }
@@ -136,25 +138,91 @@ public final class AudioComfortEngine: ObservableObject {
         }
 
         buffer.frameLength = frameCount
-        let phaseOffset = Double.pi / 3.0
-
         for channel in 0..<Int(format.channelCount) {
             let samples = buffer.floatChannelData![channel]
 
             for frame in 0..<Int(frameCount) {
                 let time = Double(frame) / format.sampleRate
-                let modulation = 0.72 + (0.28 * sin((2.0 * Double.pi * modulationFrequency * time) + (channel == 0 ? 0.0 : phaseOffset)))
-                let stereoShift = channel == 0 ? 0.98 : 1.02
+                let modulation = modulationFrequency > 0.0
+                    ? 0.88 + (0.12 * sin(2.0 * Double.pi * modulationFrequency * time))
+                    : 1.0
                 var mixedValue = 0.0
 
                 for layer in layers {
-                    mixedValue += sin((2.0 * Double.pi * layer.frequency * time) + (Double(channel) * 0.02)) * layer.amplitude
+                    mixedValue += sin(2.0 * Double.pi * layer.frequency * time) * layer.amplitude
                 }
 
-                samples[frame] = Float(mixedValue * modulation * stereoShift)
+                samples[frame] = Float(mixedValue * modulation)
             }
         }
 
         return buffer
+    }
+
+    private func loadBuffer(from url: URL) -> AVAudioPCMBuffer? {
+        do {
+            let file = try AVAudioFile(forReading: url)
+            guard let buffer = AVAudioPCMBuffer(
+                pcmFormat: file.processingFormat,
+                frameCapacity: AVAudioFrameCount(file.length)
+            ) else {
+                return nil
+            }
+
+            try file.read(into: buffer)
+            return buffer
+        } catch {
+            return nil
+        }
+    }
+
+    private static func prepareMonotoneAsset(sampleRate: Double) -> URL? {
+        let fileManager = FileManager.default
+        let directory = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)
+            .first?
+            .appendingPathComponent("MotionComfortAudio", isDirectory: true)
+
+        guard let directory else {
+            return nil
+        }
+
+        do {
+            try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+        } catch {
+            return nil
+        }
+
+        let url = directory.appendingPathComponent("monotone_100hz.wav")
+        if fileManager.fileExists(atPath: url.path) {
+            return url
+        }
+
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2) else {
+            return nil
+        }
+
+        let frameCount = AVAudioFrameCount(sampleRate)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
+            return nil
+        }
+
+        buffer.frameLength = frameCount
+        let amplitude: Float = 0.7
+
+        for channel in 0..<Int(format.channelCount) {
+            let samples = buffer.floatChannelData![channel]
+            for frame in 0..<Int(frameCount) {
+                let time = Double(frame) / sampleRate
+                samples[frame] = Float(sin(2.0 * Double.pi * 100.0 * time)) * amplitude
+            }
+        }
+
+        do {
+            let file = try AVAudioFile(forWriting: url, settings: format.settings)
+            try file.write(from: buffer)
+            return url
+        } catch {
+            return nil
+        }
     }
 }

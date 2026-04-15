@@ -14,6 +14,7 @@
 		2834FAE56C1E4516FDF49EAD /* MotionComfortCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		2DB556654C0D422A23D34F23 /* AudioMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = E596DD7A7552BBD911094E82 /* AudioMode.swift */; };
 		4047511AAA69076A6644324C /* MotionComfortApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C0C127A85D1D9E3A3250555 /* MotionComfortApp.swift */; };
+		40A0C92B58F748C6B0C93111 /* InterfaceOrientationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40A0C92B58F748C6B0C93110 /* InterfaceOrientationSupport.swift */; };
 		49B75F88A3EBE05B4382F2A2 /* MotionSmoother.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAD4558D9028E14BD3D18A5 /* MotionSmoother.swift */; };
 		4B2BB8C22DABFCAF9B7C95E4 /* MotionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D0523F47FAFF246C331DA0E /* MotionManager.swift */; };
 		68AC87E5E852D245DF0A0528 /* MathSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6E9DD2657BEDEECD3072A3F /* MathSupport.swift */; };
@@ -24,6 +25,7 @@
 		7D2FE6F586C66150F4F935CE /* CueLayoutEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA128AA038DDA3C04B400478 /* CueLayoutEngine.swift */; };
 		7F3EE2CD8CC5C3AC5B8FF37E /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D3CF65ED7E94C90D977498F /* DashboardView.swift */; };
 		82CE154486A6491F9DDB587A /* MotionFlowStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D3E070D40774EC82E3EC1D6 /* MotionFlowStyle.swift */; };
+		82D7D44A1D5B46E6A88A6401 /* InterfaceRenderOrientation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D7D44A1D5B46E6A88A6400 /* InterfaceRenderOrientation.swift */; };
 		8AF3DDAEB876CF1FDED2D4D3 /* MotionComfortCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		8DEA1804DD3CA5C90C33AA5E /* PeripheralCueOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4A21DC17180624BDB45D2E7 /* PeripheralCueOverlay.swift */; };
 		9472A062B3ED1FD74BE798E0 /* ComfortSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4D41F7A73555BC0B8DC3B0 /* ComfortSessionViewModel.swift */; };
@@ -127,8 +129,10 @@
 		75A6908D8E63FDED07FDD9E0 /* MotionComfortApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MotionComfortApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		77CC77D34BEE923AF3B0B2A5 /* MotionSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionSample.swift; sourceTree = "<group>"; };
 		7D3E070D40774EC82E3EC1D6 /* MotionFlowStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionFlowStyle.swift; sourceTree = "<group>"; };
+		82D7D44A1D5B46E6A88A6400 /* InterfaceRenderOrientation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceRenderOrientation.swift; sourceTree = "<group>"; };
 		91B5EC0182C29C428285C38E /* MotionComfortCoreTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MotionComfortCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C0C127A85D1D9E3A3250555 /* MotionComfortApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionComfortApp.swift; sourceTree = "<group>"; };
+		40A0C92B58F748C6B0C93110 /* InterfaceOrientationSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceOrientationSupport.swift; sourceTree = "<group>"; };
 		AB452209C83D694142D121F5 /* FullscreenSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenSessionView.swift; sourceTree = "<group>"; };
 		AC269D3D1E1DAF571FA07CF8 /* ReferenceFlowOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceFlowOverlay.swift; sourceTree = "<group>"; };
 		AED548E8A4B5948ECDC8702F /* VisualGuideStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualGuideStyle.swift; sourceTree = "<group>"; };
@@ -245,6 +249,7 @@
 				FD4D41F7A73555BC0B8DC3B0 /* ComfortSessionViewModel.swift */,
 				5D3CF65ED7E94C90D977498F /* DashboardView.swift */,
 				AB452209C83D694142D121F5 /* FullscreenSessionView.swift */,
+				40A0C92B58F748C6B0C93110 /* InterfaceOrientationSupport.swift */,
 				9C0C127A85D1D9E3A3250555 /* MotionComfortApp.swift */,
 			);
 			name = Sources;
@@ -256,6 +261,7 @@
 			children = (
 				1F96F34758FAA04D75F9FF4E /* CloudVisualStyle.swift */,
 				C87D5E483454F259BE3E6B98 /* FlowFieldSupport.swift */,
+				82D7D44A1D5B46E6A88A6400 /* InterfaceRenderOrientation.swift */,
 				65489C6CA0910899D6F95843 /* LiveViewCameraSupport.swift */,
 				1A17BECD61391825D42CCBBB /* MotionCloudOverlay.swift */,
 				2990D0D202301558CDF2A5D1 /* MotionFlowOverlay.swift */,
@@ -409,6 +415,7 @@
 			files = (
 				CF464D74364984DFED102293 /* CloudVisualStyle.swift in Sources */,
 				7554B2761694F8CB529F8ACB /* FlowFieldSupport.swift in Sources */,
+				82D7D44A1D5B46E6A88A6401 /* InterfaceRenderOrientation.swift in Sources */,
 				B3F5147D32C1FE5B12BA3520 /* LiveViewCameraSupport.swift in Sources */,
 				F9163169B9D3C5A506E88017 /* MotionCloudOverlay.swift in Sources */,
 				D0364B050A17A07FA925B847 /* MotionFlowOverlay.swift in Sources */,
@@ -428,6 +435,7 @@
 				9472A062B3ED1FD74BE798E0 /* ComfortSessionViewModel.swift in Sources */,
 				7F3EE2CD8CC5C3AC5B8FF37E /* DashboardView.swift in Sources */,
 				9F898868B1A481AE992512EA /* FullscreenSessionView.swift in Sources */,
+				40A0C92B58F748C6B0C93111 /* InterfaceOrientationSupport.swift in Sources */,
 				4047511AAA69076A6644324C /* MotionComfortApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
