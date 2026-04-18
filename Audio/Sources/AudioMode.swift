@@ -25,25 +25,21 @@ public enum AudioMode: String, CaseIterable, Identifiable, Sendable {
         case .monotone:
             return "A continuous 100 Hz signal path. Keep the volume low and use it conservatively."
         case .melodic:
-            return "Placeholder for a future music-like comfort mode."
+            return "A looped melodic comfort bed from the bundled music asset. Keep the volume low and use it conservatively."
         }
     }
 
     public var statusTitle: String {
         switch self {
-        case .off, .monotone:
+        case .off, .monotone, .melodic:
             return "Ready"
-        case .melodic:
-            return "Soon"
         }
     }
 
     public var isImplemented: Bool {
         switch self {
-        case .off, .monotone:
+        case .off, .monotone, .melodic:
             return true
-        case .melodic:
-            return false
         }
     }
 }

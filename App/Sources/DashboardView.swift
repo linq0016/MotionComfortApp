@@ -101,7 +101,7 @@ struct DashboardView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(Color(red: 0.18, green: 0.74, blue: 0.85))
 
-                Text("Live View now uses the real camera route. Dynamic and melodic still open into dedicated placeholders, so the final routing stays stable.")
+                Text("Live View now uses the real camera route. Dynamic still opens into its dedicated placeholder, and melodic now plays the bundled loop asset.")
                     .font(.system(.caption, design: .rounded))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -170,7 +170,7 @@ struct DashboardView: View {
 
     private var safetySection: some View {
         Section("Safety") {
-            Text("Passenger use only. Keep the volume low. Monotone remains a conservative 100 Hz signal path, and melodic is still a placeholder.")
+            Text("Passenger use only. Keep the volume low. Monotone remains a conservative 100 Hz signal path, and melodic now loops the bundled music asset.")
                 .fixedSize(horizontal: false, vertical: true)
 
             Text("Real-time mode reads deviceMotion.userAcceleration directly. Live View now runs the real camera preview in a stable SDR path.")

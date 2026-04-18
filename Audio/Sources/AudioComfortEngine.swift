@@ -13,6 +13,7 @@ public final class AudioComfortEngine: ObservableObject {
     private let format: AVAudioFormat
     private var buffers: [AudioMode: AVAudioPCMBuffer]
     private let monotoneAssetURL: URL?
+    private let melodicAssetURL: URL?
 
     public init(sampleRate: Double = 44_100.0) {
         guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2) else {
@@ -26,6 +27,7 @@ public final class AudioComfortEngine: ObservableObject {
         self.activeMode = .off
         self.buffers = [:]
         self.monotoneAssetURL = Self.prepareMonotoneAsset(sampleRate: sampleRate)
+        self.melodicAssetURL = Self.findMelodicAsset()
 
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: format)
@@ -55,10 +57,19 @@ public final class AudioComfortEngine: ObservableObject {
             return
         }
 
+        guard let buffer = buffer(for: mode) else {
+            player.stop()
+            player.reset()
+            engine.pause()
+            activeMode = mode
+            isPlaying = false
+            return
+        }
+
         player.stop()
         player.reset()
-        player.scheduleBuffer(buffer(for: mode), at: nil, options: [.loops], completionHandler: nil)
-        player.volume = 0.14
+        player.scheduleBuffer(buffer, at: nil, options: [.loops], completionHandler: nil)
+        player.volume = playbackVolume(for: mode)
         player.play()
 
         activeMode = mode
@@ -85,7 +96,11 @@ public final class AudioComfortEngine: ObservableObject {
             return
         }
 
-        let baseVolume: Double = activeMode == .monotone ? 0.10 : 0.12
+        guard activeMode == .monotone else {
+            return
+        }
+
+        let baseVolume: Double = 0.10
         let dynamicGain = sample.intensity * 0.16
         player.volume = Float(clamp(baseVolume + dynamicGain, minimum: 0.06, maximum: 0.28))
     }
@@ -102,17 +117,31 @@ public final class AudioComfortEngine: ObservableObject {
         }
     }
 
-    private func buffer(for mode: AudioMode) -> AVAudioPCMBuffer {
+    private func playbackVolume(for mode: AudioMode) -> Float {
+        switch mode {
+        case .off:
+            return 0.0
+        case .monotone:
+            return 0.14
+        case .melodic:
+            return 0.12
+        }
+    }
+
+    private func buffer(for mode: AudioMode) -> AVAudioPCMBuffer? {
         if let existing = buffers[mode] {
             return existing
         }
 
-        let created = makeBuffer(for: mode)
+        guard let created = makeBuffer(for: mode) else {
+            return nil
+        }
+
         buffers[mode] = created
         return created
     }
 
-    private func makeBuffer(for mode: AudioMode) -> AVAudioPCMBuffer {
+    private func makeBuffer(for mode: AudioMode) -> AVAudioPCMBuffer? {
         switch mode {
         case .off:
             return makeLoopBuffer(duration: 1.0, layers: [(220.0, 0.0)], modulationFrequency: 0.0)
@@ -123,7 +152,11 @@ public final class AudioComfortEngine: ObservableObject {
 
             return makeLoopBuffer(duration: 1.0, layers: [(100.0, 0.18)], modulationFrequency: 0.0)
         case .melodic:
-            return makeLoopBuffer(duration: 1.0, layers: [(220.0, 0.0)], modulationFrequency: 0.0)
+            guard let url = melodicAssetURL else {
+                return nil
+            }
+
+            return loadBuffer(from: url)
         }
     }
 
@@ -224,5 +257,17 @@ public final class AudioComfortEngine: ObservableObject {
         } catch {
             return nil
         }
+    }
+
+    private static func findMelodicAsset() -> URL? {
+        if let url = Bundle.main.url(forResource: "GStringsFinal", withExtension: "wav") {
+            return url
+        }
+
+        return Bundle.main.url(
+            forResource: "GStringsFinal",
+            withExtension: "wav",
+            subdirectory: "Audio/Resources"
+        )
     }
 }

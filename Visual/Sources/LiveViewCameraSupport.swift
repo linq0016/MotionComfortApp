@@ -585,8 +585,8 @@ private struct LiveViewEdgeFlowOverlay: View {
     let orientation: InterfaceRenderOrientation
 
     private let configuration = FlowGridConfiguration.liveViewEdge
-    private let safeZoneSoftInset: CGFloat = 18.0
-    private let safeZoneSoftRadiusAttenuation: CGFloat = 0.35
+    private let safeZoneSoftInset: CGFloat = 44.0
+    private let safeZoneSoftRadiusAttenuation: CGFloat = 0.5
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
@@ -699,7 +699,8 @@ private struct LiveViewEdgeFlowOverlay: View {
 
     private func smoothstep(_ value: CGFloat) -> CGFloat {
         let clamped = min(max(value, 0.0), 1.0)
-        return clamped * clamped * (3.0 - (2.0 * clamped))
+        // Use smootherstep so dots fade in/out more gradually around the safe-zone edge.
+        return clamped * clamped * clamped * (clamped * ((6.0 * clamped) - 15.0) + 10.0)
     }
 
     private func edgeDistanceWeight(point: CGPoint, canvasSize: CGSize, safeRect: CGRect) -> CGFloat {

@@ -11,6 +11,7 @@
 		1EBF733DABC6E2D0D5D8BD82 /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
 		1F33F113962A0342CCBF30E3 /* AudioComfortEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE25798B7BC90E5CC0225B1F /* AudioComfortEngine.swift */; };
 		2585CEBFA3787B05A1BE569F /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
+		261C2B23140A45298537D966 /* GStringsFinal.wav in Resources */ = {isa = PBXBuildFile; fileRef = C89F4FFEA6D14B6D8EC17AF7 /* GStringsFinal.wav */; };
 		2834FAE56C1E4516FDF49EAD /* MotionComfortCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		2DB556654C0D422A23D34F23 /* AudioMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = E596DD7A7552BBD911094E82 /* AudioMode.swift */; };
 		4047511AAA69076A6644324C /* MotionComfortApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C0C127A85D1D9E3A3250555 /* MotionComfortApp.swift */; };
@@ -136,6 +137,7 @@
 		AB452209C83D694142D121F5 /* FullscreenSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenSessionView.swift; sourceTree = "<group>"; };
 		AC269D3D1E1DAF571FA07CF8 /* ReferenceFlowOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceFlowOverlay.swift; sourceTree = "<group>"; };
 		AED548E8A4B5948ECDC8702F /* VisualGuideStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualGuideStyle.swift; sourceTree = "<group>"; };
+		C89F4FFEA6D14B6D8EC17AF7 /* GStringsFinal.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = GStringsFinal.wav; sourceTree = "<group>"; };
 		C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MotionComfortCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C87D5E483454F259BE3E6B98 /* FlowFieldSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowFieldSupport.swift; sourceTree = "<group>"; };
 		CA128AA038DDA3C04B400478 /* CueLayoutEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueLayoutEngine.swift; sourceTree = "<group>"; };
@@ -217,10 +219,20 @@
 			children = (
 				DE25798B7BC90E5CC0225B1F /* AudioComfortEngine.swift */,
 				E596DD7A7552BBD911094E82 /* AudioMode.swift */,
+				F998802B4A8E4EFBBC45D25A /* Resources */,
 			);
 			name = Sources;
 			path = Audio/Sources;
 			sourceTree = "<group>";
+		};
+		F998802B4A8E4EFBBC45D25A /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				C89F4FFEA6D14B6D8EC17AF7 /* GStringsFinal.wav */,
+			);
+			name = Resources;
+			path = Audio/Resources;
+			sourceTree = SOURCE_ROOT;
 		};
 		5F7CF635C4D8AAD7FA7BBB6A = {
 			isa = PBXGroup;
@@ -323,6 +335,7 @@
 			buildConfigurationList = A5D9E5B00C7F94582074DD28 /* Build configuration list for PBXNativeTarget "MotionComfortApp" */;
 			buildPhases = (
 				B47A7A073160E617DF89414E /* Sources */,
+				6B663B635C5347D59E2D35FD /* Resources */,
 				A492C3B88AADCDF79D3D56D4 /* Frameworks */,
 				B94EC5244A27B33A377C2205 /* Embed Frameworks */,
 			);
@@ -407,6 +420,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		6B663B635C5347D59E2D35FD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				261C2B23140A45298537D966 /* GStringsFinal.wav in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		22AD26BF01999DB02D3DF124 /* Sources */ = {

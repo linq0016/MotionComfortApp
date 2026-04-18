@@ -16,6 +16,8 @@ targets:
         INFOPLIST_FILE: App/Info.plist
     sources:
       - App/Sources
+    resources:
+      - Audio/Resources
     info:
       path: App/Info.plist
       properties:

@@ -60,7 +60,7 @@ struct FlowGridConfiguration: Sendable {
     static let liveViewEdge = FlowGridConfiguration(
         backgroundColor: Color.clear,
         dotSpacing: 32.0,
-        marginRatio: 0.14,
+        marginRatio: 0.24,
         sensorSmoothing: 0.08,
         velocityMultiplier: 25.0 * (2.0 / 3.0),
         velocityFriction: 0.15,
