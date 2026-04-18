@@ -14,6 +14,8 @@ struct FlowGridConfiguration: Sendable {
     var marginRatio: CGFloat
     var horizontalMarginRatio: CGFloat
     var verticalMarginRatio: CGFloat
+    var safeZoneCornerRadius: CGFloat
+    var safeZoneFeatherWidth: CGFloat
     var sensorSmoothing: Double
     var velocityMultiplier: Double
     var velocityFriction: Double
@@ -40,6 +42,8 @@ struct FlowGridConfiguration: Sendable {
         marginRatio: 0.25,
         horizontalMarginRatio: 0.25,
         verticalMarginRatio: 0.25,
+        safeZoneCornerRadius: 0.0,
+        safeZoneFeatherWidth: 0.0,
         sensorSmoothing: 0.08,
         velocityMultiplier: 25.0 * (2.0 / 3.0),
         velocityFriction: 0.15,
@@ -67,6 +71,8 @@ struct FlowGridConfiguration: Sendable {
         marginRatio: 0.24,
         horizontalMarginRatio: 0.26,
         verticalMarginRatio: 0.20,
+        safeZoneCornerRadius: 40.0,
+        safeZoneFeatherWidth: 88.0,
         sensorSmoothing: 0.08,
         velocityMultiplier: 25.0 * (2.0 / 3.0),
         velocityFriction: 0.15,

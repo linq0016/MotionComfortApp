@@ -585,7 +585,6 @@ private struct LiveViewEdgeFlowOverlay: View {
     let orientation: InterfaceRenderOrientation
 
     private let configuration = FlowGridConfiguration.liveViewEdge
-    private let safeZoneSoftInset: CGFloat = 44.0
     private let safeZoneSoftRadiusAttenuation: CGFloat = 0.5
 
     var body: some View {
@@ -605,12 +604,19 @@ private struct LiveViewEdgeFlowOverlay: View {
                         horizontalMarginRatio: configuration.horizontalMarginRatio,
                         verticalMarginRatio: configuration.verticalMarginRatio
                     )
-                    let softSafeRect = coreSafeRect.insetBy(dx: -safeZoneSoftInset, dy: -safeZoneSoftInset)
+                    let safeZoneCornerRadius = min(
+                        configuration.safeZoneCornerRadius,
+                        min(coreSafeRect.width, coreSafeRect.height) * 0.5
+                    )
 
                     for x in stride(from: startX, through: canvasSize.width + configuration.dotSpacing, by: configuration.dotSpacing) {
                         for y in stride(from: startY, through: canvasSize.height + configuration.dotSpacing, by: configuration.dotSpacing) {
                             let point = CGPoint(x: x, y: y)
-                            if coreSafeRect.contains(point) {
+                            if roundedRectContains(
+                                point: point,
+                                rect: coreSafeRect,
+                                cornerRadius: safeZoneCornerRadius
+                            ) {
                                 continue
                             }
 
@@ -632,7 +638,12 @@ private struct LiveViewEdgeFlowOverlay: View {
                             }
 
                             appearance.radius += pow(edgeWeight, configuration.edgeRadiusCurve) * configuration.edgeRadiusBoost
-                            let softWeight = safeZoneSoftWeight(point: point, coreSafeRect: coreSafeRect, softSafeRect: softSafeRect)
+                            let softWeight = safeZoneSoftWeight(
+                                point: point,
+                                coreSafeRect: coreSafeRect,
+                                cornerRadius: safeZoneCornerRadius,
+                                featherWidth: configuration.safeZoneFeatherWidth
+                            )
                             appearance.alpha *= Double(softWeight)
                             appearance.radius *= 1.0 - (safeZoneSoftRadiusAttenuation * (1.0 - softWeight))
 
@@ -689,25 +700,46 @@ private struct LiveViewEdgeFlowOverlay: View {
     private func safeZoneSoftWeight(
         point: CGPoint,
         coreSafeRect: CGRect,
-        softSafeRect: CGRect
+        cornerRadius: CGFloat,
+        featherWidth: CGFloat
     ) -> CGFloat {
-        guard softSafeRect.contains(point) else {
+        let distance = distanceToRoundedRect(
+            point: point,
+            rect: coreSafeRect,
+            cornerRadius: cornerRadius
+        )
+        guard distance < featherWidth else {
             return 1.0
         }
 
-        let distanceToCore = min(
-            abs(point.x - coreSafeRect.minX),
-            abs(point.x - coreSafeRect.maxX),
-            abs(point.y - coreSafeRect.minY),
-            abs(point.y - coreSafeRect.maxY)
-        )
-        let normalized = min(max(distanceToCore / max(safeZoneSoftInset, 1.0), 0.0), 1.0)
-        return smoothstep(normalized)
+        let normalized = min(max(distance / max(featherWidth, 1.0), 0.0), 1.0)
+        return smootherstep(normalized)
     }
 
-    private func smoothstep(_ value: CGFloat) -> CGFloat {
+    private func roundedRectContains(point: CGPoint, rect: CGRect, cornerRadius: CGFloat) -> Bool {
+        distanceToRoundedRect(point: point, rect: rect, cornerRadius: cornerRadius) <= 0.0
+    }
+
+    private func distanceToRoundedRect(
+        point: CGPoint,
+        rect: CGRect,
+        cornerRadius: CGFloat
+    ) -> CGFloat {
+        let radius = min(cornerRadius, min(rect.width, rect.height) * 0.5)
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let localX = abs(point.x - center.x)
+        let localY = abs(point.y - center.y)
+        let halfWidth = (rect.width * 0.5) - radius
+        let halfHeight = (rect.height * 0.5) - radius
+        let deltaX = localX - max(halfWidth, 0.0)
+        let deltaY = localY - max(halfHeight, 0.0)
+        let outsideDistance = hypot(max(deltaX, 0.0), max(deltaY, 0.0))
+        let insideDistance = min(max(deltaX, deltaY), 0.0)
+        return outsideDistance + insideDistance - radius
+    }
+
+    private func smootherstep(_ value: CGFloat) -> CGFloat {
         let clamped = min(max(value, 0.0), 1.0)
-        // Use smootherstep so dots fade in/out more gradually around the safe-zone edge.
         return clamped * clamped * clamped * (clamped * ((6.0 * clamped) - 15.0) + 10.0)
     }
 
