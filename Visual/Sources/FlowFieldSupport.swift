@@ -52,8 +52,8 @@ struct FlowGridConfiguration: Sendable {
         magnitudeDecaySmoothing: 0.94,
         maxAccelThreshold: 0.33,
         motionDeadzone: 0.006,
-        baseDensity: 0.13,
-        extraDensityRange: 0.75,
+        baseDensity: 0.20,
+        extraDensityRange: 0.60,
         baseOpacity: 0.12,
         baseRadius: 1.6,
         maxExtraRadius: 3.5,
@@ -62,7 +62,7 @@ struct FlowGridConfiguration: Sendable {
         minimumVisibleAlpha: 0.018,
         maxAlpha: 0.76,
         fadeMultiplier: 1.45,
-        alphaVariation: 0.22,
+        alphaVariation: 0.50,
         invertHorizontalFlow: true,
         invertVerticalFlow: true
     )
@@ -82,8 +82,8 @@ struct FlowGridConfiguration: Sendable {
         magnitudeDecaySmoothing: 0.94,
         maxAccelThreshold: 0.33,
         motionDeadzone: 0.006,
-        baseDensity: 0.18,
-        extraDensityRange: 0.72,
+        baseDensity: 0.20,
+        extraDensityRange: 0.64,
         baseOpacity: 0.21,
         baseRadius: 1.8,
         maxExtraRadius: 3.5,
@@ -92,7 +92,7 @@ struct FlowGridConfiguration: Sendable {
         minimumVisibleAlpha: 0.03,
         maxAlpha: 0.86,
         fadeMultiplier: 1.55,
-        alphaVariation: 0.18,
+        alphaVariation: 0.50,
         invertHorizontalFlow: true,
         invertVerticalFlow: true
     )
@@ -207,7 +207,8 @@ func flowDotAppearance(
     }
 
     if configuration.alphaVariation > 0.0 {
-        let variation = 1.0 - (configuration.alphaVariation * 0.5) + (hash * configuration.alphaVariation)
+        let variationRange = configuration.alphaVariation * (0.90 + (0.70 * normA))
+        let variation = 1.0 - (variationRange * 0.5) + (hash * variationRange)
         alpha *= variation
     }
 

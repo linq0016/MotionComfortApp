@@ -63,3 +63,8 @@ Audio should still be framed conservatively. This is a comfort or support app, n
 2. Add onboarding and clearer passenger-only safety guidance.
 3. Add user studies for visual comfort, audio preference, and false-positive motion cases.
 4. Continue tightening session architecture as more visual modes are added.
+
+## Release Versioning
+
+- Keep `project.yml`'s `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` aligned with the current git tag.
+- When saving a new `vX.Y.Z` release, bump the app version in the same change so the bundle version and git tag stay in sync.
