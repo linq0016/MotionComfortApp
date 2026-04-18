@@ -71,13 +71,17 @@ private struct DynamicMetalView: UIViewRepresentable {
         view.colorPixelFormat = .bgra8Unorm
         view.backgroundColor = UIColor(red: 1.0 / 255.0, green: 1.0 / 255.0, blue: 5.0 / 255.0, alpha: 1.0)
 
-        guard device != nil else {
+        guard let device else {
             view.showFailure("Metal unavailable")
             return view
         }
 
         do {
-            let renderer = try DynamicMetalRenderer(mtkView: view)
+            let renderer = try DynamicMetalRenderer(
+                device: device,
+                colorPixelFormat: view.colorPixelFormat,
+                drawableSize: view.drawableSize
+            )
             renderer.sample = sample
             renderer.warpMode = warpMode
             context.coordinator.renderer = renderer
@@ -295,13 +299,11 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     private var haloCount = 0
     private var sharpCount = 0
 
-    init(mtkView: MTKView) throws {
-        guard
-            let device = mtkView.device
-        else {
-            throw DynamicRendererSetupError.missingCommandQueue
-        }
-
+    init(
+        device: MTLDevice,
+        colorPixelFormat: MTLPixelFormat,
+        drawableSize: CGSize
+    ) throws {
         guard let commandQueue = device.makeCommandQueue() else {
             throw DynamicRendererSetupError.missingCommandQueue
         }
@@ -335,13 +337,13 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             additivePipeline = try DynamicMetalRenderer.makePipeline(
                 device: device,
                 library: library,
-                pixelFormat: mtkView.colorPixelFormat,
+                pixelFormat: colorPixelFormat,
                 fragmentBlend: .additive
             )
             screenPipeline = try DynamicMetalRenderer.makePipeline(
                 device: device,
                 library: library,
-                pixelFormat: mtkView.colorPixelFormat,
+                pixelFormat: colorPixelFormat,
                 fragmentBlend: .screen
             )
         } catch let error as DynamicRendererSetupError {
@@ -396,8 +398,8 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
 
         super.init()
 
-        drawableSize = mtkView.drawableSize
-        rebuildScene(for: mtkView.drawableSize)
+        self.drawableSize = drawableSize
+        rebuildScene(for: drawableSize)
     }
 
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
