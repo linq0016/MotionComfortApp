@@ -90,19 +90,12 @@ public final class AudioComfortEngine: ObservableObject {
         }
     }
 
-    // 用运动强度轻微调节音量，保持音频只做辅助。
+    // 目前 Monotone 走固定音量，不再跟随 motion 强度变化。
     public func update(with sample: MotionSample) {
-        guard activeMode != .off, activeMode.isImplemented else {
-            return
-        }
-
+        _ = sample
         guard activeMode == .monotone else {
             return
         }
-
-        let baseVolume: Double = 0.10
-        let dynamicGain = sample.intensity * 0.16
-        player.volume = Float(clamp(baseVolume + dynamicGain, minimum: 0.06, maximum: 0.28))
     }
 
     private func configureAudioSession() throws {
@@ -122,9 +115,9 @@ public final class AudioComfortEngine: ObservableObject {
         case .off:
             return 0.0
         case .monotone:
-            return 0.14
+            return 0.18
         case .melodic:
-            return 0.12
+            return 0.19
         }
     }
 

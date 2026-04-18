@@ -17,6 +17,7 @@ struct DashboardView: View {
                 visualSection
                 motionSection
                 audioSection
+                sessionSection
                 metricsSection
                 safetySection
             }
@@ -80,29 +81,17 @@ struct DashboardView: View {
                 Text("MotionComfort")
                     .font(.system(size: 34.0, weight: .bold, design: .rounded))
 
-                Text("Three visual routes, three audio routes, one stable session architecture.")
+                Text("Choose a visual route first, then layer motion input and optional audio on top of it.")
                     .font(.system(.body, design: .rounded))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                LabeledContent("Visual route", value: model.visualGuideStyle.title)
-                LabeledContent("Motion input", value: model.motionModeLabel)
-                LabeledContent("Audio route", value: model.audioMode.title)
+                Text("Current focus: \(model.visualGuideStyle.title)")
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.88))
 
                 Text(model.comfortNote)
                     .font(.system(.subheadline, design: .rounded))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Button(action: startSession) {
-                    Label("Start fullscreen session", systemImage: "play.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Color(red: 0.18, green: 0.74, blue: 0.85))
-
-                Text("Live View now uses the real camera route. Dynamic still opens into its dedicated placeholder, and melodic now plays the bundled loop asset.")
-                    .font(.system(.caption, design: .rounded))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -111,15 +100,15 @@ struct DashboardView: View {
     }
 
     private var visualSection: some View {
-        Section("Visual") {
-            Toggle("Peripheral visual guidance", isOn: $model.visualGuidesEnabled)
-
+        Section("Visual Mode") {
             Picker("Visual mode", selection: $model.visualGuideStyle) {
                 ForEach(VisualGuideStyle.allCases) { style in
                     Text(style.title).tag(style)
                 }
             }
             .pickerStyle(.menu)
+
+            LabeledContent("Status", value: model.visualGuideStyle.statusTitle)
 
             Text(model.visualGuideStyleNote)
                 .font(.system(.caption, design: .rounded))
@@ -160,6 +149,31 @@ struct DashboardView: View {
         }
     }
 
+    private var sessionSection: some View {
+        Section("Session") {
+            LabeledContent("Visual route", value: model.visualGuideStyle.title)
+            LabeledContent("Motion input", value: model.motionModeLabel)
+            LabeledContent("Audio route", value: model.audioMode.title)
+
+            Text(model.comfortNote)
+                .font(.system(.subheadline, design: .rounded))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button(action: startSession) {
+                Label("Start fullscreen session", systemImage: "play.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color(red: 0.18, green: 0.74, blue: 0.85))
+
+            Text("Minimal and Live View are live routes. Dynamic still enters its own placeholder session, and melodic now loops the bundled asset.")
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     private var metricsSection: some View {
         Section("Live Motion") {
             LabeledContent("Lateral G", value: valueString(model.sample.lateralAcceleration))
@@ -170,10 +184,10 @@ struct DashboardView: View {
 
     private var safetySection: some View {
         Section("Safety") {
-            Text("Passenger use only. Keep the volume low. Monotone remains a conservative 100 Hz signal path, and melodic now loops the bundled music asset.")
+            Text("Passenger use only. Keep the volume low. Monotone remains a conservative 100 Hz signal path, and melodic loops the bundled music asset.")
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("Real-time mode reads deviceMotion.userAcceleration directly. Live View now runs the real camera preview in a stable SDR path.")
+            Text("Real-time mode reads deviceMotion.userAcceleration directly. Live View runs the real camera preview in a stable SDR path.")
                 .font(.system(.caption, design: .rounded))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

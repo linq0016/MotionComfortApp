@@ -602,7 +602,8 @@ private struct LiveViewEdgeFlowOverlay: View {
                     let coreSafeRect = makeSafeRect(
                         in: canvasSize,
                         horizontalMarginRatio: configuration.horizontalMarginRatio,
-                        verticalMarginRatio: configuration.verticalMarginRatio
+                        verticalMarginRatio: configuration.verticalMarginRatio,
+                        orientation: orientation
                     )
                     let safeZoneCornerRadius = min(
                         configuration.safeZoneCornerRadius,
@@ -687,13 +688,26 @@ private struct LiveViewEdgeFlowOverlay: View {
     private func makeSafeRect(
         in size: CGSize,
         horizontalMarginRatio: CGFloat,
-        verticalMarginRatio: CGFloat
+        verticalMarginRatio: CGFloat,
+        orientation: InterfaceRenderOrientation
     ) -> CGRect {
-        CGRect(
-            x: size.width * horizontalMarginRatio,
-            y: size.height * verticalMarginRatio,
-            width: size.width * (1.0 - (horizontalMarginRatio * 2.0)),
-            height: size.height * (1.0 - (verticalMarginRatio * 2.0))
+        let effectiveHorizontalMarginRatio: CGFloat
+        let effectiveVerticalMarginRatio: CGFloat
+
+        switch orientation {
+        case .portrait:
+            effectiveHorizontalMarginRatio = horizontalMarginRatio
+            effectiveVerticalMarginRatio = verticalMarginRatio
+        case .landscapeLeft, .landscapeRight:
+            effectiveHorizontalMarginRatio = verticalMarginRatio
+            effectiveVerticalMarginRatio = horizontalMarginRatio
+        }
+
+        return CGRect(
+            x: size.width * effectiveHorizontalMarginRatio,
+            y: size.height * effectiveVerticalMarginRatio,
+            width: size.width * (1.0 - (effectiveHorizontalMarginRatio * 2.0)),
+            height: size.height * (1.0 - (effectiveVerticalMarginRatio * 2.0))
         )
     }
 

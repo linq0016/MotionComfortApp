@@ -3,18 +3,15 @@ import SwiftUI
 
 // 视觉模式分发层：根据当前样式切到对应的渲染器。
 public struct PeripheralCueOverlay: View {
-    public var cueState: CueState
     public var sample: MotionSample
     public var visualStyle: VisualGuideStyle
     public var orientation: InterfaceRenderOrientation
 
     public init(
-        cueState: CueState,
         sample: MotionSample = .neutral,
         visualStyle: VisualGuideStyle = .minimal,
         orientation: InterfaceRenderOrientation = .portrait
     ) {
-        self.cueState = cueState
         self.sample = sample
         self.visualStyle = visualStyle
         self.orientation = orientation

@@ -11,15 +11,12 @@ struct FullscreenSessionView: View {
         ZStack {
             sessionBackground
 
-            if model.visualGuideStyle == .liveView || !model.visualGuideStyle.isImplemented || model.visualGuidesEnabled {
-                PeripheralCueOverlay(
-                    cueState: model.cueState,
-                    sample: model.sample,
-                    visualStyle: model.visualGuideStyle,
-                    orientation: orientationObserver.orientation
-                )
-                    .ignoresSafeArea()
-            }
+            PeripheralCueOverlay(
+                sample: model.sample,
+                visualStyle: model.visualGuideStyle,
+                orientation: orientationObserver.orientation
+            )
+                .ignoresSafeArea()
 
             VStack {
                 HStack {

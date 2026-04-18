@@ -7,7 +7,6 @@ import MotionComfortVisual
 // 会话中控：把界面、运动输入、视觉状态和音频状态串起来。
 @MainActor
 final class ComfortSessionViewModel: ObservableObject {
-    @Published var visualGuidesEnabled = true
     @Published var visualGuideStyle: VisualGuideStyle = .minimal
     @Published var motionInputMode: MotionInputMode = .realTime
     @Published var audioMode: AudioMode = .off {
@@ -20,7 +19,6 @@ final class ComfortSessionViewModel: ObservableObject {
         }
     }
 
-    @Published private(set) var cueState: CueState = .neutral
     @Published private(set) var sample: MotionSample = .neutral
     @Published private(set) var isRunning = false
 
@@ -56,23 +54,22 @@ final class ComfortSessionViewModel: ObservableObject {
     }
 
     var comfortNote: String {
-        if !visualGuideStyle.isImplemented || !audioMode.isImplemented {
-            return "Current selection includes placeholder modes so we can keep the architecture and routing in place."
-        }
-
-        if visualGuidesEnabled && audioMode != .off {
-            return "Visual guidance stays primary. Audio remains optional and conservative."
-        }
-
-        if visualGuidesEnabled {
-            return "Visual guidance only. This is the safest default product mode."
+        if !visualGuideStyle.isImplemented {
+            return "Dynamic keeps its own placeholder session so the visual routing and exit flow stay stable while that mode is still in parallel development."
         }
 
         if audioMode != .off {
-            return "Audio only. Keep claims soft and volume low."
+            return "Visual guidance stays primary. Audio remains optional and conservative."
         }
 
-        return "Both systems are idle."
+        switch visualGuideStyle {
+        case .minimal:
+            return "Minimal stays the clearest baseline route and remains the safest default product mode."
+        case .dynamic:
+            return "Dynamic is still a placeholder route."
+        case .liveView:
+            return "Live View keeps the real camera route front and center, with edge cues only around the reading area."
+        }
     }
 
     var motionModeLabel: String {
@@ -91,18 +88,6 @@ final class ComfortSessionViewModel: ObservableObject {
         visualGuideStyle.note
     }
 
-    var visualGuideStatusTitle: String {
-        visualGuideStyle.statusTitle
-    }
-
-    var audioModeStatusTitle: String {
-        audioMode.statusTitle
-    }
-
-    func toggleSession() {
-        isRunning ? stop() : start()
-    }
-
     // 启动当前选择的 motion 和 audio 模式。
     func start() {
         motionManager.start(mode: motionInputMode)
@@ -116,13 +101,11 @@ final class ComfortSessionViewModel: ObservableObject {
     func stop() {
         motionManager.stop()
         audioEngine.stopPlayback()
-        cueState = .neutral
     }
 
-    // 把最新运动快照同步到页面和视觉中间状态。
+    // 把最新运动快照同步到页面和音频层。
     private func ingest(_ sample: MotionSample) {
         self.sample = sample
-        cueState = CueState.from(sample: sample)
 
         if isRunning {
             audioEngine.update(with: sample)

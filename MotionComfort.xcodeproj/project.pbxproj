@@ -8,25 +8,21 @@
 
 /* Begin PBXBuildFile section */
 		139016A935D61DBCD073ECA5 /* MotionInputMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22CB95C6460D4B3F4317E005 /* MotionInputMode.swift */; };
+		1C2C0BE5BF2EF5A6CD323C54 /* InterfaceOrientationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B14CE6A0852EC363843A281 /* InterfaceOrientationSupport.swift */; };
 		1EBF733DABC6E2D0D5D8BD82 /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
 		1F33F113962A0342CCBF30E3 /* AudioComfortEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE25798B7BC90E5CC0225B1F /* AudioComfortEngine.swift */; };
 		2585CEBFA3787B05A1BE569F /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
-		261C2B23140A45298537D966 /* GStringsFinal.wav in Resources */ = {isa = PBXBuildFile; fileRef = C89F4FFEA6D14B6D8EC17AF7 /* GStringsFinal.wav */; };
 		2834FAE56C1E4516FDF49EAD /* MotionComfortCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		2DB556654C0D422A23D34F23 /* AudioMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = E596DD7A7552BBD911094E82 /* AudioMode.swift */; };
 		4047511AAA69076A6644324C /* MotionComfortApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C0C127A85D1D9E3A3250555 /* MotionComfortApp.swift */; };
-		40A0C92B58F748C6B0C93111 /* InterfaceOrientationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40A0C92B58F748C6B0C93110 /* InterfaceOrientationSupport.swift */; };
-		49B75F88A3EBE05B4382F2A2 /* MotionSmoother.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFAD4558D9028E14BD3D18A5 /* MotionSmoother.swift */; };
 		4B2BB8C22DABFCAF9B7C95E4 /* MotionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D0523F47FAFF246C331DA0E /* MotionManager.swift */; };
 		68AC87E5E852D245DF0A0528 /* MathSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6E9DD2657BEDEECD3072A3F /* MathSupport.swift */; };
 		6FA6B7DE478A03DF6792A031 /* VisualGuideStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED548E8A4B5948ECDC8702F /* VisualGuideStyle.swift */; };
 		7554B2761694F8CB529F8ACB /* FlowFieldSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C87D5E483454F259BE3E6B98 /* FlowFieldSupport.swift */; };
 		76D34D2ADF5EF8A41CEF6FDA /* MotionComfortAudio.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7866D40E8BD0D22402405151 /* ReferenceFlowOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC269D3D1E1DAF571FA07CF8 /* ReferenceFlowOverlay.swift */; };
-		7D2FE6F586C66150F4F935CE /* CueLayoutEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA128AA038DDA3C04B400478 /* CueLayoutEngine.swift */; };
 		7F3EE2CD8CC5C3AC5B8FF37E /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D3CF65ED7E94C90D977498F /* DashboardView.swift */; };
-		82CE154486A6491F9DDB587A /* MotionFlowStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D3E070D40774EC82E3EC1D6 /* MotionFlowStyle.swift */; };
-		82D7D44A1D5B46E6A88A6401 /* InterfaceRenderOrientation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D7D44A1D5B46E6A88A6400 /* InterfaceRenderOrientation.swift */; };
+		81F87F35E289D355C04C721D /* InterfaceRenderOrientation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E22921B4585FC5FE4956E2 /* InterfaceRenderOrientation.swift */; };
 		8AF3DDAEB876CF1FDED2D4D3 /* MotionComfortCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		8DEA1804DD3CA5C90C33AA5E /* PeripheralCueOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4A21DC17180624BDB45D2E7 /* PeripheralCueOverlay.swift */; };
 		9472A062B3ED1FD74BE798E0 /* ComfortSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4D41F7A73555BC0B8DC3B0 /* ComfortSessionViewModel.swift */; };
@@ -34,15 +30,12 @@
 		B3F5147D32C1FE5B12BA3520 /* LiveViewCameraSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65489C6CA0910899D6F95843 /* LiveViewCameraSupport.swift */; };
 		BEB987D491077C389D458E8B /* MotionComfortVisual.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9D576541804142D51D06E41 /* MotionComfortVisual.framework */; };
 		C11B8352EF683FB2C3FA4E89 /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
-		CF464D74364984DFED102293 /* CloudVisualStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F96F34758FAA04D75F9FF4E /* CloudVisualStyle.swift */; };
-		D0364B050A17A07FA925B847 /* MotionFlowOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2990D0D202301558CDF2A5D1 /* MotionFlowOverlay.swift */; };
 		D0E7EFEB74D3B209F29C9445 /* MotionComfortAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */; };
 		D89298D90E2D8999CE56A5E1 /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
 		E2AE1751622914086F5DAD61 /* MotionSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77CC77D34BEE923AF3B0B2A5 /* MotionSample.swift */; };
 		E988AE247BF96F068C25D48D /* CueState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4915CA173CE00311FADAE505 /* CueState.swift */; };
 		EA82D86667A905D7779E5BEA /* MotionComfortVisual.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E9D576541804142D51D06E41 /* MotionComfortVisual.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		EB531C5D92DAAA6EF71682BE /* CueStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11682D824853FBBBEA3C1F16 /* CueStateTests.swift */; };
-		F9163169B9D3C5A506E88017 /* MotionCloudOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A17BECD61391825D42CCBBB /* MotionCloudOverlay.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -119,29 +112,22 @@
 
 /* Begin PBXFileReference section */
 		11682D824853FBBBEA3C1F16 /* CueStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueStateTests.swift; sourceTree = "<group>"; };
-		1A17BECD61391825D42CCBBB /* MotionCloudOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionCloudOverlay.swift; sourceTree = "<group>"; };
-		1F96F34758FAA04D75F9FF4E /* CloudVisualStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudVisualStyle.swift; sourceTree = "<group>"; };
 		22CB95C6460D4B3F4317E005 /* MotionInputMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionInputMode.swift; sourceTree = "<group>"; };
-		2990D0D202301558CDF2A5D1 /* MotionFlowOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionFlowOverlay.swift; sourceTree = "<group>"; };
 		3D0523F47FAFF246C331DA0E /* MotionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionManager.swift; sourceTree = "<group>"; };
-		40A0C92B58F748C6B0C93110 /* InterfaceOrientationSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceOrientationSupport.swift; sourceTree = "<group>"; };
 		4915CA173CE00311FADAE505 /* CueState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueState.swift; sourceTree = "<group>"; };
+		50E22921B4585FC5FE4956E2 /* InterfaceRenderOrientation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceRenderOrientation.swift; sourceTree = "<group>"; };
 		5D3CF65ED7E94C90D977498F /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		65489C6CA0910899D6F95843 /* LiveViewCameraSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveViewCameraSupport.swift; sourceTree = "<group>"; };
-		75A6908D8E63FDED07FDD9E0 /* MotionComfortApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MotionComfortApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		75A6908D8E63FDED07FDD9E0 /* MotionComfortApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MotionComfortApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		77CC77D34BEE923AF3B0B2A5 /* MotionSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionSample.swift; sourceTree = "<group>"; };
-		7D3E070D40774EC82E3EC1D6 /* MotionFlowStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionFlowStyle.swift; sourceTree = "<group>"; };
-		82D7D44A1D5B46E6A88A6400 /* InterfaceRenderOrientation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceRenderOrientation.swift; sourceTree = "<group>"; };
+		8B14CE6A0852EC363843A281 /* InterfaceOrientationSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceOrientationSupport.swift; sourceTree = "<group>"; };
 		91B5EC0182C29C428285C38E /* MotionComfortCoreTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MotionComfortCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C0C127A85D1D9E3A3250555 /* MotionComfortApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionComfortApp.swift; sourceTree = "<group>"; };
 		AB452209C83D694142D121F5 /* FullscreenSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenSessionView.swift; sourceTree = "<group>"; };
 		AC269D3D1E1DAF571FA07CF8 /* ReferenceFlowOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferenceFlowOverlay.swift; sourceTree = "<group>"; };
 		AED548E8A4B5948ECDC8702F /* VisualGuideStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualGuideStyle.swift; sourceTree = "<group>"; };
-		C89F4FFEA6D14B6D8EC17AF7 /* GStringsFinal.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = GStringsFinal.wav; sourceTree = "<group>"; };
 		C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MotionComfortCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C87D5E483454F259BE3E6B98 /* FlowFieldSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowFieldSupport.swift; sourceTree = "<group>"; };
-		CA128AA038DDA3C04B400478 /* CueLayoutEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueLayoutEngine.swift; sourceTree = "<group>"; };
-		CFAD4558D9028E14BD3D18A5 /* MotionSmoother.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionSmoother.swift; sourceTree = "<group>"; };
 		DE25798B7BC90E5CC0225B1F /* AudioComfortEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioComfortEngine.swift; sourceTree = "<group>"; };
 		E4A21DC17180624BDB45D2E7 /* PeripheralCueOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeripheralCueOverlay.swift; sourceTree = "<group>"; };
 		E596DD7A7552BBD911094E82 /* AudioMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMode.swift; sourceTree = "<group>"; };
@@ -192,11 +178,9 @@
 		13C572B481556EB25489E1E2 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				CA128AA038DDA3C04B400478 /* CueLayoutEngine.swift */,
 				4915CA173CE00311FADAE505 /* CueState.swift */,
 				F6E9DD2657BEDEECD3072A3F /* MathSupport.swift */,
 				77CC77D34BEE923AF3B0B2A5 /* MotionSample.swift */,
-				CFAD4558D9028E14BD3D18A5 /* MotionSmoother.swift */,
 			);
 			name = Sources;
 			path = Core/Sources;
@@ -219,20 +203,10 @@
 			children = (
 				DE25798B7BC90E5CC0225B1F /* AudioComfortEngine.swift */,
 				E596DD7A7552BBD911094E82 /* AudioMode.swift */,
-				F998802B4A8E4EFBBC45D25A /* Resources */,
 			);
 			name = Sources;
 			path = Audio/Sources;
 			sourceTree = "<group>";
-		};
-		F998802B4A8E4EFBBC45D25A /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-				C89F4FFEA6D14B6D8EC17AF7 /* GStringsFinal.wav */,
-			);
-			name = Resources;
-			path = Audio/Resources;
-			sourceTree = SOURCE_ROOT;
 		};
 		5F7CF635C4D8AAD7FA7BBB6A = {
 			isa = PBXGroup;
@@ -261,7 +235,7 @@
 				FD4D41F7A73555BC0B8DC3B0 /* ComfortSessionViewModel.swift */,
 				5D3CF65ED7E94C90D977498F /* DashboardView.swift */,
 				AB452209C83D694142D121F5 /* FullscreenSessionView.swift */,
-				40A0C92B58F748C6B0C93110 /* InterfaceOrientationSupport.swift */,
+				8B14CE6A0852EC363843A281 /* InterfaceOrientationSupport.swift */,
 				9C0C127A85D1D9E3A3250555 /* MotionComfortApp.swift */,
 			);
 			name = Sources;
@@ -271,13 +245,9 @@
 		CB94E36AF8122CFCBE1A6782 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				1F96F34758FAA04D75F9FF4E /* CloudVisualStyle.swift */,
 				C87D5E483454F259BE3E6B98 /* FlowFieldSupport.swift */,
-				82D7D44A1D5B46E6A88A6400 /* InterfaceRenderOrientation.swift */,
+				50E22921B4585FC5FE4956E2 /* InterfaceRenderOrientation.swift */,
 				65489C6CA0910899D6F95843 /* LiveViewCameraSupport.swift */,
-				1A17BECD61391825D42CCBBB /* MotionCloudOverlay.swift */,
-				2990D0D202301558CDF2A5D1 /* MotionFlowOverlay.swift */,
-				7D3E070D40774EC82E3EC1D6 /* MotionFlowStyle.swift */,
 				22CB95C6460D4B3F4317E005 /* MotionInputMode.swift */,
 				3D0523F47FAFF246C331DA0E /* MotionManager.swift */,
 				E4A21DC17180624BDB45D2E7 /* PeripheralCueOverlay.swift */,
@@ -334,8 +304,8 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A5D9E5B00C7F94582074DD28 /* Build configuration list for PBXNativeTarget "MotionComfortApp" */;
 			buildPhases = (
+				14C1AD1F0114826D5E57E1DF /* Copy Melodic Asset */,
 				B47A7A073160E617DF89414E /* Sources */,
-				6B663B635C5347D59E2D35FD /* Resources */,
 				A492C3B88AADCDF79D3D56D4 /* Frameworks */,
 				B94EC5244A27B33A377C2205 /* Embed Frameworks */,
 			);
@@ -397,6 +367,11 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					4F4108D2ACF64EE49210BFF1 = {
+						DevelopmentTeam = 9NWVQ7RFAT;
+					};
+				};
 			};
 			buildConfigurationList = EC5AFAD05542F096D9FD937F /* Build configuration list for PBXProject "MotionComfort" */;
 			developmentRegion = en;
@@ -421,29 +396,35 @@
 		};
 /* End PBXProject section */
 
-/* Begin PBXResourcesBuildPhase section */
-		6B663B635C5347D59E2D35FD /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
+/* Begin PBXShellScriptBuildPhase section */
+		14C1AD1F0114826D5E57E1DF /* Copy Melodic Asset */ = {
+			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				261C2B23140A45298537D966 /* GStringsFinal.wav in Resources */,
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Melodic Asset";
+			outputFileListPaths = (
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cp \"${SRCROOT}/Audio/Resources/GStringsFinal.wav\" \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GStringsFinal.wav\"";
 		};
-/* End PBXResourcesBuildPhase section */
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		22AD26BF01999DB02D3DF124 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CF464D74364984DFED102293 /* CloudVisualStyle.swift in Sources */,
 				7554B2761694F8CB529F8ACB /* FlowFieldSupport.swift in Sources */,
-				82D7D44A1D5B46E6A88A6401 /* InterfaceRenderOrientation.swift in Sources */,
+				81F87F35E289D355C04C721D /* InterfaceRenderOrientation.swift in Sources */,
 				B3F5147D32C1FE5B12BA3520 /* LiveViewCameraSupport.swift in Sources */,
-				F9163169B9D3C5A506E88017 /* MotionCloudOverlay.swift in Sources */,
-				D0364B050A17A07FA925B847 /* MotionFlowOverlay.swift in Sources */,
-				82CE154486A6491F9DDB587A /* MotionFlowStyle.swift in Sources */,
 				139016A935D61DBCD073ECA5 /* MotionInputMode.swift in Sources */,
 				4B2BB8C22DABFCAF9B7C95E4 /* MotionManager.swift in Sources */,
 				8DEA1804DD3CA5C90C33AA5E /* PeripheralCueOverlay.swift in Sources */,
@@ -459,7 +440,7 @@
 				9472A062B3ED1FD74BE798E0 /* ComfortSessionViewModel.swift in Sources */,
 				7F3EE2CD8CC5C3AC5B8FF37E /* DashboardView.swift in Sources */,
 				9F898868B1A481AE992512EA /* FullscreenSessionView.swift in Sources */,
-				40A0C92B58F748C6B0C93111 /* InterfaceOrientationSupport.swift in Sources */,
+				1C2C0BE5BF2EF5A6CD323C54 /* InterfaceOrientationSupport.swift in Sources */,
 				4047511AAA69076A6644324C /* MotionComfortApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -468,11 +449,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7D2FE6F586C66150F4F935CE /* CueLayoutEngine.swift in Sources */,
 				E988AE247BF96F068C25D48D /* CueState.swift in Sources */,
 				68AC87E5E852D245DF0A0528 /* MathSupport.swift in Sources */,
 				E2AE1751622914086F5DAD61 /* MotionSample.swift in Sources */,
-				49B75F88A3EBE05B4382F2A2 /* MotionSmoother.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -561,7 +540,6 @@
 				DEVELOPMENT_TEAM = 9NWVQ7RFAT;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -569,11 +547,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.LNQ.MotionComfortApp.dev;
 				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -585,7 +559,6 @@
 				DEVELOPMENT_TEAM = 9NWVQ7RFAT;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -593,11 +566,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.LNQ.MotionComfortApp.dev;
 				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};

@@ -12,12 +12,17 @@ targets:
     deploymentTarget: "26.0"
     settings:
       base:
+        DEVELOPMENT_TEAM: 9NWVQ7RFAT
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: App/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.LNQ.MotionComfortApp.dev
     sources:
       - App/Sources
     resources:
-      - Audio/Resources
+      - Audio/Resources/GStringsFinal.wav
+    preBuildScripts:
+      - name: Copy Melodic Asset
+        script: cp "${SRCROOT}/Audio/Resources/GStringsFinal.wav" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GStringsFinal.wav"
     info:
       path: App/Info.plist
       properties:
@@ -45,7 +50,10 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
     sources:
-      - Core/Sources
+      - path: Core/Sources
+        excludes:
+          - CueLayoutEngine.swift
+          - MotionSmoother.swift
   MotionComfortVisual:
     type: framework
     platform: iOS
@@ -54,7 +62,12 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
     sources:
-      - Visual/Sources
+      - path: Visual/Sources
+        excludes:
+          - MotionFlowOverlay.swift
+          - MotionFlowStyle.swift
+          - MotionCloudOverlay.swift
+          - CloudVisualStyle.swift
     dependencies:
       - target: MotionComfortCore
   MotionComfortAudio:
