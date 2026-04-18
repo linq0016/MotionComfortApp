@@ -12,6 +12,8 @@ struct FlowGridConfiguration: Sendable {
     var backgroundColor: Color
     var dotSpacing: CGFloat
     var marginRatio: CGFloat
+    var horizontalMarginRatio: CGFloat
+    var verticalMarginRatio: CGFloat
     var sensorSmoothing: Double
     var velocityMultiplier: Double
     var velocityFriction: Double
@@ -36,6 +38,8 @@ struct FlowGridConfiguration: Sendable {
         backgroundColor: Color.black,
         dotSpacing: 35.0,
         marginRatio: 0.25,
+        horizontalMarginRatio: 0.25,
+        verticalMarginRatio: 0.25,
         sensorSmoothing: 0.08,
         velocityMultiplier: 25.0 * (2.0 / 3.0),
         velocityFriction: 0.15,
@@ -43,8 +47,8 @@ struct FlowGridConfiguration: Sendable {
         magnitudeDecaySmoothing: 0.94,
         maxAccelThreshold: 0.33,
         motionDeadzone: 0.006,
-        baseDensity: 0.15,
-        extraDensityRange: 0.8,
+        baseDensity: 0.13,
+        extraDensityRange: 0.75,
         baseOpacity: 0.10,
         baseRadius: 1.6,
         maxExtraRadius: 3.5,
@@ -61,6 +65,8 @@ struct FlowGridConfiguration: Sendable {
         backgroundColor: Color.clear,
         dotSpacing: 32.0,
         marginRatio: 0.24,
+        horizontalMarginRatio: 0.26,
+        verticalMarginRatio: 0.20,
         sensorSmoothing: 0.08,
         velocityMultiplier: 25.0 * (2.0 / 3.0),
         velocityFriction: 0.15,
@@ -69,7 +75,7 @@ struct FlowGridConfiguration: Sendable {
         maxAccelThreshold: 0.33,
         motionDeadzone: 0.006,
         baseDensity: 0.18,
-        extraDensityRange: 0.88,
+        extraDensityRange: 0.76,
         baseOpacity: 0.18,
         baseRadius: 1.8,
         maxExtraRadius: 3.5,

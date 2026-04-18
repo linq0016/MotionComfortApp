@@ -600,7 +600,11 @@ private struct LiveViewEdgeFlowOverlay: View {
                     let startY = flowWrappedOffset(renderState.offset.y, spacing: configuration.dotSpacing) - configuration.dotSpacing
                     let normA = min(renderState.smoothedMagnitude / configuration.maxAccelThreshold, 1.0)
                     let dotColor = sceneAnalysis.dominantDotPolarity.color
-                    let coreSafeRect = makeSafeRect(in: canvasSize, marginRatio: configuration.marginRatio)
+                    let coreSafeRect = makeSafeRect(
+                        in: canvasSize,
+                        horizontalMarginRatio: configuration.horizontalMarginRatio,
+                        verticalMarginRatio: configuration.verticalMarginRatio
+                    )
                     let softSafeRect = coreSafeRect.insetBy(dx: -safeZoneSoftInset, dy: -safeZoneSoftInset)
 
                     for x in stride(from: startX, through: canvasSize.width + configuration.dotSpacing, by: configuration.dotSpacing) {
@@ -669,12 +673,16 @@ private struct LiveViewEdgeFlowOverlay: View {
         .allowsHitTesting(false)
     }
 
-    private func makeSafeRect(in size: CGSize, marginRatio: CGFloat) -> CGRect {
+    private func makeSafeRect(
+        in size: CGSize,
+        horizontalMarginRatio: CGFloat,
+        verticalMarginRatio: CGFloat
+    ) -> CGRect {
         CGRect(
-            x: size.width * marginRatio,
-            y: size.height * marginRatio,
-            width: size.width * (1.0 - (marginRatio * 2.0)),
-            height: size.height * (1.0 - (marginRatio * 2.0))
+            x: size.width * horizontalMarginRatio,
+            y: size.height * verticalMarginRatio,
+            width: size.width * (1.0 - (horizontalMarginRatio * 2.0)),
+            height: size.height * (1.0 - (verticalMarginRatio * 2.0))
         )
     }
 
