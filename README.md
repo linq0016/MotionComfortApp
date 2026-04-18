@@ -30,7 +30,7 @@ If you prefer a standard Xcode app template instead, the source layout in this r
 
 - `Minimal`: current primary visual mode
 - `Live View`: real camera preview with edge flow overlays
-- `Dynamic`: dedicated placeholder route for a future visual mode
+- `Dynamic`: H5-matched nebula particle starfield with layered clouds, dust, and warp travel
 - `Monotone`: continuous 100 Hz comfort signal
 - `Melodic`: bundled looped music asset
 
@@ -59,7 +59,7 @@ Audio should still be framed conservatively. This is a comfort or support app, n
 
 ## Immediate Next Steps
 
-1. Replace the `Dynamic` placeholder with its real visual route.
+1. Tighten the new `Dynamic` route with device-side performance tuning and visual parity checks against the H5 reference.
 2. Add onboarding and clearer passenger-only safety guidance.
 3. Add user studies for visual comfort, audio preference, and false-positive motion cases.
 4. Continue tightening session architecture as more visual modes are added.

@@ -14,7 +14,8 @@ struct FullscreenSessionView: View {
             PeripheralCueOverlay(
                 sample: model.sample,
                 visualStyle: model.visualGuideStyle,
-                orientation: orientationObserver.orientation
+                orientation: orientationObserver.orientation,
+                dynamicWarpMode: model.dynamicWarpMode
             )
                 .ignoresSafeArea()
 
@@ -24,10 +25,13 @@ struct FullscreenSessionView: View {
                     Spacer()
                 }
                 Spacer()
+                if model.visualGuideStyle == .dynamic {
+                    dynamicWarpControl
+                }
             }
-                .padding(.horizontal, 18.0)
-                .padding(.top, 12.0)
-                .padding(.bottom, 18.0)
+            .padding(.horizontal, 18.0)
+            .padding(.top, 12.0)
+            .padding(.bottom, 18.0)
         }
         .background {
             InterfaceOrientationReader(observer: orientationObserver)
@@ -75,6 +79,45 @@ struct FullscreenSessionView: View {
                 .overlay(
                     Circle()
                         .stroke(Color.white.opacity(0.12), lineWidth: 1.0)
+                        .allowsHitTesting(false)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var dynamicWarpControl: some View {
+        HStack(spacing: 10.0) {
+            dynamicModeButton(.cruise)
+            dynamicModeButton(.warp)
+        }
+        .padding(.horizontal, 10.0)
+        .padding(.vertical, 10.0)
+        .background(
+            Color(red: 0.08, green: 0.10, blue: 0.15).opacity(0.78),
+            in: Capsule(style: .continuous)
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .stroke(Color.white.opacity(0.14), lineWidth: 1.0)
+                .allowsHitTesting(false)
+        )
+    }
+
+    private func dynamicModeButton(_ mode: DynamicWarpMode) -> some View {
+        let isActive = model.dynamicWarpMode == mode
+
+        return Button {
+            model.dynamicWarpMode = mode
+        } label: {
+            Text(mode.title)
+                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                .foregroundStyle(isActive ? Color.white : Color.white.opacity(0.74))
+                .frame(minWidth: 84.0)
+                .padding(.horizontal, 14.0)
+                .padding(.vertical, 10.0)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(isActive ? Color(red: 0.14, green: 0.60, blue: 0.96).opacity(0.84) : Color.white.opacity(0.06))
                         .allowsHitTesting(false)
                 )
         }

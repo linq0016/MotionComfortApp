@@ -18,6 +18,7 @@
 		4B2BB8C22DABFCAF9B7C95E4 /* MotionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D0523F47FAFF246C331DA0E /* MotionManager.swift */; };
 		68AC87E5E852D245DF0A0528 /* MathSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6E9DD2657BEDEECD3072A3F /* MathSupport.swift */; };
 		6FA6B7DE478A03DF6792A031 /* VisualGuideStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED548E8A4B5948ECDC8702F /* VisualGuideStyle.swift */; };
+		72B12B23E2ACB94B2A4A972C /* DynamicSpaceOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D0544A824A436E7BA5F27F8 /* DynamicSpaceOverlay.swift */; };
 		7554B2761694F8CB529F8ACB /* FlowFieldSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C87D5E483454F259BE3E6B98 /* FlowFieldSupport.swift */; };
 		76D34D2ADF5EF8A41CEF6FDA /* MotionComfortAudio.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7866D40E8BD0D22402405151 /* ReferenceFlowOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC269D3D1E1DAF571FA07CF8 /* ReferenceFlowOverlay.swift */; };
@@ -27,6 +28,7 @@
 		8DEA1804DD3CA5C90C33AA5E /* PeripheralCueOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4A21DC17180624BDB45D2E7 /* PeripheralCueOverlay.swift */; };
 		9472A062B3ED1FD74BE798E0 /* ComfortSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4D41F7A73555BC0B8DC3B0 /* ComfortSessionViewModel.swift */; };
 		9F898868B1A481AE992512EA /* FullscreenSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB452209C83D694142D121F5 /* FullscreenSessionView.swift */; };
+		A25AE19386DCCD70862A503A /* DynamicSpaceShaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = CDCB31666F87871FA693F243 /* DynamicSpaceShaders.metal */; };
 		B3F5147D32C1FE5B12BA3520 /* LiveViewCameraSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65489C6CA0910899D6F95843 /* LiveViewCameraSupport.swift */; };
 		BEB987D491077C389D458E8B /* MotionComfortVisual.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E9D576541804142D51D06E41 /* MotionComfortVisual.framework */; };
 		C11B8352EF683FB2C3FA4E89 /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
@@ -112,6 +114,7 @@
 
 /* Begin PBXFileReference section */
 		11682D824853FBBBEA3C1F16 /* CueStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueStateTests.swift; sourceTree = "<group>"; };
+		1D0544A824A436E7BA5F27F8 /* DynamicSpaceOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicSpaceOverlay.swift; sourceTree = "<group>"; };
 		22CB95C6460D4B3F4317E005 /* MotionInputMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionInputMode.swift; sourceTree = "<group>"; };
 		3D0523F47FAFF246C331DA0E /* MotionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionManager.swift; sourceTree = "<group>"; };
 		4915CA173CE00311FADAE505 /* CueState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueState.swift; sourceTree = "<group>"; };
@@ -128,6 +131,7 @@
 		AED548E8A4B5948ECDC8702F /* VisualGuideStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualGuideStyle.swift; sourceTree = "<group>"; };
 		C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MotionComfortCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C87D5E483454F259BE3E6B98 /* FlowFieldSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowFieldSupport.swift; sourceTree = "<group>"; };
+		CDCB31666F87871FA693F243 /* DynamicSpaceShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = DynamicSpaceShaders.metal; sourceTree = "<group>"; };
 		DE25798B7BC90E5CC0225B1F /* AudioComfortEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioComfortEngine.swift; sourceTree = "<group>"; };
 		E4A21DC17180624BDB45D2E7 /* PeripheralCueOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeripheralCueOverlay.swift; sourceTree = "<group>"; };
 		E596DD7A7552BBD911094E82 /* AudioMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMode.swift; sourceTree = "<group>"; };
@@ -245,6 +249,8 @@
 		CB94E36AF8122CFCBE1A6782 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				1D0544A824A436E7BA5F27F8 /* DynamicSpaceOverlay.swift */,
+				CDCB31666F87871FA693F243 /* DynamicSpaceShaders.metal */,
 				C87D5E483454F259BE3E6B98 /* FlowFieldSupport.swift */,
 				50E22921B4585FC5FE4956E2 /* InterfaceRenderOrientation.swift */,
 				65489C6CA0910899D6F95843 /* LiveViewCameraSupport.swift */,
@@ -424,6 +430,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				72B12B23E2ACB94B2A4A972C /* DynamicSpaceOverlay.swift in Sources */,
+				A25AE19386DCCD70862A503A /* DynamicSpaceShaders.metal in Sources */,
 				7554B2761694F8CB529F8ACB /* FlowFieldSupport.swift in Sources */,
 				81F87F35E289D355C04C721D /* InterfaceRenderOrientation.swift in Sources */,
 				B3F5147D32C1FE5B12BA3520 /* LiveViewCameraSupport.swift in Sources */,
@@ -539,7 +547,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 0.2.2;
+				CURRENT_PROJECT_VERSION = 0.2.3;
 				DEVELOPMENT_TEAM = 9NWVQ7RFAT;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
@@ -548,7 +556,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.2.2;
+				MARKETING_VERSION = 0.2.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.LNQ.MotionComfortApp.dev;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -564,7 +572,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 0.2.2;
+				CURRENT_PROJECT_VERSION = 0.2.3;
 				DEVELOPMENT_TEAM = 9NWVQ7RFAT;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
@@ -573,7 +581,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.2.2;
+				MARKETING_VERSION = 0.2.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.LNQ.MotionComfortApp.dev;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

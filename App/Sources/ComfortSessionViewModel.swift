@@ -9,6 +9,7 @@ import MotionComfortVisual
 final class ComfortSessionViewModel: ObservableObject {
     @Published var visualGuideStyle: VisualGuideStyle = .minimal
     @Published var motionInputMode: MotionInputMode = .realTime
+    @Published var dynamicWarpMode: DynamicWarpMode = .cruise
     @Published var audioMode: AudioMode = .off {
         didSet {
             guard isRunning else {
@@ -54,10 +55,6 @@ final class ComfortSessionViewModel: ObservableObject {
     }
 
     var comfortNote: String {
-        if !visualGuideStyle.isImplemented {
-            return "Dynamic keeps its own placeholder session so the visual routing and exit flow stay stable while that mode is still in parallel development."
-        }
-
         if audioMode != .off {
             return "Visual guidance stays primary. Audio remains optional and conservative."
         }
@@ -66,7 +63,7 @@ final class ComfortSessionViewModel: ObservableObject {
         case .minimal:
             return "Minimal stays the clearest baseline route and remains the safest default product mode."
         case .dynamic:
-            return "Dynamic is still a placeholder route."
+            return "Dynamic mirrors the H5 nebula particle route with layered clouds, fine dust, and dedicated cruise or warp travel."
         case .liveView:
             return "Live View keeps the real camera route front and center, with edge cues only around the reading area."
         }
@@ -90,6 +87,10 @@ final class ComfortSessionViewModel: ObservableObject {
 
     // 启动当前选择的 motion 和 audio 模式。
     func start() {
+        if visualGuideStyle == .dynamic {
+            dynamicWarpMode = .cruise
+        }
+
         motionManager.start(mode: motionInputMode)
 
         if audioMode != .off {
@@ -101,6 +102,7 @@ final class ComfortSessionViewModel: ObservableObject {
     func stop() {
         motionManager.stop()
         audioEngine.stopPlayback()
+        dynamicWarpMode = .cruise
     }
 
     // 把最新运动快照同步到页面和音频层。

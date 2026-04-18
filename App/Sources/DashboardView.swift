@@ -161,7 +161,7 @@ struct DashboardView: View {
             .buttonStyle(.borderedProminent)
             .tint(Color(red: 0.18, green: 0.74, blue: 0.85))
 
-            Text("Minimal and Live View are live routes. Dynamic still enters its own placeholder session, and melodic now loops the bundled asset.")
+            Text("Minimal, Dynamic, and Live View are all live routes. Dynamic now mirrors the H5 nebula particle session with its own cruise and warp control.")
                 .font(.system(.caption, design: .rounded))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -178,7 +178,7 @@ struct DashboardView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("Recommended current setup: Minimal + Real-time Motion + Off or Monotone.")
+            Text("Recommended current setup: Minimal + Real-time Motion + Off or Monotone. Dynamic is the colorful H5-matched starfield route.")
                 .font(.system(.caption, design: .rounded))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

@@ -23,7 +23,7 @@ public enum VisualGuideStyle: String, CaseIterable, Identifiable, Sendable {
         case .minimal:
             return "Current product mode: H5-style monochrome flow with a clean minimal feel."
         case .dynamic:
-            return "Parallel mode placeholder for future colorful cloud flow and richer atmospheric cues."
+            return "H5-matched nebula particle starfield with layered clouds, dust, and warp-speed travel."
         case .liveView:
             return "Full-screen camera preview with adaptive edge flow and a stable SDR live camera feed."
         }
@@ -34,7 +34,7 @@ public enum VisualGuideStyle: String, CaseIterable, Identifiable, Sendable {
         case .minimal:
             return "Ready"
         case .dynamic:
-            return "Soon"
+            return "Ready"
         case .liveView:
             return "Ready"
         }
@@ -45,7 +45,7 @@ public enum VisualGuideStyle: String, CaseIterable, Identifiable, Sendable {
         case .minimal:
             return true
         case .dynamic:
-            return false
+            return true
         case .liveView:
             return true
         }
@@ -56,7 +56,7 @@ public enum VisualGuideStyle: String, CaseIterable, Identifiable, Sendable {
         case .minimal:
             return "Minimal is active"
         case .dynamic:
-            return "Dynamic mode placeholder"
+            return "Dynamic starfield is active"
         case .liveView:
             return "Live View is active"
         }
@@ -67,7 +67,7 @@ public enum VisualGuideStyle: String, CaseIterable, Identifiable, Sendable {
         case .minimal:
             return "Minimal is the current fully implemented visual session."
         case .dynamic:
-            return "This session is reserved for the richer parallel visual mode and is intentionally blank for now."
+            return "Dynamic runs an H5-matched layered starfield with nebula clouds, fine dust, and a dedicated cruise or warp route."
         case .liveView:
             return "This session uses the real camera route with adaptive side flow overlays. When camera access is unavailable, it falls back to a clean permission surface."
         }
