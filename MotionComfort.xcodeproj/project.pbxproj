@@ -405,11 +405,13 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				Audio/Resources/GStringsFinal.wav,
 			);
 			name = "Copy Melodic Asset";
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GStringsFinal.wav",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;

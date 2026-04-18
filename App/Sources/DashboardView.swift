@@ -18,7 +18,6 @@ struct DashboardView: View {
                 motionSection
                 audioSection
                 sessionSection
-                metricsSection
                 safetySection
             }
             .listStyle(.insetGrouped)
@@ -39,11 +38,6 @@ struct DashboardView: View {
             if !isRunning {
                 isSessionPresented = false
             }
-        }
-        .overlay(alignment: .bottomTrailing) {
-            LiveMotionDebugOverlay(model: model)
-                .padding(.trailing, 16.0)
-                .padding(.bottom, 16.0)
         }
     }
 
@@ -174,14 +168,6 @@ struct DashboardView: View {
         }
     }
 
-    private var metricsSection: some View {
-        Section("Live Motion") {
-            LabeledContent("Lateral G", value: valueString(model.sample.lateralAcceleration))
-            LabeledContent("Longitudinal G", value: valueString(model.sample.longitudinalAcceleration))
-            LabeledContent("Yaw", value: valueString(model.sample.yawRate))
-        }
-    }
-
     private var safetySection: some View {
         Section("Safety") {
             Text("Passenger use only. Keep the volume low. Monotone remains a conservative 100 Hz signal path, and melodic loops the bundled music asset.")
@@ -199,10 +185,6 @@ struct DashboardView: View {
         }
     }
 
-    private func valueString(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(2)))
-    }
-
     private func startSession() {
         guard !isSessionPresented else {
             return
@@ -216,91 +198,5 @@ struct DashboardView: View {
         if model.isRunning {
             model.stop()
         }
-    }
-}
-
-// 全局调试浮窗：在任意页面显示当前设备坐标系下的运动数据。
-struct LiveMotionDebugOverlay: View {
-    @ObservedObject var model: ComfortSessionViewModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10.0) {
-            HStack(alignment: .firstTextBaseline, spacing: 8.0) {
-                Label("Live motion", systemImage: "dot.radiowaves.left.and.right")
-                    .font(.system(.headline, design: .rounded).weight(.bold))
-
-                Spacer(minLength: 0.0)
-
-                Text(model.motionInputMode.title)
-                    .font(.system(.caption, design: .rounded).weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.72))
-            }
-
-            Text("Flat phone axes: X / Y / Z G")
-                .font(.system(.caption2, design: .rounded))
-                .foregroundStyle(.white.opacity(0.64))
-
-            HStack(spacing: 8.0) {
-                axisTile(
-                    title: "X",
-                    unit: "G",
-                    value: valueString(model.sample.lateralAcceleration),
-                    subtitle: "left/right"
-                )
-                axisTile(
-                    title: "Y",
-                    unit: "G",
-                    value: valueString(-model.sample.longitudinalAcceleration),
-                    subtitle: "top/bottom"
-                )
-                axisTile(
-                    title: "Z",
-                    unit: "G",
-                    value: valueString(model.sample.verticalAcceleration),
-                    subtitle: "out/in"
-                )
-            }
-
-            Text("Raw X / Y / Z device axes stay here, while the main session can reinterpret them as vehicle-oriented cues.")
-                .font(.system(.caption2, design: .rounded))
-                .foregroundStyle(.white.opacity(0.60))
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(width: 262.0, alignment: .leading)
-        .padding(14.0)
-        .background(Color.black.opacity(0.72), in: RoundedRectangle(cornerRadius: 22.0, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 22.0, style: .continuous)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1.0)
-                .allowsHitTesting(false)
-        )
-        .shadow(color: .black.opacity(0.28), radius: 18.0, x: 0.0, y: 8.0)
-        .allowsHitTesting(false)
-    }
-
-    private func axisTile(title: String, unit: String, value: String, subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 4.0) {
-            HStack(alignment: .firstTextBaseline, spacing: 4.0) {
-                Text(title)
-                    .font(.system(.caption, design: .rounded).weight(.semibold))
-                Text(unit)
-                    .font(.system(.caption2, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.62))
-            }
-
-            Text(value)
-                .font(.system(.headline, design: .rounded).weight(.bold))
-
-            Text(subtitle)
-                .font(.system(.caption2, design: .rounded))
-                .foregroundStyle(.white.opacity(0.58))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10.0)
-        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16.0, style: .continuous))
-    }
-
-    private func valueString(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(2)))
     }
 }

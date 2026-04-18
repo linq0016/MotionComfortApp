@@ -33,6 +33,7 @@ struct FlowGridConfiguration: Sendable {
     var minimumVisibleAlpha: Double
     var maxAlpha: Double
     var fadeMultiplier: Double
+    var alphaVariation: Double
     var invertHorizontalFlow: Bool
     var invertVerticalFlow: Bool
 
@@ -53,7 +54,7 @@ struct FlowGridConfiguration: Sendable {
         motionDeadzone: 0.006,
         baseDensity: 0.13,
         extraDensityRange: 0.75,
-        baseOpacity: 0.10,
+        baseOpacity: 0.12,
         baseRadius: 1.6,
         maxExtraRadius: 3.5,
         edgeRadiusBoost: 5.0,
@@ -61,6 +62,7 @@ struct FlowGridConfiguration: Sendable {
         minimumVisibleAlpha: 0.018,
         maxAlpha: 0.76,
         fadeMultiplier: 1.45,
+        alphaVariation: 0.22,
         invertHorizontalFlow: true,
         invertVerticalFlow: true
     )
@@ -81,8 +83,8 @@ struct FlowGridConfiguration: Sendable {
         maxAccelThreshold: 0.33,
         motionDeadzone: 0.006,
         baseDensity: 0.18,
-        extraDensityRange: 0.76,
-        baseOpacity: 0.18,
+        extraDensityRange: 0.72,
+        baseOpacity: 0.21,
         baseRadius: 1.8,
         maxExtraRadius: 3.5,
         edgeRadiusBoost: 4.2,
@@ -90,6 +92,7 @@ struct FlowGridConfiguration: Sendable {
         minimumVisibleAlpha: 0.03,
         maxAlpha: 0.86,
         fadeMultiplier: 1.55,
+        alphaVariation: 0.18,
         invertHorizontalFlow: true,
         invertVerticalFlow: true
     )
@@ -201,6 +204,11 @@ func flowDotAppearance(
         let fadeProgress = (normA * configuration.extraDensityRange) - (hash - configuration.baseDensity)
         alpha = min(fadeProgress * configuration.fadeMultiplier, configuration.maxAlpha)
         radius = configuration.baseRadius + (normA * configuration.maxExtraRadius)
+    }
+
+    if configuration.alphaVariation > 0.0 {
+        let variation = 1.0 - (configuration.alphaVariation * 0.5) + (hash * configuration.alphaVariation)
+        alpha *= variation
     }
 
     guard alpha > configuration.minimumVisibleAlpha else {

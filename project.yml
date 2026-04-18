@@ -23,6 +23,10 @@ targets:
     preBuildScripts:
       - name: Copy Melodic Asset
         script: cp "${SRCROOT}/Audio/Resources/GStringsFinal.wav" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GStringsFinal.wav"
+        inputFiles:
+          - Audio/Resources/GStringsFinal.wav
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GStringsFinal.wav
     info:
       path: App/Info.plist
       properties:

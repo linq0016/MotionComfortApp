@@ -25,13 +25,8 @@ struct FullscreenSessionView: View {
                 }
                 Spacer()
             }
-            .padding(.horizontal, 18.0)
-            .padding(.top, 12.0)
-            .padding(.bottom, 18.0)
-        }
-        .overlay(alignment: .bottomTrailing) {
-            LiveMotionDebugOverlay(model: model)
-                .padding(.trailing, 16.0)
+                .padding(.horizontal, 18.0)
+                .padding(.top, 12.0)
                 .padding(.bottom, 18.0)
         }
         .background {
