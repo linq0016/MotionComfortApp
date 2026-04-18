@@ -59,10 +59,10 @@ final class OrientationReaderController: UIViewController {
             return
         }
 
-        let sceneOrientation = view.window?.windowScene?.interfaceOrientation
+        let sceneOrientation = view.window?.windowScene?.effectiveGeometry.interfaceOrientation
             ?? UIApplication.shared.connectedScenes
                 .compactMap { $0 as? UIWindowScene }
-                .first?.interfaceOrientation
+                .first?.effectiveGeometry.interfaceOrientation
 
         if let sceneOrientation {
             observer.update(from: sceneOrientation)

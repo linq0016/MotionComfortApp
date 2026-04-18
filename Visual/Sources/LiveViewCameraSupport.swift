@@ -213,9 +213,10 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
                 return
             }
 
+            let rotationAngle = orientation.videoRotationAngle
             if let connection = self.videoOutput.connection(with: .video),
-               connection.isVideoOrientationSupported {
-                connection.videoOrientation = orientation.captureVideoOrientation
+               connection.isVideoRotationAngleSupported(rotationAngle) {
+                connection.videoRotationAngle = rotationAngle
             }
         }
     }
@@ -547,8 +548,10 @@ private struct LiveViewCameraPreview: UIViewRepresentable {
         let view = PreviewView()
         view.previewLayer.session = session
         view.previewLayer.videoGravity = .resizeAspectFill
-        if let connection = view.previewLayer.connection, connection.isVideoOrientationSupported {
-            connection.videoOrientation = orientation.captureVideoOrientation
+        let rotationAngle = orientation.videoRotationAngle
+        if let connection = view.previewLayer.connection,
+           connection.isVideoRotationAngleSupported(rotationAngle) {
+            connection.videoRotationAngle = rotationAngle
         }
         return view
     }
@@ -556,8 +559,10 @@ private struct LiveViewCameraPreview: UIViewRepresentable {
     func updateUIView(_ uiView: PreviewView, context: Context) {
         uiView.previewLayer.session = session
         uiView.previewLayer.videoGravity = .resizeAspectFill
-        if let connection = uiView.previewLayer.connection, connection.isVideoOrientationSupported {
-            connection.videoOrientation = orientation.captureVideoOrientation
+        let rotationAngle = orientation.videoRotationAngle
+        if let connection = uiView.previewLayer.connection,
+           connection.isVideoRotationAngleSupported(rotationAngle) {
+            connection.videoRotationAngle = rotationAngle
         }
     }
 
@@ -587,8 +592,6 @@ private struct LiveViewEdgeFlowOverlay: View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
             GeometryReader { proxy in
                 let timestamp = timeline.date.timeIntervalSinceReferenceDate
-                let size = proxy.size
-                let safeRect = makeSafeRect(in: size, marginRatio: configuration.marginRatio)
                 let orientedSample = sample.rotatedForDisplay(orientation)
 
                 Canvas(opaque: false, rendersAsynchronously: true) { context, canvasSize in
@@ -717,14 +720,14 @@ private struct LiveViewEdgeFlowOverlay: View {
 }
 
 private extension InterfaceRenderOrientation {
-    var captureVideoOrientation: AVCaptureVideoOrientation {
+    var videoRotationAngle: CGFloat {
         switch self {
         case .portrait:
-            return .portrait
+            return 90
         case .landscapeLeft:
-            return .landscapeLeft
+            return 180
         case .landscapeRight:
-            return .landscapeRight
+            return 0
         }
     }
 }
