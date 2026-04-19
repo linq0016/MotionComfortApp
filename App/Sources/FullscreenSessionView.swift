@@ -8,9 +8,16 @@ struct FullscreenSessionView: View {
     @ObservedObject var orientationObserver: InterfaceOrientationObserver
     var onClose: () -> Void
 
+    @State private var areHUDControlsVisible = true
+    @State private var hideHUDTask: Task<Void, Never>?
+
     var body: some View {
         ZStack {
             sessionBackground
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    toggleHUDVisibility()
+                }
 
             PeripheralCueOverlay(
                 sample: model.sample,
@@ -29,6 +36,14 @@ struct FullscreenSessionView: View {
             }
             .padding(.horizontal, 18.0)
             .padding(.top, 12.0)
+            .opacity(areHUDControlsVisible ? 1.0 : 0.0)
+            .allowsHitTesting(areHUDControlsVisible)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0.0)
+                    .onChanged { _ in
+                        registerFullscreenInteraction()
+                    }
+            )
 
             GeometryReader { proxy in
                 fullscreenAudioModeControl
@@ -38,6 +53,14 @@ struct FullscreenSessionView: View {
                     )
             }
             .ignoresSafeArea()
+            .opacity(areHUDControlsVisible ? 1.0 : 0.0)
+            .allowsHitTesting(areHUDControlsVisible)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0.0)
+                    .onChanged { _ in
+                        registerFullscreenInteraction()
+                    }
+            )
 
             if model.visualGuideStyle == .dynamic {
                 GeometryReader { proxy in
@@ -48,12 +71,25 @@ struct FullscreenSessionView: View {
                         )
                 }
                 .ignoresSafeArea()
+                .opacity(areHUDControlsVisible ? 1.0 : 0.0)
+                .allowsHitTesting(areHUDControlsVisible)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 0.0)
+                        .onChanged { _ in
+                            registerFullscreenInteraction()
+                        }
+                )
             }
         }
         .preferredColorScheme(.dark)
         .statusBarHidden()
+        .animation(.easeInOut(duration: 0.24), value: areHUDControlsVisible)
         .onAppear {
             model.startAudioIfNeeded()
+            scheduleHUDHide()
+        }
+        .onDisappear {
+            hideHUDTask?.cancel()
         }
     }
 
@@ -79,26 +115,18 @@ struct FullscreenSessionView: View {
     }
 
     private var closeButton: some View {
-        Button(action: onClose) {
-            Image(systemName: "xmark")
-                .font(.system(size: 16.0, weight: .bold))
-                .frame(width: 42.0, height: 42.0)
-                .background(
-                    Color(red: 0.10, green: 0.12, blue: 0.17).opacity(0.92),
-                    in: Circle()
-                )
-                .overlay(
-                    Circle()
-                        .fill(Color.white.opacity(0.04))
-                        .allowsHitTesting(false)
-                )
-                .overlay(
-                    Circle()
-                        .stroke(Color.white.opacity(0.12), lineWidth: 1.0)
-                        .allowsHitTesting(false)
-                )
-        }
-        .buttonStyle(.plain)
+        Image(systemName: "xmark")
+            .font(.system(size: 16.0, weight: .bold))
+            .foregroundStyle(Color.white.opacity(0.92))
+            .frame(width: 42.0, height: 42.0)
+            .contentShape(Circle())
+            .glassEffect(
+                .clear.tint(Color.black.opacity(0.36)).interactive(),
+                in: .circle
+            )
+            .onTapGesture {
+                onClose()
+            }
     }
 
     private var fullscreenAudioModeControl: some View {
@@ -152,6 +180,40 @@ struct FullscreenSessionView: View {
     private func speedMultiplier(for sliderPosition: Double) -> Double {
         let clampedPosition = min(max(sliderPosition, 0.0), 1.0)
         return clampedPosition * 6.0
+    }
+
+    private func registerFullscreenInteraction() {
+        if !areHUDControlsVisible {
+            withAnimation(.easeInOut(duration: 0.24)) {
+                areHUDControlsVisible = true
+            }
+        }
+        scheduleHUDHide()
+    }
+
+    private func toggleHUDVisibility() {
+        hideHUDTask?.cancel()
+
+        withAnimation(.easeInOut(duration: 0.24)) {
+            areHUDControlsVisible.toggle()
+        }
+
+        if areHUDControlsVisible {
+            scheduleHUDHide()
+        }
+    }
+
+    private func scheduleHUDHide() {
+        hideHUDTask?.cancel()
+        hideHUDTask = Task {
+            try? await Task.sleep(for: .seconds(5))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.24)) {
+                    areHUDControlsVisible = false
+                }
+            }
+        }
     }
 }
 
