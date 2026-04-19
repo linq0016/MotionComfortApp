@@ -159,9 +159,9 @@ private struct DynamicSpaceConfiguration {
     let warpSpeed: Float = 0.14
     let camSensX: Float = 0.045
     let camSensY: Float = 0.045
-    let nebulaCloudCount = 8
+    let nebulaCloudCount = 12
     let nebulaAtlasColumns = 4
-    let nebulaAtlasRows = 2
+    let nebulaAtlasRows = 3
     let nebulaBaseAlpha: Float = 0.54
     let sensorSmoothing: Float = 0.35
     let velocityFriction: Float = 0.08
@@ -205,6 +205,8 @@ private struct DynamicNebula {
     var alphaFreq: Float
     var wanderRadiusX: Float
     var wanderRadiusY: Float
+    var rotationPhase: Float
+    var rotationSpeed: Float
 }
 
 private struct DynamicSpaceSceneState {
@@ -229,6 +231,7 @@ private struct DynamicSpaceSceneState {
 private struct DynamicSpriteVertex {
     var positionAndSize: SIMD4<Float> = .zero
     var colorAndSoftness: SIMD4<Float> = .zero
+    var rotationAndMisc: SIMD4<Float> = .zero
 }
 
 private struct DynamicViewportUniforms {
@@ -549,7 +552,9 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
                     driftSpeedY: Float.random(in: 0.00016...0.00046),
                     alphaFreq: Float.random(in: 0.00025...0.00075),
                     wanderRadiusX: Float.random(in: 0.08...0.30),
-                    wanderRadiusY: Float.random(in: 0.08...0.30)
+                    wanderRadiusY: Float.random(in: 0.08...0.30),
+                    rotationPhase: Float.random(in: 0.0...(Float.pi * 2.0)),
+                    rotationSpeed: Float.random(in: 0.0001...0.0002) * (Bool.random() ? 1.0 : -1.0)
                 )
             )
         }
@@ -590,8 +595,8 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     private func buildNebulas(timeMs: Float) {
         let centerX = Float(drawableSize.width) * 0.5
         let centerY = Float(drawableSize.height) * 0.5
-        let clusterRadiusX = Float(drawableSize.width) * 0.28
-        let clusterRadiusY = Float(drawableSize.height) * 0.24
+        let clusterRadiusX = Float(drawableSize.width) * 0.35
+        let clusterRadiusY = Float(drawableSize.height) * 0.30
         nebulaCount = 0
 
         for nebula in state.nebulas {
@@ -606,13 +611,15 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             let screenX = centerX + relX
             let screenY = centerY + relY
             let renderSize = nebula.baseSize * (1.52 + scale * 1.92)
+            let rotation = nebula.rotationPhase + timeMs * nebula.rotationSpeed
             let isVisible = screenX > -renderSize && screenX < Float(drawableSize.width) + renderSize && screenY > -renderSize && screenY < Float(drawableSize.height) + renderSize
             guard isVisible else {
                 continue
             }
             nebulaVertices[nebulaCount] = DynamicSpriteVertex(
                 positionAndSize: SIMD4(screenX, screenY, renderSize, alpha),
-                colorAndSoftness: SIMD4(color.x, color.y, color.z, Float(nebula.atlasIndex))
+                colorAndSoftness: SIMD4(color.x, color.y, color.z, Float(nebula.atlasIndex)),
+                rotationAndMisc: SIMD4(rotation, 0.0, 0.0, 0.0)
             )
             nebulaCount += 1
         }
@@ -1021,8 +1028,6 @@ private enum DynamicTextureFactory {
         let contentRect = layout.contentRect
         let innerCenter = CGPoint(x: contentRect.midX, y: contentRect.midY)
 
-        let variantIndex = tileIndex % 8
-        let variantAngleBias = CGFloat(variantIndex) * (.pi / 4.0)
         let variantOffsets: [CGPoint] = [
             CGPoint(x: -0.16, y: -0.12),
             CGPoint(x: 0.18, y: -0.10),
@@ -1031,15 +1036,33 @@ private enum DynamicTextureFactory {
             CGPoint(x: -0.18, y: 0.00),
             CGPoint(x: 0.20, y: 0.02),
             CGPoint(x: 0.00, y: -0.18),
-            CGPoint(x: 0.02, y: 0.20)
+            CGPoint(x: 0.02, y: 0.20),
+            CGPoint(x: -0.22, y: -0.02),
+            CGPoint(x: 0.22, y: 0.08),
+            CGPoint(x: -0.06, y: -0.22),
+            CGPoint(x: 0.08, y: 0.24)
         ]
+        let variantIndex = tileIndex % variantOffsets.count
+        let variantAngleBias = CGFloat(variantIndex) * (.pi / 6.0)
         let variantBlobRanges: [(Int, Int)] = [
             (10, 13), (12, 16), (9, 12), (13, 17),
-            (11, 15), (8, 11), (12, 14), (14, 18)
+            (11, 15), (8, 11), (12, 14), (14, 18),
+            (9, 13), (15, 19), (10, 12), (13, 16)
         ]
         let variantFilamentRanges: [(Int, Int)] = [
             (5, 7), (6, 9), (7, 10), (4, 6),
-            (8, 10), (5, 8), (6, 8), (7, 10)
+            (8, 10), (5, 8), (6, 8), (7, 10),
+            (4, 7), (8, 11), (5, 7), (6, 9)
+        ]
+        let variantFlowFactors: [CGFloat] = [
+            1.45, 1.69, 1.93, 1.57,
+            1.81, 1.33, 1.72, 2.04,
+            1.24, 2.18, 1.52, 1.88
+        ]
+        let variantDarkLaneFlags: [Bool] = [
+            true, false, true, false,
+            true, true, false, true,
+            false, true, false, true
         ]
         let baseAlpha = CGFloat.random(in: 0.32...0.58)
         let coreRadius = contentRect.width * CGFloat.random(in: 0.58...0.98)
@@ -1090,7 +1113,7 @@ private enum DynamicTextureFactory {
         let blobCount = Int.random(in: blobRange.0...blobRange.1)
         for blobIndex in 0..<blobCount {
             let bias = CGFloat(blobIndex) / CGFloat(max(blobCount - 1, 1))
-            let flowAngle = (bias * CGFloat.pi * (1.45 + CGFloat(variantIndex % 3) * 0.24)) + variantAngleBias + CGFloat.random(in: -0.48...0.48)
+            let flowAngle = (bias * CGFloat.pi * variantFlowFactors[variantIndex]) + variantAngleBias + CGFloat.random(in: -0.48...0.48)
             let flowDirection = CGPoint(x: cos(flowAngle), y: sin(flowAngle))
             let asymmetry = CGFloat.random(in: 0.30...0.90)
             let blobCenter = CGPoint(
@@ -1274,7 +1297,7 @@ private enum DynamicTextureFactory {
             cg.fillEllipse(in: CGRect(x: point.x, y: point.y, width: dotSize, height: dotSize))
         }
 
-        if variantIndex % 2 == 0 || variantIndex == 5 {
+        if variantDarkLaneFlags[variantIndex] {
             let darkLaneGradient = CGGradient(
                 colorsSpace: colorSpace,
                 colors: [

@@ -4,6 +4,7 @@ using namespace metal;
 struct DynamicSpriteVertex {
     float4 positionAndSize;
     float4 colorAndSoftness;
+    float4 rotationAndMisc;
 };
 
 struct DynamicViewportUniforms {
@@ -16,6 +17,7 @@ struct DynamicVertexOut {
     float pointSize [[point_size]];
     float4 color;
     float atlasIndex;
+    float rotation;
 };
 
 vertex DynamicVertexOut dynamicSpriteVertex(
@@ -40,6 +42,7 @@ vertex DynamicVertexOut dynamicSpriteVertex(
         inVertex.positionAndSize.w
     );
     outVertex.atlasIndex = inVertex.colorAndSoftness.w;
+    outVertex.rotation = inVertex.rotationAndMisc.x;
     return outVertex;
 }
 
@@ -81,7 +84,14 @@ fragment half4 dynamicNebulaFragment(
     int atlasRow = atlasIndex / atlasColumns;
 
     float2 tileSize = float2(1.0 / float(atlasColumns), 1.0 / float(atlasRows));
-    float2 safePoint = clamp(pointCoord, float2(0.0), float2(1.0));
+    float sine = sin(inFragment.rotation);
+    float cosine = cos(inFragment.rotation);
+    float2 centeredPoint = pointCoord - float2(0.5, 0.5);
+    float2 rotatedPoint = float2(
+        centeredPoint.x * cosine - centeredPoint.y * sine,
+        centeredPoint.x * sine + centeredPoint.y * cosine
+    ) + float2(0.5, 0.5);
+    float2 safePoint = clamp(rotatedPoint, float2(0.0), float2(1.0));
     float2 tileInset = float2(0.08, 0.08);
     float2 atlasCoord = (float2(atlasColumn, atlasRow) + tileInset + safePoint * (float2(1.0) - tileInset * 2.0)) * tileSize;
     half4 sampled = spriteTexture.sample(textureSampler, atlasCoord);
