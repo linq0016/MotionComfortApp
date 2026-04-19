@@ -1,4 +1,5 @@
 import MotionComfortVisual
+import MotionComfortAudio
 import SwiftUI
 
 // 全屏会话页：真正承载运行中的视觉引导效果。
@@ -28,6 +29,15 @@ struct FullscreenSessionView: View {
             }
             .padding(.horizontal, 18.0)
             .padding(.top, 12.0)
+
+            GeometryReader { proxy in
+                fullscreenAudioModeControl
+                    .position(
+                        x: proxy.size.width * 0.5,
+                        y: proxy.size.height * 0.25
+                    )
+            }
+            .ignoresSafeArea()
 
             if model.visualGuideStyle == .dynamic {
                 GeometryReader { proxy in
@@ -91,6 +101,10 @@ struct FullscreenSessionView: View {
         .buttonStyle(.plain)
     }
 
+    private var fullscreenAudioModeControl: some View {
+        FullscreenAudioModeControl(selection: $model.audioMode)
+    }
+
     private var dynamicSpeedControl: some View {
         GlassEffectContainer(spacing: 10.0) {
             ZStack {
@@ -138,5 +152,68 @@ struct FullscreenSessionView: View {
     private func speedMultiplier(for sliderPosition: Double) -> Double {
         let clampedPosition = min(max(sliderPosition, 0.0), 1.0)
         return clampedPosition * 6.0
+    }
+}
+
+private struct FullscreenAudioModeControl: View {
+    @Binding var selection: AudioMode
+
+    private let modes = AudioMode.allCases
+    private let controlWidth: CGFloat = 304.0
+    private let controlHeight: CGFloat = 66.0
+    private let innerPadding: CGFloat = 6.0
+
+    var body: some View {
+        GlassEffectContainer(spacing: 12.0) {
+            ZStack(alignment: .leading) {
+                selectionHighlight
+
+                HStack(spacing: 0.0) {
+                    ForEach(modes) { mode in
+                        Text(mode.title)
+                            .font(.system(size: 17.0, weight: .medium, design: .rounded))
+                            .foregroundStyle(selection == mode ? Color.white : Color.white.opacity(0.82))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: controlHeight - (innerPadding * 2.0))
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selection = mode
+                            }
+                    }
+                }
+            }
+            .padding(innerPadding)
+            .frame(width: controlWidth, height: controlHeight)
+            .glassEffect(
+                .clear.tint(Color.black.opacity(0.24)).interactive(),
+                in: .capsule
+            )
+        }
+    }
+
+    private var selectionHighlight: some View {
+        GeometryReader { proxy in
+            Capsule(style: .continuous)
+                .fill(Color.white.opacity(0.10))
+                .frame(
+                    width: segmentWidth(for: proxy.size.width),
+                    height: controlHeight - (innerPadding * 2.0)
+                )
+                .offset(x: selectionOffset(for: proxy.size.width))
+                .animation(.spring(response: 0.24, dampingFraction: 0.82), value: selection)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func segmentWidth(for totalWidth: CGFloat) -> CGFloat {
+        totalWidth / CGFloat(max(modes.count, 1))
+    }
+
+    private func selectionOffset(for totalWidth: CGFloat) -> CGFloat {
+        segmentWidth(for: totalWidth) * CGFloat(selectedIndex)
+    }
+
+    private var selectedIndex: Int {
+        modes.firstIndex(of: selection) ?? 0
     }
 }
