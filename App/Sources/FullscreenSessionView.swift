@@ -33,10 +33,6 @@ struct FullscreenSessionView: View {
             .padding(.top, 12.0)
             .padding(.bottom, 18.0)
         }
-        .background {
-            InterfaceOrientationReader(observer: orientationObserver)
-                .frame(width: 0.0, height: 0.0)
-        }
         .preferredColorScheme(.dark)
         .statusBarHidden()
         .onAppear {

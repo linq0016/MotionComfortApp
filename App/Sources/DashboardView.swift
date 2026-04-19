@@ -13,12 +13,41 @@ struct DashboardView: View {
             backgroundLayer
 
             List {
-                heroSection
-                visualSection
-                motionSection
-                audioSection
-                sessionSection
-                safetySection
+                DashboardTitleSection()
+
+                DashboardPickerSection(title: "Visual Mode") {
+                    Picker("Visual mode", selection: $model.visualGuideStyle) {
+                        ForEach(VisualGuideStyle.allCases) { style in
+                            Text(style.title).tag(style)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+
+                DashboardPickerSection(title: "Motion Input") {
+                    Picker("Motion input", selection: $model.motionInputMode) {
+                        ForEach(MotionInputMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+
+                DashboardPickerSection(title: "Audio") {
+                    Picker("Audio mode", selection: $model.audioMode) {
+                        ForEach(AudioMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+
+                DashboardSessionSection(
+                    visualTitle: model.visualGuideStyle.title,
+                    motionTitle: model.motionInputMode.title,
+                    audioTitle: model.audioMode.title,
+                    startSession: startSession
+                )
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
@@ -38,6 +67,9 @@ struct DashboardView: View {
             if !isRunning {
                 isSessionPresented = false
             }
+        }
+        .task {
+            DynamicRenderPreheater.prewarm()
         }
     }
 
@@ -69,122 +101,6 @@ struct DashboardView: View {
         .allowsHitTesting(false)
     }
 
-    private var heroSection: some View {
-        Section {
-            VStack(alignment: .leading, spacing: 12.0) {
-                Text("MotionComfort")
-                    .font(.system(size: 34.0, weight: .bold, design: .rounded))
-
-                Text("Choose a visual route first, then layer motion input and optional audio on top of it.")
-                    .font(.system(.body, design: .rounded))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text("Current focus: \(model.visualGuideStyle.title)")
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.88))
-
-                Text(model.comfortNote)
-                    .font(.system(.subheadline, design: .rounded))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.vertical, 6.0)
-        }
-    }
-
-    private var visualSection: some View {
-        Section("Visual Mode") {
-            Picker("Visual mode", selection: $model.visualGuideStyle) {
-                ForEach(VisualGuideStyle.allCases) { style in
-                    Text(style.title).tag(style)
-                }
-            }
-            .pickerStyle(.menu)
-
-            LabeledContent("Status", value: model.visualGuideStyle.statusTitle)
-
-            Text(model.visualGuideStyleNote)
-                .font(.system(.caption, design: .rounded))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var motionSection: some View {
-        Section("Motion Input") {
-            Picker("Motion input", selection: $model.motionInputMode) {
-                ForEach(MotionInputMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
-                }
-            }
-            .pickerStyle(.menu)
-
-            Text(model.motionModeNote)
-                .font(.system(.caption, design: .rounded))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var audioSection: some View {
-        Section("Audio") {
-            Picker("Audio mode", selection: $model.audioMode) {
-                ForEach(AudioMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
-                }
-            }
-            .pickerStyle(.menu)
-
-            Text(model.audioMode.note)
-                .font(.system(.caption, design: .rounded))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var sessionSection: some View {
-        Section("Session") {
-            LabeledContent("Visual route", value: model.visualGuideStyle.title)
-            LabeledContent("Motion input", value: model.motionModeLabel)
-            LabeledContent("Audio route", value: model.audioMode.title)
-
-            Text(model.comfortNote)
-                .font(.system(.subheadline, design: .rounded))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Button(action: startSession) {
-                Label("Start fullscreen session", systemImage: "play.fill")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(Color(red: 0.18, green: 0.74, blue: 0.85))
-
-            Text("Minimal, Dynamic, and Live View are all live routes. Dynamic now mirrors the H5 nebula particle session with its own cruise and warp control.")
-                .font(.system(.caption, design: .rounded))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private var safetySection: some View {
-        Section("Safety") {
-            Text("Passenger use only. Keep the volume low. Monotone remains a conservative 100 Hz signal path, and melodic loops the bundled music asset.")
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text("Real-time mode reads deviceMotion.userAcceleration directly. Live View runs the real camera preview in a stable SDR path.")
-                .font(.system(.caption, design: .rounded))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text("Recommended current setup: Minimal + Real-time Motion + Off or Monotone. Dynamic is the colorful H5-matched starfield route.")
-                .font(.system(.caption, design: .rounded))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
     private func startSession() {
         guard !isSessionPresented else {
             return
@@ -197,6 +113,54 @@ struct DashboardView: View {
     private func handleSessionDismiss() {
         if model.isRunning {
             model.stop()
+        }
+    }
+}
+
+private struct DashboardTitleSection: View {
+    var body: some View {
+        Section {
+            Text("MotionComfort")
+                .font(.system(size: 34.0, weight: .bold, design: .rounded))
+                .padding(.vertical, 6.0)
+        }
+    }
+}
+
+private struct DashboardPickerSection<Content: View>: View {
+    let title: String
+    let content: Content
+
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        Section(title) {
+            content
+        }
+    }
+}
+
+private struct DashboardSessionSection: View {
+    let visualTitle: String
+    let motionTitle: String
+    let audioTitle: String
+    let startSession: () -> Void
+
+    var body: some View {
+        Section("Session") {
+            LabeledContent("Visual", value: visualTitle)
+            LabeledContent("Motion", value: motionTitle)
+            LabeledContent("Audio", value: audioTitle)
+
+            Button(action: startSession) {
+                Label("Start fullscreen session", systemImage: "play.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color(red: 0.18, green: 0.74, blue: 0.85))
         }
     }
 }

@@ -48,6 +48,12 @@ public struct DynamicFlowOverlay: View {
     }
 }
 
+public enum DynamicRenderPreheater {
+    public static func prewarm() {
+        DynamicRenderResourceCache.shared.prewarmIfNeeded()
+    }
+}
+
 private struct DynamicMetalView: UIViewRepresentable {
     typealias UIViewType = DynamicRenderView
 
@@ -59,8 +65,10 @@ private struct DynamicMetalView: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> DynamicRenderView {
-        let device = MTLCreateSystemDefaultDevice()
-        let view = DynamicRenderView(frame: .zero, device: device)
+        let view = DynamicRenderView(
+            frame: .zero,
+            device: DynamicRenderResourceCache.shared.preferredDevice()
+        )
         view.preferredFramesPerSecond = 60
         view.enableSetNeedsDisplay = false
         view.isPaused = false
@@ -71,13 +79,12 @@ private struct DynamicMetalView: UIViewRepresentable {
         view.colorPixelFormat = .bgra8Unorm
         view.backgroundColor = UIColor(red: 1.0 / 255.0, green: 1.0 / 255.0, blue: 5.0 / 255.0, alpha: 1.0)
 
-        guard device != nil else {
-            view.showFailure("Metal unavailable")
-            return view
-        }
-
         do {
-            let renderer = try DynamicMetalRenderer(mtkView: view)
+            let resources = try DynamicRenderResourceCache.shared.resources(
+                pixelFormat: view.colorPixelFormat
+            )
+            view.device = resources.device
+            let renderer = try DynamicMetalRenderer(mtkView: view, resources: resources)
             renderer.sample = sample
             renderer.warpMode = warpMode
             context.coordinator.renderer = renderer
@@ -243,6 +250,7 @@ private struct DynamicViewportUniforms {
 }
 
 private enum DynamicRendererSetupError: Error {
+    case missingDevice
     case missingCommandQueue
     case missingLibrary
     case invalidShaderFunctions
@@ -255,6 +263,8 @@ private enum DynamicRendererSetupError: Error {
 extension DynamicRendererSetupError: LocalizedError {
     var errorDescription: String? {
         switch self {
+        case .missingDevice:
+            return "Dynamic renderer failed: Metal device unavailable"
         case .missingCommandQueue:
             return "Dynamic renderer failed: command queue unavailable"
         case .missingLibrary:
@@ -273,13 +283,141 @@ extension DynamicRendererSetupError: LocalizedError {
     }
 }
 
+private struct DynamicRenderResources {
+    let device: MTLDevice
+    let pixelFormat: MTLPixelFormat
+    let library: MTLLibrary
+    let additivePipeline: MTLRenderPipelineState
+    let screenPipeline: MTLRenderPipelineState
+    let blurTexture: MTLTexture
+    let sharpTexture: MTLTexture
+    let cloudAtlasTexture: MTLTexture
+    let dustTexture: MTLTexture
+
+    static func make(pixelFormat: MTLPixelFormat) throws -> DynamicRenderResources {
+        guard let device = MTLCreateSystemDefaultDevice() else {
+            throw DynamicRendererSetupError.missingDevice
+        }
+
+        let library = try DynamicMetalRenderer.makeLibrary(device: device)
+        let additivePipeline = try DynamicMetalRenderer.makePipeline(
+            device: device,
+            library: library,
+            pixelFormat: pixelFormat,
+            fragmentBlend: .additive
+        )
+        let screenPipeline = try DynamicMetalRenderer.makePipeline(
+            device: device,
+            library: library,
+            pixelFormat: pixelFormat,
+            fragmentBlend: .screen,
+            fragmentName: "dynamicNebulaFragment"
+        )
+        let blurTexture = try DynamicMetalRenderer.makeTexture(
+            device: device,
+            bitmap: DynamicTextureFactory.makeBlurBitmap(size: 128)
+        )
+        let sharpTexture = try DynamicMetalRenderer.makeTexture(
+            device: device,
+            bitmap: DynamicTextureFactory.makeSharpBitmap(size: 32)
+        )
+        let cloudAtlasTexture = try DynamicMetalRenderer.makeTexture(
+            device: device,
+            bitmap: DynamicTextureFactory.makeCloudAtlasBitmap(
+                tileSize: 640,
+                nominalTileSize: 320,
+                columns: DynamicSpaceConfiguration().nebulaAtlasColumns,
+                rows: DynamicSpaceConfiguration().nebulaAtlasRows
+            )
+        )
+        let dustTexture = try DynamicMetalRenderer.makeTexture(
+            device: device,
+            bitmap: DynamicTextureFactory.makeDustBitmap(size: 8)
+        )
+
+        return DynamicRenderResources(
+            device: device,
+            pixelFormat: pixelFormat,
+            library: library,
+            additivePipeline: additivePipeline,
+            screenPipeline: screenPipeline,
+            blurTexture: blurTexture,
+            sharpTexture: sharpTexture,
+            cloudAtlasTexture: cloudAtlasTexture,
+            dustTexture: dustTexture
+        )
+    }
+}
+
+private final class DynamicRenderResourceCache: @unchecked Sendable {
+    static let shared = DynamicRenderResourceCache()
+
+    private let lock = NSLock()
+    private var cachedResources: DynamicRenderResources?
+    private var isPrewarming = false
+
+    private init() {}
+
+    func preferredDevice() -> MTLDevice? {
+        lock.lock()
+        let device = cachedResources?.device
+        lock.unlock()
+        return device ?? MTLCreateSystemDefaultDevice()
+    }
+
+    func prewarmIfNeeded(pixelFormat: MTLPixelFormat = .bgra8Unorm) {
+        lock.lock()
+        let hasMatchingResources = cachedResources?.pixelFormat == pixelFormat
+        if hasMatchingResources || isPrewarming {
+            lock.unlock()
+            return
+        }
+        isPrewarming = true
+        lock.unlock()
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else {
+                return
+            }
+
+            let preparedResources = try? DynamicRenderResources.make(pixelFormat: pixelFormat)
+
+            self.lock.lock()
+            if let preparedResources {
+                self.cachedResources = preparedResources
+            }
+            self.isPrewarming = false
+            self.lock.unlock()
+        }
+    }
+
+    func resources(pixelFormat: MTLPixelFormat) throws -> DynamicRenderResources {
+        lock.lock()
+        if let cachedResources, cachedResources.pixelFormat == pixelFormat {
+            lock.unlock()
+            return cachedResources
+        }
+        lock.unlock()
+
+        let preparedResources = try DynamicRenderResources.make(pixelFormat: pixelFormat)
+
+        lock.lock()
+        if cachedResources == nil || cachedResources?.pixelFormat != pixelFormat {
+            cachedResources = preparedResources
+        }
+        let resolvedResources = cachedResources ?? preparedResources
+        isPrewarming = false
+        lock.unlock()
+        return resolvedResources
+    }
+}
+
 @MainActor
 private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     var sample: MotionSample = .neutral
     var warpMode: DynamicWarpMode = .cruise
 
     private let config = DynamicSpaceConfiguration()
-    private let device: MTLDevice
     private let commandQueue: MTLCommandQueue
     private let additivePipeline: MTLRenderPipelineState
     private let screenPipeline: MTLRenderPipelineState
@@ -308,88 +446,22 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     private var haloCount = 0
     private var sharpCount = 0
 
-    init(mtkView: MTKView) throws {
-        guard
-            let device = mtkView.device
-        else {
-            throw DynamicRendererSetupError.missingCommandQueue
-        }
+    init(mtkView: MTKView, resources: DynamicRenderResources) throws {
+        let device = resources.device
+        mtkView.device = device
 
         guard let commandQueue = device.makeCommandQueue() else {
             throw DynamicRendererSetupError.missingCommandQueue
         }
 
-        self.device = device
         self.commandQueue = commandQueue
+        self.additivePipeline = resources.additivePipeline
+        self.screenPipeline = resources.screenPipeline
+        self.blurTexture = resources.blurTexture
+        self.sharpTexture = resources.sharpTexture
+        self.cloudAtlasTexture = resources.cloudAtlasTexture
+        self.dustTexture = resources.dustTexture
         self.state = DynamicSpaceSceneState(config: config)
-
-        let library: MTLLibrary
-        let bundle = Bundle(for: DynamicBundleSentinel.self)
-        if let url = bundle.url(forResource: "default", withExtension: "metallib") {
-            do {
-                library = try device.makeLibrary(URL: url)
-            } catch {
-                throw DynamicRendererSetupError.libraryLoad(error.localizedDescription)
-            }
-        } else if let fallback = device.makeDefaultLibrary() {
-            library = fallback
-        } else {
-            throw DynamicRendererSetupError.missingLibrary
-        }
-
-        do {
-            guard
-            library.makeFunction(name: "dynamicSpriteVertex") != nil,
-                library.makeFunction(name: "dynamicSpriteFragment") != nil,
-                library.makeFunction(name: "dynamicNebulaFragment") != nil
-            else {
-                throw DynamicRendererSetupError.invalidShaderFunctions
-            }
-
-            additivePipeline = try DynamicMetalRenderer.makePipeline(
-                device: device,
-                library: library,
-                pixelFormat: mtkView.colorPixelFormat,
-                fragmentBlend: .additive
-            )
-            screenPipeline = try DynamicMetalRenderer.makePipeline(
-                device: device,
-                library: library,
-                pixelFormat: mtkView.colorPixelFormat,
-                fragmentBlend: .screen,
-                fragmentName: "dynamicNebulaFragment"
-            )
-        } catch let error as DynamicRendererSetupError {
-            throw error
-        } catch {
-            throw DynamicRendererSetupError.pipelineCreation(error.localizedDescription)
-        }
-
-        do {
-            blurTexture = try DynamicMetalRenderer.makeTexture(
-                device: device,
-                bitmap: DynamicTextureFactory.makeBlurBitmap(size: 128)
-            )
-            sharpTexture = try DynamicMetalRenderer.makeTexture(
-                device: device,
-                bitmap: DynamicTextureFactory.makeSharpBitmap(size: 32)
-            )
-            cloudAtlasTexture = try DynamicMetalRenderer.makeTexture(
-                device: device,
-                bitmap: DynamicTextureFactory.makeCloudAtlasBitmap(
-                    tileSize: 640,
-                    nominalTileSize: 320,
-                    columns: config.nebulaAtlasColumns,
-                    rows: config.nebulaAtlasRows
-                )
-            )
-            dustTexture = try DynamicMetalRenderer.makeTexture(
-                device: device,
-                bitmap: DynamicTextureFactory.makeDustBitmap(size: 8)
-            )
-        } catch {
-            throw DynamicRendererSetupError.textureCreation(error.localizedDescription)
-        }
 
         let nebulaStride = MemoryLayout<DynamicSpriteVertex>.stride * config.nebulaCloudCount
         let dustStride = MemoryLayout<DynamicSpriteVertex>.stride * config.dustCount
@@ -851,7 +923,41 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         encoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: count)
     }
 
-    private static func makeTexture(device: MTLDevice, bitmap: DynamicTextureBitmap) throws -> MTLTexture {
+    nonisolated fileprivate static func makeLibrary(device: MTLDevice) throws -> MTLLibrary {
+        let bundle = Bundle(for: DynamicBundleSentinel.self)
+        if let url = bundle.url(forResource: "default", withExtension: "metallib") {
+            do {
+                let library = try device.makeLibrary(URL: url)
+                guard
+                    library.makeFunction(name: "dynamicSpriteVertex") != nil,
+                    library.makeFunction(name: "dynamicSpriteFragment") != nil,
+                    library.makeFunction(name: "dynamicNebulaFragment") != nil
+                else {
+                    throw DynamicRendererSetupError.invalidShaderFunctions
+                }
+                return library
+            } catch let error as DynamicRendererSetupError {
+                throw error
+            } catch {
+                throw DynamicRendererSetupError.libraryLoad(error.localizedDescription)
+            }
+        }
+
+        if let fallback = device.makeDefaultLibrary() {
+            guard
+                fallback.makeFunction(name: "dynamicSpriteVertex") != nil,
+                fallback.makeFunction(name: "dynamicSpriteFragment") != nil,
+                fallback.makeFunction(name: "dynamicNebulaFragment") != nil
+            else {
+                throw DynamicRendererSetupError.invalidShaderFunctions
+            }
+            return fallback
+        }
+
+        throw DynamicRendererSetupError.missingLibrary
+    }
+
+    nonisolated fileprivate static func makeTexture(device: MTLDevice, bitmap: DynamicTextureBitmap) throws -> MTLTexture {
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(
             pixelFormat: .rgba8Unorm,
             width: bitmap.width,
@@ -881,7 +987,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         return texture
     }
 
-    private static func makePipeline(
+    nonisolated fileprivate static func makePipeline(
         device: MTLDevice,
         library: MTLLibrary,
         pixelFormat: MTLPixelFormat,

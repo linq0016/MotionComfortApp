@@ -5,8 +5,8 @@ settings:
   base:
     SWIFT_VERSION: 6.0
     IPHONEOS_DEPLOYMENT_TARGET: 26.0
-    MARKETING_VERSION: 0.4.1
-    CURRENT_PROJECT_VERSION: 0.4.1
+    MARKETING_VERSION: 0.4.2
+    CURRENT_PROJECT_VERSION: 0.4.2
 targets:
   MotionComfortApp:
     type: application
@@ -17,8 +17,8 @@ targets:
         DEVELOPMENT_TEAM: 9NWVQ7RFAT
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: App/Info.plist
-        MARKETING_VERSION: 0.4.1
-        CURRENT_PROJECT_VERSION: 0.4.1
+        MARKETING_VERSION: 0.4.2
+        CURRENT_PROJECT_VERSION: 0.4.2
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: com.LNQ.MotionComfortApp.dev
         SUPPORTED_PLATFORMS: iphoneos iphonesimulator
@@ -44,8 +44,8 @@ targets:
       properties:
         CFBundleDisplayName: MotionComfort
         CFBundleIconName: AppIcon
-        CFBundleShortVersionString: 0.3.4
-        CFBundleVersion: 0.3.4
+        CFBundleShortVersionString: 0.4.2
+        CFBundleVersion: 0.4.2
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
@@ -69,10 +69,7 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
     sources:
-      - path: Core/Sources
-        excludes:
-          - CueLayoutEngine.swift
-          - MotionSmoother.swift
+      - Core/Sources
   MotionComfortVisual:
     type: framework
     platform: iOS
@@ -81,12 +78,7 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
     sources:
-      - path: Visual/Sources
-        excludes:
-          - MotionFlowOverlay.swift
-          - MotionFlowStyle.swift
-          - MotionCloudOverlay.swift
-          - CloudVisualStyle.swift
+      - Visual/Sources
     dependencies:
       - target: MotionComfortCore
   MotionComfortAudio:

@@ -8,36 +8,43 @@ public final class AudioComfortEngine: ObservableObject {
     @Published public private(set) var isPlaying: Bool
     @Published public private(set) var activeMode: AudioMode
 
+    private let sampleRate: Double
     private let engine: AVAudioEngine
     private let player: AVAudioPlayerNode
-    private let format: AVAudioFormat
+    private let format: AVAudioFormat?
     private var buffers: [AudioMode: AVAudioPCMBuffer]
-    private let monotoneAssetURL: URL?
+    private var monotoneAssetURL: URL?
     private let melodicAssetURL: URL?
 
     public init(sampleRate: Double = 44_100.0) {
-        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2) else {
-            fatalError("Unable to create stereo audio format.")
-        }
-
+        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)
+        self.sampleRate = sampleRate
         self.engine = AVAudioEngine()
         self.player = AVAudioPlayerNode()
         self.format = format
         self.isPlaying = false
         self.activeMode = .off
         self.buffers = [:]
-        self.monotoneAssetURL = Self.prepareMonotoneAsset(sampleRate: sampleRate)
+        self.monotoneAssetURL = nil
         self.melodicAssetURL = Self.findMelodicAsset()
 
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: format)
         engine.mainMixerNode.outputVolume = 1.0
+
+        if format == nil {
+            assertionFailure("Unable to create stereo audio format.")
+        }
     }
 
     // 切换到指定音频模式，并开始循环播放。
     public func setMode(_ mode: AudioMode) {
         guard mode != .off else {
             stopPlayback()
+            return
+        }
+
+        guard format != nil else {
             return
         }
 
@@ -139,6 +146,10 @@ public final class AudioComfortEngine: ObservableObject {
         case .off:
             return makeLoopBuffer(duration: 1.0, layers: [(220.0, 0.0)], modulationFrequency: 0.0)
         case .monotone:
+            if monotoneAssetURL == nil {
+                monotoneAssetURL = Self.prepareMonotoneAsset(sampleRate: sampleRate)
+            }
+
             if let url = monotoneAssetURL, let loaded = loadBuffer(from: url) {
                 return loaded
             }
@@ -157,10 +168,16 @@ public final class AudioComfortEngine: ObservableObject {
         duration: Double,
         layers: [(frequency: Double, amplitude: Double)],
         modulationFrequency: Double
-    ) -> AVAudioPCMBuffer {
+    ) -> AVAudioPCMBuffer? {
+        guard let format else {
+            assertionFailure("Unable to create loop buffer without a valid audio format.")
+            return nil
+        }
+
         let frameCount = AVAudioFrameCount(format.sampleRate * duration)
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
-            fatalError("Unable to create PCM buffer.")
+            assertionFailure("Unable to create PCM buffer.")
+            return nil
         }
 
         buffer.frameLength = frameCount

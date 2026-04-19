@@ -41,50 +41,6 @@ final class ComfortSessionViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
-    var severityLabel: String {
-        switch sample.intensity {
-        case 0.0..<0.2:
-            return "Stable"
-        case 0.2..<0.45:
-            return "Light motion"
-        case 0.45..<0.75:
-            return "Building motion"
-        default:
-            return "High motion"
-        }
-    }
-
-    var comfortNote: String {
-        if audioMode != .off {
-            return "Visual guidance stays primary. Audio remains optional and conservative."
-        }
-
-        switch visualGuideStyle {
-        case .minimal:
-            return "Minimal stays the clearest baseline route and remains the safest default product mode."
-        case .dynamic:
-            return "Dynamic mirrors the H5 nebula particle route with layered clouds, fine dust, and dedicated cruise or warp travel."
-        case .liveView:
-            return "Live View keeps the real camera route front and center, with edge cues only around the reading area."
-        }
-    }
-
-    var motionModeLabel: String {
-        motionInputMode.title
-    }
-
-    var motionModeNote: String {
-        if motionInputMode == .realTime && !motionManager.isLiveMotionAvailable {
-            return "Real-time motion is currently unavailable on this device session."
-        }
-
-        return motionInputMode.note
-    }
-
-    var visualGuideStyleNote: String {
-        visualGuideStyle.note
-    }
-
     // 启动当前选择的 motion 和 audio 模式。
     func start() {
         if visualGuideStyle == .dynamic {
