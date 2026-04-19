@@ -539,16 +539,16 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
                     atlasIndex: Int32(uniqueAtlasIndices[index % uniqueAtlasIndices.count]),
                     baseSize: Float(min(size.width, size.height)) * Float.random(in: 3.10...5.80),
                     brightnessScale: Float.random(in: 0.60...0.98),
-                    anchorX: Float.random(in: -0.18...0.18),
-                    anchorY: Float.random(in: -0.18...0.18),
+                    anchorX: Float.random(in: -0.14...0.14),
+                    anchorY: Float.random(in: -0.14...0.14),
                     anchorZ: Float.random(in: config.minZ + 0.9...config.maxZ - 1.1),
                     driftPhaseX: Float.random(in: 0.0...(Float.pi * 2.0)),
                     driftPhaseY: Float.random(in: 0.0...(Float.pi * 2.0)),
-                    driftSpeedX: Float.random(in: 0.00012...0.00038),
-                    driftSpeedY: Float.random(in: 0.00012...0.00038),
+                    driftSpeedX: Float.random(in: 0.00016...0.00046),
+                    driftSpeedY: Float.random(in: 0.00016...0.00046),
                     alphaFreq: Float.random(in: 0.00025...0.00075),
-                    wanderRadiusX: Float.random(in: 0.10...0.36),
-                    wanderRadiusY: Float.random(in: 0.10...0.36)
+                    wanderRadiusX: Float.random(in: 0.08...0.30),
+                    wanderRadiusY: Float.random(in: 0.08...0.30)
                 )
             )
         }
@@ -589,8 +589,8 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     private func buildNebulas(timeMs: Float) {
         let centerX = Float(drawableSize.width) * 0.5
         let centerY = Float(drawableSize.height) * 0.5
-        let clusterRadiusX = Float(drawableSize.width) * 0.33
-        let clusterRadiusY = Float(drawableSize.height) * 0.29
+        let clusterRadiusX = Float(drawableSize.width) * 0.28
+        let clusterRadiusY = Float(drawableSize.height) * 0.24
         nebulaCount = 0
 
         for nebula in state.nebulas {
