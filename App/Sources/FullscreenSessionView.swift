@@ -159,9 +159,10 @@ private struct FullscreenAudioModeControl: View {
     @Binding var selection: AudioMode
 
     private let modes = AudioMode.allCases
-    private let controlWidth: CGFloat = 304.0
-    private let controlHeight: CGFloat = 66.0
+    private let controlWidth: CGFloat = 276.0
+    private let controlHeight: CGFloat = 52.0
     private let innerPadding: CGFloat = 6.0
+    private let controlCornerRadius: CGFloat = 26.0
 
     var body: some View {
         GlassEffectContainer(spacing: 12.0) {
@@ -186,14 +187,14 @@ private struct FullscreenAudioModeControl: View {
             .frame(width: controlWidth, height: controlHeight)
             .glassEffect(
                 .clear.tint(Color.black.opacity(0.36)).interactive(),
-                in: .capsule
+                in: .rect(cornerRadius: controlCornerRadius)
             )
         }
     }
 
     private var selectionHighlight: some View {
         GeometryReader { proxy in
-            Capsule(style: .continuous)
+            RoundedRectangle(cornerRadius: controlCornerRadius - innerPadding, style: .continuous)
                 .fill(Color.white.opacity(0.14))
                 .frame(
                     width: segmentWidth(for: proxy.size.width),

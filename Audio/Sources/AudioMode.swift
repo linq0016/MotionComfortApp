@@ -2,8 +2,8 @@ import Foundation
 
 public enum AudioMode: String, CaseIterable, Identifiable, Sendable {
     case off
-    case monotone
     case melodic
+    case monotone
 
     public var id: String { rawValue }
 
@@ -11,10 +11,10 @@ public enum AudioMode: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .off:
             return "Off"
-        case .monotone:
-            return "Monotone"
         case .melodic:
             return "Melodic"
+        case .monotone:
+            return "Mono"
         }
     }
 
