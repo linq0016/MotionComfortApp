@@ -929,56 +929,62 @@ private enum DynamicTextureFactory {
     }
 
     static func makeCloudAtlasBitmap(tileSize: Int, columns: Int, rows: Int) -> DynamicTextureBitmap {
+        guard columns > 0, rows > 0 else {
+            return DynamicTextureBitmap(width: 0, height: 0, bytesPerRow: 0, data: [])
+        }
         let width = tileSize * columns
         let height = tileSize * rows
         let bytesPerPixel = 4
         let bytesPerRow = width * bytesPerPixel
-        var data = [UInt8](repeating: 0, count: height * bytesPerRow)
-
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.byteOrder32Big.rawValue
-        guard let context = CGContext(
-            data: &data,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: bytesPerRow,
-            space: colorSpace,
-            bitmapInfo: bitmapInfo
-        ) else {
-            return DynamicTextureBitmap(width: width, height: height, bytesPerRow: bytesPerRow, data: data)
+        let tileCount = columns * rows
+        let tiles = (0..<tileCount).map { _ in
+            makeCloudTileBitmap(tileSize: tileSize, safeInsetRatio: 0.24)
         }
+        var atlasData = [UInt8](repeating: 0, count: height * bytesPerRow)
 
-        context.interpolationQuality = .high
-        context.setAllowsAntialiasing(true)
+        atlasData.withUnsafeMutableBytes { atlasBuffer in
+            for index in 0..<tiles.count {
+                let tile = tiles[index]
+                let row = index / columns
+                let column = index % columns
+                let destinationX = column * tileSize
+                let destinationY = row * tileSize
 
-        for row in 0..<rows {
-            for column in 0..<columns {
-                let tileRect = CGRect(
-                    x: column * tileSize,
-                    y: row * tileSize,
-                    width: tileSize,
-                    height: tileSize
-                )
-                drawCloudTile(in: context, rect: tileRect)
+                tile.data.withUnsafeBytes { tileBuffer in
+                    for y in 0..<tile.height {
+                        let destinationOffset = (destinationY + y) * bytesPerRow + destinationX * bytesPerPixel
+                        let sourceOffset = y * tile.bytesPerRow
+                        atlasBuffer.baseAddress!.advanced(by: destinationOffset)
+                            .copyMemory(from: tileBuffer.baseAddress!.advanced(by: sourceOffset), byteCount: tile.bytesPerRow)
+                    }
+                }
             }
         }
 
-        return DynamicTextureBitmap(width: width, height: height, bytesPerRow: bytesPerRow, data: data)
+        return DynamicTextureBitmap(width: width, height: height, bytesPerRow: bytesPerRow, data: atlasData)
     }
 
-    private static func drawCloudTile(in cg: CGContext, rect: CGRect) {
+    private static func makeCloudTileBitmap(tileSize: Int, safeInsetRatio: CGFloat) -> DynamicTextureBitmap {
+        makeBitmap(size: tileSize) { context, size in
+            context.interpolationQuality = .high
+            context.setAllowsAntialiasing(true)
+            let layout = makeCloudTileLayout(tileSize: size, safeInsetRatio: safeInsetRatio)
+            drawCloudTile(in: context, layout: layout)
+        }
+    }
+
+    private static func makeCloudTileLayout(tileSize: Int, safeInsetRatio: CGFloat) -> CloudTileLayout {
+        let canvasSide = CGFloat(tileSize)
+        let canvasRect = CGRect(x: 0.0, y: 0.0, width: canvasSide, height: canvasSide)
+        let safeInset = canvasSide * max(0.0, min(safeInsetRatio, 0.45))
+        let contentRect = canvasRect.insetBy(dx: safeInset, dy: safeInset)
+        return CloudTileLayout(canvasRect: canvasRect, safeInset: safeInset, contentRect: contentRect)
+    }
+
+    private static func drawCloudTile(in cg: CGContext, layout: CloudTileLayout) {
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         cg.setBlendMode(.plusLighter)
-        // Keep the cloud drawing area fixed while tile resolution changes,
-        // so increasing tileSize adds transparent safety margin rather than stretching edges.
-        let fixedDrawSide = min(CGFloat(166.0), min(rect.width, rect.height) * 0.9)
-        let contentRect = CGRect(
-            x: rect.midX - fixedDrawSide * 0.5,
-            y: rect.midY - fixedDrawSide * 0.5,
-            width: fixedDrawSide,
-            height: fixedDrawSide
-        )
+        let contentRect = layout.contentRect
         let innerCenter = CGPoint(x: contentRect.midX, y: contentRect.midY)
 
         let shapeMode = Int.random(in: 0...5)
@@ -1216,4 +1222,10 @@ private struct DynamicTextureBitmap {
     let height: Int
     let bytesPerRow: Int
     let data: [UInt8]
+}
+
+private struct CloudTileLayout {
+    let canvasRect: CGRect
+    let safeInset: CGFloat
+    let contentRect: CGRect
 }
