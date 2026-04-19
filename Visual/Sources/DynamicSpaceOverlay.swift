@@ -993,7 +993,7 @@ private enum DynamicTextureFactory {
             )
             drawCloudTile(in: context, layout: layout, tileIndex: tileIndex)
         }
-        return applyCloudTileBoundaryFade(bitmap, fadeWidthRatio: 0.05)
+        return applyCloudTileBoundaryFade(bitmap, fadeWidthRatio: 0.14)
     }
 
     private static func makeCloudTileLayout(
@@ -1097,9 +1097,9 @@ private enum DynamicTextureFactory {
                 x: innerCenter.x + coreOffset.x + flowDirection.x * coreRadius * asymmetry + CGFloat.random(in: -contentRect.width * 0.10...contentRect.width * 0.10),
                 y: innerCenter.y + coreOffset.y + flowDirection.y * coreRadius * asymmetry + CGFloat.random(in: -contentRect.height * 0.10...contentRect.height * 0.10)
             )
-            let blobRadius = CGFloat.random(in: contentRect.width * 0.28...contentRect.width * 0.82)
-            let blobAlpha = CGFloat.random(in: 0.18...0.46)
-            let stretch = CGFloat.random(in: 1.00...2.10)
+            let blobRadius = CGFloat.random(in: contentRect.width * 0.30...contentRect.width * 0.76)
+            let blobAlpha = CGFloat.random(in: 0.16...0.38)
+            let stretch = CGFloat.random(in: 1.00...1.58)
             let blobGradient = CGGradient(
                 colorsSpace: colorSpace,
                 colors: [
@@ -1112,7 +1112,7 @@ private enum DynamicTextureFactory {
             cg.saveGState()
             cg.translateBy(x: blobCenter.x, y: blobCenter.y)
             cg.rotate(by: CGFloat.random(in: 0.0...(CGFloat.pi * 2.0)))
-            cg.scaleBy(x: stretch, y: CGFloat.random(in: 0.34...0.90))
+            cg.scaleBy(x: stretch, y: CGFloat.random(in: 0.50...0.96))
             cg.drawRadialGradient(
                 blobGradient,
                 startCenter: .zero,
@@ -1124,21 +1124,52 @@ private enum DynamicTextureFactory {
             cg.restoreGState()
         }
 
+        let hazeCount = Int.random(in: 8...14)
+        for _ in 0..<hazeCount {
+            let hazeAngle = CGFloat.random(in: 0.0...(CGFloat.pi * 2.0))
+            let hazeDistance = CGFloat.random(in: contentRect.width * 0.18...contentRect.width * 0.42)
+            let hazeCenter = CGPoint(
+                x: innerCenter.x + coreOffset.x * CGFloat.random(in: 0.30...0.70) + cos(hazeAngle) * hazeDistance,
+                y: innerCenter.y + coreOffset.y * CGFloat.random(in: 0.30...0.70) + sin(hazeAngle) * hazeDistance
+            )
+            let hazeRadius = CGFloat.random(in: contentRect.width * 0.22...contentRect.width * 0.48)
+            let hazeAlpha = CGFloat.random(in: 0.04...0.12)
+            let hazeGradient = CGGradient(
+                colorsSpace: colorSpace,
+                colors: [
+                    UIColor(white: 1.0, alpha: hazeAlpha).cgColor,
+                    UIColor(white: 1.0, alpha: hazeAlpha * 0.30).cgColor,
+                    UIColor(white: 1.0, alpha: 0.0).cgColor
+                ] as CFArray,
+                locations: [0.0, 0.55, 1.0]
+            )!
+            cg.drawRadialGradient(
+                hazeGradient,
+                startCenter: hazeCenter,
+                startRadius: 0.0,
+                endCenter: hazeCenter,
+                endRadius: hazeRadius,
+                options: [.drawsAfterEndLocation]
+            )
+        }
+
         let filamentRange = variantFilamentRanges[variantIndex]
-        let filamentCount = Int.random(in: filamentRange.0...filamentRange.1)
+        let softenedFilamentMin = max(2, filamentRange.0 - 3)
+        let softenedFilamentMax = max(softenedFilamentMin, filamentRange.1 - 3)
+        let filamentCount = Int.random(in: softenedFilamentMin...softenedFilamentMax)
         for _ in 0..<filamentCount {
             let filamentAngle = variantAngleBias + CGFloat.random(in: -0.90...0.90)
-            let filamentLength = CGFloat.random(in: contentRect.width * 0.70...contentRect.width * 1.24)
-            let filamentWidth = CGFloat.random(in: 14.0...40.0)
-            let filamentAlpha = CGFloat.random(in: 0.05...0.15)
+            let filamentLength = CGFloat.random(in: contentRect.width * 0.42...contentRect.width * 0.88)
+            let filamentWidth = CGFloat.random(in: 18.0...46.0)
+            let filamentAlpha = CGFloat.random(in: 0.025...0.075)
             let direction = CGPoint(x: cos(filamentAngle), y: sin(filamentAngle))
             let perpendicular = CGPoint(x: -direction.y, y: direction.x)
-            let segments = Int.random(in: 18...40)
+            let segments = Int.random(in: 16...28)
 
             for segment in 0..<segments {
                 let t = CGFloat(segment) / CGFloat(max(segments - 1, 1))
                 let along = (t - 0.5) * filamentLength
-                let wobble = sin(t * CGFloat.pi * CGFloat.random(in: 1.1...3.5)) * CGFloat.random(in: -30.0...30.0)
+                let wobble = sin(t * CGFloat.pi * CGFloat.random(in: 1.1...2.6)) * CGFloat.random(in: -16.0...16.0)
                 let point = CGPoint(
                     x: innerCenter.x + coreOffset.x + direction.x * along + perpendicular.x * wobble,
                     y: innerCenter.y + coreOffset.y + direction.y * along + perpendicular.y * wobble
@@ -1202,19 +1233,19 @@ private enum DynamicTextureFactory {
             )
         }
 
-        let laneCount = Int.random(in: 4...7)
+        let laneCount = Int.random(in: 2...4)
         for _ in 0..<laneCount {
             let laneAngle = CGFloat.random(in: 0.0...(CGFloat.pi * 2.0))
-            let laneLength = CGFloat.random(in: contentRect.width * 0.50...contentRect.width * 1.00)
-            let laneWidth = CGFloat.random(in: 8.0...22.0)
-            let laneAlpha = CGFloat.random(in: 0.05...0.14)
+            let laneLength = CGFloat.random(in: contentRect.width * 0.34...contentRect.width * 0.70)
+            let laneWidth = CGFloat.random(in: 12.0...28.0)
+            let laneAlpha = CGFloat.random(in: 0.025...0.07)
             let direction = CGPoint(x: cos(laneAngle), y: sin(laneAngle))
             let perpendicular = CGPoint(x: -direction.y, y: direction.x)
-            let segments = Int.random(in: 14...30)
+            let segments = Int.random(in: 12...22)
             for segment in 0..<segments {
                 let t = CGFloat(segment) / CGFloat(max(segments - 1, 1))
                 let along = (t - 0.5) * laneLength
-                let wobble = sin(t * CGFloat.pi * CGFloat.random(in: 1.1...2.7)) * CGFloat.random(in: -14.0...14.0)
+                let wobble = sin(t * CGFloat.pi * CGFloat.random(in: 1.1...2.1)) * CGFloat.random(in: -8.0...8.0)
                 let point = CGPoint(
                     x: innerCenter.x + direction.x * along + perpendicular.x * wobble,
                     y: innerCenter.y + direction.y * along + perpendicular.y * wobble
