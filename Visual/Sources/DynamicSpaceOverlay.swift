@@ -159,10 +159,10 @@ private struct DynamicSpaceConfiguration {
     let warpSpeed: Float = 0.14
     let camSensX: Float = 0.045
     let camSensY: Float = 0.045
-    let nebulaCloudCount = 10
+    let nebulaCloudCount = 8
     let nebulaAtlasColumns = 4
     let nebulaAtlasRows = 2
-    let nebulaBaseAlpha: Float = 0.38
+    let nebulaBaseAlpha: Float = 0.46
     let sensorSmoothing: Float = 0.35
     let velocityFriction: Float = 0.08
     let brightnessDivisor: Float = 1.5
@@ -529,24 +529,26 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             state.dusts.append(spawnedDust(from: dust, randomDepth: true))
         }
 
-        for _ in 0..<config.nebulaCloudCount {
-            let atlasCount = max(config.nebulaAtlasColumns * config.nebulaAtlasRows, 1)
+        let atlasCount = max(config.nebulaAtlasColumns * config.nebulaAtlasRows, 1)
+        let uniqueAtlasIndices = Array(0..<atlasCount).shuffled()
+
+        for index in 0..<config.nebulaCloudCount {
             state.nebulas.append(
                 DynamicNebula(
                     colorIndex: Int32.random(in: 0..<Int32(DynamicPalette.colors.count)),
-                    atlasIndex: Int32.random(in: 0..<Int32(atlasCount)),
-                    baseSize: Float(min(size.width, size.height)) * Float.random(in: 1.10...2.10),
-                    brightnessScale: Float.random(in: 0.50...0.92),
-                    anchorX: Float.random(in: -0.10...0.10),
-                    anchorY: Float.random(in: -0.10...0.10),
+                    atlasIndex: Int32(uniqueAtlasIndices[index % uniqueAtlasIndices.count]),
+                    baseSize: Float(min(size.width, size.height)) * Float.random(in: 3.10...5.80),
+                    brightnessScale: Float.random(in: 0.60...0.98),
+                    anchorX: Float.random(in: -0.18...0.18),
+                    anchorY: Float.random(in: -0.18...0.18),
                     anchorZ: Float.random(in: config.minZ + 0.9...config.maxZ - 1.1),
                     driftPhaseX: Float.random(in: 0.0...(Float.pi * 2.0)),
                     driftPhaseY: Float.random(in: 0.0...(Float.pi * 2.0)),
                     driftSpeedX: Float.random(in: 0.00012...0.00038),
                     driftSpeedY: Float.random(in: 0.00012...0.00038),
                     alphaFreq: Float.random(in: 0.00025...0.00075),
-                    wanderRadiusX: Float.random(in: 0.065...0.24),
-                    wanderRadiusY: Float.random(in: 0.065...0.24)
+                    wanderRadiusX: Float.random(in: 0.10...0.36),
+                    wanderRadiusY: Float.random(in: 0.10...0.36)
                 )
             )
         }
@@ -587,8 +589,8 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     private func buildNebulas(timeMs: Float) {
         let centerX = Float(drawableSize.width) * 0.5
         let centerY = Float(drawableSize.height) * 0.5
-        let clusterRadiusX = Float(drawableSize.width) * 0.18
-        let clusterRadiusY = Float(drawableSize.height) * 0.15
+        let clusterRadiusX = Float(drawableSize.width) * 0.33
+        let clusterRadiusY = Float(drawableSize.height) * 0.29
         nebulaCount = 0
 
         for nebula in state.nebulas {
@@ -602,7 +604,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             let scale = 1.0 / max(nebula.anchorZ, config.minZ)
             let screenX = centerX + relX
             let screenY = centerY + relY
-            let renderSize = nebula.baseSize * (1.0 + scale * 1.1)
+            let renderSize = nebula.baseSize * (1.52 + scale * 1.92)
             let isVisible = screenX > -renderSize && screenX < Float(drawableSize.width) + renderSize && screenY > -renderSize && screenY < Float(drawableSize.height) + renderSize
             guard isVisible else {
                 continue
@@ -937,8 +939,8 @@ private enum DynamicTextureFactory {
         let bytesPerPixel = 4
         let bytesPerRow = width * bytesPerPixel
         let tileCount = columns * rows
-        let tiles = (0..<tileCount).map { _ in
-            makeCloudTileBitmap(tileSize: tileSize, safeInsetRatio: 0.24)
+        let tiles = (0..<tileCount).map { index in
+            makeCloudTileBitmap(tileSize: tileSize, safeInsetRatio: 0.34, tileIndex: index)
         }
         var atlasData = [UInt8](repeating: 0, count: height * bytesPerRow)
 
@@ -964,13 +966,14 @@ private enum DynamicTextureFactory {
         return DynamicTextureBitmap(width: width, height: height, bytesPerRow: bytesPerRow, data: atlasData)
     }
 
-    private static func makeCloudTileBitmap(tileSize: Int, safeInsetRatio: CGFloat) -> DynamicTextureBitmap {
-        makeBitmap(size: tileSize) { context, size in
+    private static func makeCloudTileBitmap(tileSize: Int, safeInsetRatio: CGFloat, tileIndex: Int) -> DynamicTextureBitmap {
+        let bitmap = makeBitmap(size: tileSize) { context, size in
             context.interpolationQuality = .high
             context.setAllowsAntialiasing(true)
             let layout = makeCloudTileLayout(tileSize: size, safeInsetRatio: safeInsetRatio)
-            drawCloudTile(in: context, layout: layout)
+            drawCloudTile(in: context, layout: layout, tileIndex: tileIndex)
         }
+        return applyCloudTileBoundaryFade(bitmap, fadeWidthRatio: 0.12)
     }
 
     private static func makeCloudTileLayout(tileSize: Int, safeInsetRatio: CGFloat) -> CloudTileLayout {
@@ -981,18 +984,38 @@ private enum DynamicTextureFactory {
         return CloudTileLayout(canvasRect: canvasRect, safeInset: safeInset, contentRect: contentRect)
     }
 
-    private static func drawCloudTile(in cg: CGContext, layout: CloudTileLayout) {
+    private static func drawCloudTile(in cg: CGContext, layout: CloudTileLayout, tileIndex: Int) {
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         cg.setBlendMode(.plusLighter)
         let contentRect = layout.contentRect
         let innerCenter = CGPoint(x: contentRect.midX, y: contentRect.midY)
 
-        let shapeMode = Int.random(in: 0...5)
-        let baseAlpha = CGFloat.random(in: 0.24...0.48)
-        let coreRadius = CGFloat.random(in: contentRect.width * 0.58...contentRect.width * 0.98)
+        let variantIndex = tileIndex % 8
+        let variantAngleBias = CGFloat(variantIndex) * (.pi / 4.0)
+        let variantOffsets: [CGPoint] = [
+            CGPoint(x: -0.16, y: -0.12),
+            CGPoint(x: 0.18, y: -0.10),
+            CGPoint(x: -0.10, y: 0.16),
+            CGPoint(x: 0.12, y: 0.18),
+            CGPoint(x: -0.18, y: 0.00),
+            CGPoint(x: 0.20, y: 0.02),
+            CGPoint(x: 0.00, y: -0.18),
+            CGPoint(x: 0.02, y: 0.20)
+        ]
+        let variantBlobRanges: [(Int, Int)] = [
+            (10, 13), (12, 16), (9, 12), (13, 17),
+            (11, 15), (8, 11), (12, 14), (14, 18)
+        ]
+        let variantFilamentRanges: [(Int, Int)] = [
+            (5, 7), (6, 9), (7, 10), (4, 6),
+            (8, 10), (5, 8), (6, 8), (7, 10)
+        ]
+        let baseAlpha = CGFloat.random(in: 0.32...0.58)
+        let coreRadius = contentRect.width * CGFloat.random(in: 0.58...0.98)
+        let variantOffset = variantOffsets[variantIndex]
         let coreOffset = CGPoint(
-            x: CGFloat.random(in: -contentRect.width * 0.24...contentRect.width * 0.24),
-            y: CGFloat.random(in: -contentRect.height * 0.24...contentRect.height * 0.24)
+            x: (variantOffset.x + CGFloat.random(in: -0.05...0.05)) * contentRect.width,
+            y: (variantOffset.y + CGFloat.random(in: -0.05...0.05)) * contentRect.height
         )
 
         let coreGradient = CGGradient(
@@ -1013,20 +1036,39 @@ private enum DynamicTextureFactory {
             options: [.drawsAfterEndLocation]
         )
 
-        let blobCount = Int.random(in: 9...16)
+        // Keep a stable luminous nucleus so erosion can soften the tile without hollowing the center.
+        let nucleusGradient = CGGradient(
+            colorsSpace: colorSpace,
+            colors: [
+                UIColor(white: 1.0, alpha: baseAlpha * 0.72).cgColor,
+                UIColor(white: 1.0, alpha: baseAlpha * 0.26).cgColor,
+                UIColor(white: 1.0, alpha: 0.0).cgColor
+            ] as CFArray,
+            locations: [0.0, 0.42, 1.0]
+        )!
+        cg.drawRadialGradient(
+            nucleusGradient,
+            startCenter: innerCenter,
+            startRadius: 0.0,
+            endCenter: innerCenter,
+            endRadius: contentRect.width * 0.24,
+            options: [.drawsAfterEndLocation]
+        )
+
+        let blobRange = variantBlobRanges[variantIndex]
+        let blobCount = Int.random(in: blobRange.0...blobRange.1)
         for blobIndex in 0..<blobCount {
             let bias = CGFloat(blobIndex) / CGFloat(max(blobCount - 1, 1))
-            let shapeBias = CGFloat(shapeMode) * 0.12
-            let flowAngle = (bias * CGFloat.pi * 1.8) + shapeBias + CGFloat.random(in: -0.65...0.65)
+            let flowAngle = (bias * CGFloat.pi * (1.45 + CGFloat(variantIndex % 3) * 0.24)) + variantAngleBias + CGFloat.random(in: -0.48...0.48)
             let flowDirection = CGPoint(x: cos(flowAngle), y: sin(flowAngle))
-            let asymmetry = CGFloat.random(in: 0.34...0.82)
+            let asymmetry = CGFloat.random(in: 0.30...0.90)
             let blobCenter = CGPoint(
-                x: innerCenter.x + coreOffset.x + flowDirection.x * coreRadius * asymmetry + CGFloat.random(in: -contentRect.width * 0.12...contentRect.width * 0.12),
-                y: innerCenter.y + coreOffset.y + flowDirection.y * coreRadius * asymmetry + CGFloat.random(in: -contentRect.height * 0.12...contentRect.height * 0.12)
+                x: innerCenter.x + coreOffset.x + flowDirection.x * coreRadius * asymmetry + CGFloat.random(in: -contentRect.width * 0.10...contentRect.width * 0.10),
+                y: innerCenter.y + coreOffset.y + flowDirection.y * coreRadius * asymmetry + CGFloat.random(in: -contentRect.height * 0.10...contentRect.height * 0.10)
             )
-            let blobRadius = CGFloat.random(in: contentRect.width * 0.28...contentRect.width * 0.78)
-            let blobAlpha = CGFloat.random(in: 0.14...0.38)
-            let stretch = CGFloat.random(in: 0.94...1.90)
+            let blobRadius = CGFloat.random(in: contentRect.width * 0.28...contentRect.width * 0.82)
+            let blobAlpha = CGFloat.random(in: 0.18...0.46)
+            let stretch = CGFloat.random(in: 1.00...2.10)
             let blobGradient = CGGradient(
                 colorsSpace: colorSpace,
                 colors: [
@@ -1051,12 +1093,13 @@ private enum DynamicTextureFactory {
             cg.restoreGState()
         }
 
-        let filamentCount = Int.random(in: 5...10)
+        let filamentRange = variantFilamentRanges[variantIndex]
+        let filamentCount = Int.random(in: filamentRange.0...filamentRange.1)
         for _ in 0..<filamentCount {
-            let filamentAngle = CGFloat.random(in: 0.0...(CGFloat.pi * 2.0))
-            let filamentLength = CGFloat.random(in: contentRect.width * 0.68...contentRect.width * 1.22)
-            let filamentWidth = CGFloat.random(in: 16.0...44.0)
-            let filamentAlpha = CGFloat.random(in: 0.04...0.13)
+            let filamentAngle = variantAngleBias + CGFloat.random(in: -0.90...0.90)
+            let filamentLength = CGFloat.random(in: contentRect.width * 0.70...contentRect.width * 1.24)
+            let filamentWidth = CGFloat.random(in: 14.0...40.0)
+            let filamentAlpha = CGFloat.random(in: 0.05...0.15)
             let direction = CGPoint(x: cos(filamentAngle), y: sin(filamentAngle))
             let perpendicular = CGPoint(x: -direction.y, y: direction.x)
             let segments = Int.random(in: 18...40)
@@ -1082,15 +1125,15 @@ private enum DynamicTextureFactory {
 
         let dustCount = Int.random(in: 380...760)
         for _ in 0..<dustCount {
-            let radius = contentRect.width * CGFloat.random(in: 0.12...0.50) * pow(CGFloat.random(in: 0.0...1.0), 1.45)
+            let radius = contentRect.width * CGFloat.random(in: 0.10...0.48) * pow(CGFloat.random(in: 0.0...1.0), 1.45)
             let angle = CGFloat.random(in: 0.0...(CGFloat.pi * 2.0))
             let point = CGPoint(
                 x: innerCenter.x + coreOffset.x + cos(angle) * radius + CGFloat.random(in: -18.0...18.0),
                 y: innerCenter.y + coreOffset.y + sin(angle) * radius + CGFloat.random(in: -18.0...18.0)
             )
             let edgeFade = 1.0 - min(radius / (contentRect.width * 0.50), 1.0)
-            let alpha = CGFloat.random(in: 0.03...0.16) * edgeFade
-            let starSize = CGFloat.random(in: 0.20...1.06)
+            let alpha = CGFloat.random(in: 0.04...0.18) * edgeFade
+            let starSize = CGFloat.random(in: 0.24...1.12)
             cg.setFillColor(UIColor(white: 1.0, alpha: alpha).cgColor)
             cg.fillEllipse(in: CGRect(x: point.x, y: point.y, width: starSize, height: starSize))
         }
@@ -1099,20 +1142,24 @@ private enum DynamicTextureFactory {
         cg.setBlendMode(.destinationOut)
         let erosionCount = Int.random(in: 70...136)
         for _ in 0..<erosionCount {
+            let edgeBandStart = contentRect.width * 0.30
+            let edgeBandEnd = contentRect.width * 0.48
+            let erosionAngle = CGFloat.random(in: 0.0...(CGFloat.pi * 2.0))
+            let erosionDistance = CGFloat.random(in: edgeBandStart...edgeBandEnd)
             let erosionCenter = CGPoint(
-                x: innerCenter.x + CGFloat.random(in: -contentRect.width * 0.48...contentRect.width * 0.48),
-                y: innerCenter.y + CGFloat.random(in: -contentRect.height * 0.48...contentRect.height * 0.48)
+                x: innerCenter.x + cos(erosionAngle) * erosionDistance + CGFloat.random(in: -contentRect.width * 0.05...contentRect.width * 0.05),
+                y: innerCenter.y + sin(erosionAngle) * erosionDistance + CGFloat.random(in: -contentRect.height * 0.05...contentRect.height * 0.05)
             )
-            let erosionRadius = CGFloat.random(in: contentRect.width * 0.12...contentRect.width * 0.34)
-            let erosionAlpha = CGFloat.random(in: 0.10...0.30)
+            let erosionRadius = CGFloat.random(in: contentRect.width * 0.06...contentRect.width * 0.18)
+            let erosionAlpha = CGFloat.random(in: 0.05...0.14)
             let erosionGradient = CGGradient(
                 colorsSpace: colorSpace,
                 colors: [
                     UIColor(white: 1.0, alpha: erosionAlpha).cgColor,
-                    UIColor(white: 1.0, alpha: erosionAlpha * 0.26).cgColor,
+                    UIColor(white: 1.0, alpha: erosionAlpha * 0.22).cgColor,
                     UIColor(white: 1.0, alpha: 0.0).cgColor
                 ] as CFArray,
-                locations: [0.0, 0.68, 1.0]
+                locations: [0.0, 0.78, 1.0]
             )!
             cg.drawRadialGradient(
                 erosionGradient,
@@ -1127,9 +1174,9 @@ private enum DynamicTextureFactory {
         let laneCount = Int.random(in: 4...7)
         for _ in 0..<laneCount {
             let laneAngle = CGFloat.random(in: 0.0...(CGFloat.pi * 2.0))
-            let laneLength = CGFloat.random(in: contentRect.width * 0.54...contentRect.width * 1.08)
-            let laneWidth = CGFloat.random(in: 8.0...24.0)
-            let laneAlpha = CGFloat.random(in: 0.05...0.13)
+            let laneLength = CGFloat.random(in: contentRect.width * 0.50...contentRect.width * 1.00)
+            let laneWidth = CGFloat.random(in: 8.0...22.0)
+            let laneAlpha = CGFloat.random(in: 0.05...0.14)
             let direction = CGPoint(x: cos(laneAngle), y: sin(laneAngle))
             let perpendicular = CGPoint(x: -direction.y, y: direction.x)
             let segments = Int.random(in: 14...30)
@@ -1165,7 +1212,7 @@ private enum DynamicTextureFactory {
             cg.fillEllipse(in: CGRect(x: point.x, y: point.y, width: dotSize, height: dotSize))
         }
 
-        if shapeMode == 0 || shapeMode == 4 {
+        if variantIndex % 2 == 0 || variantIndex == 5 {
             let darkLaneGradient = CGGradient(
                 colorsSpace: colorSpace,
                 colors: [
@@ -1186,6 +1233,53 @@ private enum DynamicTextureFactory {
             )
             cg.setBlendMode(.plusLighter)
         }
+    }
+
+    private static func applyCloudTileBoundaryFade(
+        _ bitmap: DynamicTextureBitmap,
+        fadeWidthRatio: CGFloat
+    ) -> DynamicTextureBitmap {
+        guard bitmap.width > 0, bitmap.height > 0 else {
+            return bitmap
+        }
+
+        var data = bitmap.data
+        let width = bitmap.width
+        let height = bitmap.height
+        let fadeWidth = max(16.0, CGFloat(min(width, height)) * max(0.02, min(fadeWidthRatio, 0.25)))
+        let maxIndex = max(width - 1, height - 1)
+
+        data.withUnsafeMutableBytes { buffer in
+            guard let baseAddress = buffer.baseAddress else {
+                return
+            }
+
+            for y in 0..<height {
+                for x in 0..<width {
+                    let edgeDistance = min(
+                        CGFloat(x),
+                        CGFloat(y),
+                        CGFloat(maxIndex - x),
+                        CGFloat(maxIndex - y)
+                    )
+                    let t = max(0.0, min(edgeDistance / fadeWidth, 1.0))
+                    let fade = t * t * (3.0 - (2.0 * t))
+                    let pixelOffset = (y * bitmap.bytesPerRow) + (x * 4)
+                    let pixel = baseAddress.advanced(by: pixelOffset).assumingMemoryBound(to: UInt8.self)
+                    pixel[0] = UInt8(CGFloat(pixel[0]) * fade)
+                    pixel[1] = UInt8(CGFloat(pixel[1]) * fade)
+                    pixel[2] = UInt8(CGFloat(pixel[2]) * fade)
+                    pixel[3] = UInt8(CGFloat(pixel[3]) * fade)
+                }
+            }
+        }
+
+        return DynamicTextureBitmap(
+            width: bitmap.width,
+            height: bitmap.height,
+            bytesPerRow: bitmap.bytesPerRow,
+            data: data
+        )
     }
 
     private static func makeBitmap(
