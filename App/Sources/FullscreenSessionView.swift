@@ -39,6 +39,9 @@ struct FullscreenSessionView: View {
         }
         .preferredColorScheme(.dark)
         .statusBarHidden()
+        .onAppear {
+            model.startAudioIfNeeded()
+        }
     }
 
     private var sessionBackground: some View {

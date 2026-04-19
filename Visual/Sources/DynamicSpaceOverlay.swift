@@ -158,14 +158,14 @@ private struct DynamicSpaceConfiguration {
     let maxZ: Float = 5.0
     let idleSpeed: Float = 0.005
     let warpSpeed: Float = 0.14
-    let camSensX: Float = 0.045
-    let camSensY: Float = 0.045
+    let camSensX: Float = 0.060
+    let camSensY: Float = 0.060
     let nebulaCloudCount = 12
     let nebulaAtlasColumns = 4
     let nebulaAtlasRows = 3
     let nebulaBaseAlpha: Float = 0.54
-    let sensorSmoothing: Float = 0.35
-    let velocityFriction: Float = 0.08
+    let sensorSmoothing: Float = 0.42
+    let velocityFriction: Float = 0.11
     let brightnessDivisor: Float = 1.2
 }
 
@@ -216,6 +216,7 @@ private struct DynamicSpaceSceneState {
     var dusts: [DynamicDust] = []
     var nebulas: [DynamicNebula] = []
     var filteredAccel = SIMD2<Float>(repeating: 0.0)
+    var motionEnvelope: Float = 0.0
     var currentVelocity = SIMD2<Float>(repeating: 0.0)
     var camX: Float = 0.0
     var camY: Float = 0.0
@@ -272,6 +273,7 @@ extension DynamicRendererSetupError: LocalizedError {
     }
 }
 
+@MainActor
 private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     var sample: MotionSample = .neutral
     var warpMode: DynamicWarpMode = .cruise
@@ -497,6 +499,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         state.camX = 0.0
         state.camY = 0.0
         state.filteredAccel = .zero
+        state.motionEnvelope = 0.0
         state.currentVelocity = .zero
         state.currentWarpSpeed = config.idleSpeed
         state.universeSpreadX = config.maxZ * 2.8
@@ -513,7 +516,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
                 x: 0.0,
                 y: 0.0,
                 z: 0.0,
-                size: isSharp ? Float.random(in: 12.0...24.0) : Float.random(in: 50.0...85.0),
+                size: isSharp ? Float.random(in: 12.0...24.0) : Float.random(in: 40.0...80.0),
                 colorIndex: Int32.random(in: 0..<Int32(DynamicPalette.colors.count)),
                 isSharp: isSharp,
                 baseAlpha: isSharp ? Float.random(in: 0.48...0.82) : Float.random(in: 0.32...0.58),
@@ -558,7 +561,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
                     wanderRadiusX: Float.random(in: 0.08...0.30),
                     wanderRadiusY: Float.random(in: 0.08...0.30),
                     rotationPhase: Float.random(in: 0.0...(Float.pi * 2.0)),
-                    rotationSpeed: Float.random(in: 0.0001...0.0002) * (Bool.random() ? 1.0 : -1.0)
+                    rotationSpeed: Float.random(in: 0.0001...0.00015) * (Bool.random() ? 1.0 : -1.0)
                 )
             )
         }
@@ -580,11 +583,18 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
 
         let accelMagnitude = simd_length(state.filteredAccel)
         let rawIntensity = min(accelMagnitude / config.brightnessDivisor, 1.0)
-        let intensity = pow(rawIntensity, 0.82)
-        let reserveRaw = max((intensity - 0.18) / 0.82, 0.0)
+        let targetIntensity = pow(rawIntensity, 0.82)
+        let attackRate: Float = 0.24
+        let releaseRate: Float = 0.07
+        if targetIntensity > state.motionEnvelope {
+            state.motionEnvelope += (targetIntensity - state.motionEnvelope) * attackRate * frameScale
+        } else {
+            state.motionEnvelope += (targetIntensity - state.motionEnvelope) * releaseRate * frameScale
+        }
+        let reserveRaw = max((state.motionEnvelope - 0.18) / 0.82, 0.0)
         let reserveIntensity = reserveRaw * reserveRaw * (3.0 - 2.0 * reserveRaw)
-        let activeBrightness = intensity * 1.05
-        let activeHaloScale: Float = 1.0 + (intensity * 0.85)
+        let activeBrightness = state.motionEnvelope * 1.05
+        let activeHaloScale: Float = 1.0 + (state.motionEnvelope * 0.85)
 
         let targetWarpSpeed = warpMode == .warp ? config.warpSpeed : config.idleSpeed
         state.currentWarpSpeed += (targetWarpSpeed - state.currentWarpSpeed) * 0.05 * frameScale
@@ -594,7 +604,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         buildParticles(
             activeBrightness: activeBrightness,
             activeHaloScale: activeHaloScale,
-            accelIntensity: intensity,
+            accelIntensity: state.motionEnvelope,
             reserveIntensity: reserveIntensity,
             frameScale: frameScale
         )

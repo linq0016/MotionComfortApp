@@ -7,10 +7,10 @@ import MotionComfortVisual
 // 会话中控：把界面、运动输入、视觉状态和音频状态串起来。
 @MainActor
 final class ComfortSessionViewModel: ObservableObject {
-    @Published var visualGuideStyle: VisualGuideStyle = .minimal
+    @Published var visualGuideStyle: VisualGuideStyle = .dynamic
     @Published var motionInputMode: MotionInputMode = .realTime
     @Published var dynamicWarpMode: DynamicWarpMode = .cruise
-    @Published var audioMode: AudioMode = .off {
+    @Published var audioMode: AudioMode = .melodic {
         didSet {
             guard isRunning else {
                 return
@@ -92,10 +92,14 @@ final class ComfortSessionViewModel: ObservableObject {
         }
 
         motionManager.start(mode: motionInputMode)
+    }
 
-        if audioMode != .off {
-            audioEngine.setMode(audioMode)
+    func startAudioIfNeeded() {
+        guard isRunning, audioMode != .off else {
+            return
         }
+
+        audioEngine.setMode(audioMode)
     }
 
     // 停止会话，并把视觉状态收回到中性值。
