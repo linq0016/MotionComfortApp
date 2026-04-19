@@ -151,7 +151,8 @@ private final class DynamicRenderView: MTKView {
 }
 
 private struct DynamicSpaceConfiguration {
-    let particleCount = 500
+    let particleCount = 800
+    let baseParticleCount = 400
     let dustCount = 15000
     let minZ: Float = 0.2
     let maxZ: Float = 5.0
@@ -165,7 +166,7 @@ private struct DynamicSpaceConfiguration {
     let nebulaBaseAlpha: Float = 0.54
     let sensorSmoothing: Float = 0.35
     let velocityFriction: Float = 0.08
-    let brightnessDivisor: Float = 1.5
+    let brightnessDivisor: Float = 1.2
 }
 
 private struct DynamicParticle {
@@ -179,6 +180,7 @@ private struct DynamicParticle {
     var phase: Float
     var currentAlpha: Float
     var currentScale: Float
+    var isReserve: Bool
 }
 
 private struct DynamicDust {
@@ -505,18 +507,20 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         state.nebulas.removeAll(keepingCapacity: true)
 
         for _ in 0..<config.particleCount {
-            let isSharp = Float.random(in: 0.0...1.0) < 0.82
+            let index = state.particles.count
+            let isSharp = Float.random(in: 0.0...1.0) < 0.80
             let particle = DynamicParticle(
                 x: 0.0,
                 y: 0.0,
                 z: 0.0,
-                size: isSharp ? Float.random(in: 8.0...18.0) : Float.random(in: 36.0...104.0),
+                size: isSharp ? Float.random(in: 12.0...24.0) : Float.random(in: 50.0...85.0),
                 colorIndex: Int32.random(in: 0..<Int32(DynamicPalette.colors.count)),
                 isSharp: isSharp,
-                baseAlpha: isSharp ? Float.random(in: 0.45...0.80) : Float.random(in: 0.20...0.50),
+                baseAlpha: isSharp ? Float.random(in: 0.48...0.82) : Float.random(in: 0.32...0.58),
                 phase: Float.random(in: 0.0...(Float.pi * 2.0)),
                 currentAlpha: 0.0,
-                currentScale: 1.0
+                currentScale: 1.0,
+                isReserve: index >= config.baseParticleCount
             )
             state.particles.append(spawnedParticle(from: particle, randomDepth: true))
         }
@@ -575,16 +579,25 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         state.camY += state.currentVelocity.y * config.camSensY * frameScale
 
         let accelMagnitude = simd_length(state.filteredAccel)
-        let intensity = min(accelMagnitude / config.brightnessDivisor, 1.0)
-        let activeBrightness = intensity * 0.8
-        let activeHaloScale: Float = 1.0 + (intensity * 0.6)
+        let rawIntensity = min(accelMagnitude / config.brightnessDivisor, 1.0)
+        let intensity = pow(rawIntensity, 0.82)
+        let reserveRaw = max((intensity - 0.18) / 0.82, 0.0)
+        let reserveIntensity = reserveRaw * reserveRaw * (3.0 - 2.0 * reserveRaw)
+        let activeBrightness = intensity * 1.05
+        let activeHaloScale: Float = 1.0 + (intensity * 0.85)
 
         let targetWarpSpeed = warpMode == .warp ? config.warpSpeed : config.idleSpeed
         state.currentWarpSpeed += (targetWarpSpeed - state.currentWarpSpeed) * 0.05 * frameScale
 
         buildNebulas(timeMs: timeMs)
         buildDust(activeBrightness: activeBrightness, frameScale: frameScale)
-        buildParticles(activeBrightness: activeBrightness, activeHaloScale: activeHaloScale, frameScale: frameScale)
+        buildParticles(
+            activeBrightness: activeBrightness,
+            activeHaloScale: activeHaloScale,
+            accelIntensity: intensity,
+            reserveIntensity: reserveIntensity,
+            frameScale: frameScale
+        )
 
         upload(nebulaVertices, count: nebulaCount, to: nebulaBuffer)
         upload(dustVertices, count: dustCount, to: dustBuffer)
@@ -688,7 +701,13 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
 
     }
 
-    private func buildParticles(activeBrightness: Float, activeHaloScale: Float, frameScale: Float) {
+    private func buildParticles(
+        activeBrightness: Float,
+        activeHaloScale: Float,
+        accelIntensity: Float,
+        reserveIntensity: Float,
+        frameScale: Float
+    ) {
         let centerX = Float(drawableSize.width) * 0.5
         let centerY = Float(drawableSize.height) * 0.5
         let halfX = state.universeSpreadX * 0.5
@@ -734,16 +753,20 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             let scale = 1.0 / state.particles[index].z
             let screenX = centerX + relX * (Float(drawableSize.width) * 0.5) * scale
             let screenY = centerY + relY * (Float(drawableSize.width) * 0.5) * scale
-            let targetScale: Float = state.particles[index].isSharp ? 1.0 : activeHaloScale
+            let reserveScaleBoost: Float = state.particles[index].isReserve ? (1.0 + reserveIntensity * 0.28) : 1.0
+            let targetScale: Float = (state.particles[index].isSharp ? (1.0 + accelIntensity * 0.22) : activeHaloScale) * reserveScaleBoost
             state.particles[index].currentScale += (targetScale - state.particles[index].currentScale) * 0.15 * frameScale
-            let sizeBoost: Float = state.particles[index].isSharp ? 1.9 : 1.7
+            let sizeBoost: Float = state.particles[index].isSharp ? 2.18 : 2.00
             let renderSize = max(state.particles[index].size * scale * state.particles[index].currentScale * sizeBoost, 2.2)
             let isVisible = screenX > -renderSize && screenX < Float(drawableSize.width) + renderSize && screenY > -renderSize && screenY < Float(drawableSize.height) + renderSize
 
             state.particles[index].phase += 0.03 * frameScale
             let breath = sin(state.particles[index].phase) * 0.15 + 0.85
             let depthAlpha = state.particles[index].z > config.maxZ - 1.2 ? (config.maxZ - state.particles[index].z) / 1.2 : 1.0
-            let targetAlpha = min(state.particles[index].baseAlpha + 0.35 + activeBrightness * 1.25, 1.0) * breath * depthAlpha
+            let alphaFloor: Float = state.particles[index].isSharp ? 0.44 : 0.52
+            let alphaGain: Float = state.particles[index].isSharp ? 1.45 : 1.70
+            let reserveAlphaBoost: Float = state.particles[index].isReserve ? reserveIntensity : 1.0
+            let targetAlpha = min(state.particles[index].baseAlpha + alphaFloor + activeBrightness * alphaGain, 1.0) * breath * depthAlpha * reserveAlphaBoost
             state.particles[index].currentAlpha += (targetAlpha - state.particles[index].currentAlpha) * 0.15 * frameScale
 
             if state.particles[index].currentAlpha > 0.001 && isVisible {
