@@ -657,7 +657,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         let rawIntensity = min(accelMagnitude / config.brightnessDivisor, 1.0)
         let targetIntensity = pow(rawIntensity, 0.82)
         let attackRate: Float = 0.24
-        let releaseRate: Float = 0.07
+        let releaseRate: Float = 0.045
         if targetIntensity > state.motionEnvelope {
             state.motionEnvelope += (targetIntensity - state.motionEnvelope) * attackRate * frameScale
         } else {
@@ -769,7 +769,8 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             let isVisible = screenX > 0.0 && screenX < Float(drawableSize.width) && screenY > 0.0 && screenY < Float(drawableSize.height)
             let depthAlpha = state.dusts[index].z > config.maxZ - 1.2 ? (config.maxZ - state.dusts[index].z) / 1.2 : 1.0
             let targetAlpha = min(state.dusts[index].baseAlpha + 0.28 + activeBrightness * 0.85, 0.98) * depthAlpha
-            state.dusts[index].currentAlpha += (targetAlpha - state.dusts[index].currentAlpha) * 0.2 * frameScale
+            let dustAlphaRate: Float = targetAlpha > state.dusts[index].currentAlpha ? 0.2 : 0.08
+            state.dusts[index].currentAlpha += (targetAlpha - state.dusts[index].currentAlpha) * dustAlphaRate * frameScale
 
             if state.dusts[index].currentAlpha > 0.01 && isVisible {
                 let color = SIMD3<Float>(repeating: 1.0)
@@ -837,7 +838,8 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             let screenY = centerY + relY * (Float(drawableSize.width) * 0.5) * scale
             let reserveScaleBoost: Float = state.particles[index].isReserve ? (1.0 + reserveIntensity * 0.28) : 1.0
             let targetScale: Float = (state.particles[index].isSharp ? (1.0 + accelIntensity * 0.22) : activeHaloScale) * reserveScaleBoost
-            state.particles[index].currentScale += (targetScale - state.particles[index].currentScale) * 0.15 * frameScale
+            let scaleRate: Float = targetScale > state.particles[index].currentScale ? 0.15 : 0.06
+            state.particles[index].currentScale += (targetScale - state.particles[index].currentScale) * scaleRate * frameScale
             let sizeBoost: Float = state.particles[index].isSharp ? 2.18 : 2.00
             let renderSize = max(state.particles[index].size * scale * state.particles[index].currentScale * sizeBoost, 2.2)
             let isVisible = screenX > -renderSize && screenX < Float(drawableSize.width) + renderSize && screenY > -renderSize && screenY < Float(drawableSize.height) + renderSize
@@ -849,7 +851,8 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             let alphaGain: Float = state.particles[index].isSharp ? 1.45 : 1.70
             let reserveAlphaBoost: Float = state.particles[index].isReserve ? reserveIntensity : 1.0
             let targetAlpha = min(state.particles[index].baseAlpha + alphaFloor + activeBrightness * alphaGain, 1.0) * breath * depthAlpha * reserveAlphaBoost
-            state.particles[index].currentAlpha += (targetAlpha - state.particles[index].currentAlpha) * 0.15 * frameScale
+            let particleAlphaRate: Float = targetAlpha > state.particles[index].currentAlpha ? 0.15 : 0.055
+            state.particles[index].currentAlpha += (targetAlpha - state.particles[index].currentAlpha) * particleAlphaRate * frameScale
 
             if state.particles[index].currentAlpha > 0.001 && isVisible {
                 let color = DynamicPalette.colors[Int(state.particles[index].colorIndex)]
