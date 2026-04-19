@@ -82,19 +82,14 @@ fragment half4 dynamicNebulaFragment(
 
     float2 tileSize = float2(1.0 / float(atlasColumns), 1.0 / float(atlasRows));
     float2 safePoint = clamp(pointCoord, float2(0.0), float2(1.0));
-    float2 tileInset = float2(0.20, 0.20);
+    float2 tileInset = float2(0.08, 0.08);
     float2 atlasCoord = (float2(atlasColumn, atlasRow) + tileInset + safePoint * (float2(1.0) - tileInset * 2.0)) * tileSize;
     half4 sampled = spriteTexture.sample(textureSampler, atlasCoord);
 
-    float2 centered = safePoint * 2.0 - 1.0;
-    float radial = length(centered);
-    float alphaDistortion = (0.5 - float(sampled.a)) * 0.90;
-    float edgeNoise = sin((atlasCoord.x + atlasCoord.y) * 140.0) * 0.045;
-    half edgeFade = half(smoothstep(1.42, 0.78, radial + alphaDistortion + edgeNoise));
-
     half brightness = half(min(inFragment.color.a * 1.42, 1.0));
+    half alphaGuard = half(smoothstep(0.01, 0.06, float(sampled.a)));
     return half4(
-        half3(inFragment.color.rgb) * sampled.rgb * brightness * edgeFade,
-        sampled.a * brightness * edgeFade
+        half3(inFragment.color.rgb) * sampled.rgb * brightness,
+        sampled.a * brightness * alphaGuard
     );
 }

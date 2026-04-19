@@ -5,6 +5,8 @@ settings:
   base:
     SWIFT_VERSION: 6.0
     IPHONEOS_DEPLOYMENT_TARGET: 26.0
+    MARKETING_VERSION: 0.3.5
+    CURRENT_PROJECT_VERSION: 0.3.5
 targets:
   MotionComfortApp:
     type: application
@@ -15,8 +17,9 @@ targets:
         DEVELOPMENT_TEAM: 9NWVQ7RFAT
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: App/Info.plist
-        MARKETING_VERSION: 0.3.4
-        CURRENT_PROJECT_VERSION: 0.3.4
+        MARKETING_VERSION: 0.3.5
+        CURRENT_PROJECT_VERSION: 0.3.5
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: com.LNQ.MotionComfortApp.dev
         SUPPORTED_PLATFORMS: iphoneos iphonesimulator
         SUPPORTS_MACCATALYST: NO
@@ -25,8 +28,10 @@ targets:
         TARGETED_DEVICE_FAMILY: 1
     sources:
       - App/Sources
+      - path: App/Assets.xcassets
+        buildPhase: resources
     resources:
-      - Audio/Resources/GStringsFinal.wav
+      - path: Audio/Resources/GStringsFinal.wav
     preBuildScripts:
       - name: Copy Melodic Asset
         script: cp "${SRCROOT}/Audio/Resources/GStringsFinal.wav" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GStringsFinal.wav"
@@ -38,6 +43,9 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDisplayName: MotionComfort
+        CFBundleIconName: AppIcon
+        CFBundleShortVersionString: 0.3.4
+        CFBundleVersion: 0.3.4
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false

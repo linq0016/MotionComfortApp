@@ -162,7 +162,7 @@ private struct DynamicSpaceConfiguration {
     let nebulaCloudCount = 8
     let nebulaAtlasColumns = 4
     let nebulaAtlasRows = 2
-    let nebulaBaseAlpha: Float = 0.46
+    let nebulaBaseAlpha: Float = 0.54
     let sensorSmoothing: Float = 0.35
     let velocityFriction: Float = 0.08
     let brightnessDivisor: Float = 1.5
@@ -370,7 +370,8 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             cloudAtlasTexture = try DynamicMetalRenderer.makeTexture(
                 device: device,
                 bitmap: DynamicTextureFactory.makeCloudAtlasBitmap(
-                    tileSize: 320,
+                    tileSize: 640,
+                    nominalTileSize: 320,
                     columns: config.nebulaAtlasColumns,
                     rows: config.nebulaAtlasRows
                 )
@@ -538,7 +539,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
                     colorIndex: Int32.random(in: 0..<Int32(DynamicPalette.colors.count)),
                     atlasIndex: Int32(uniqueAtlasIndices[index % uniqueAtlasIndices.count]),
                     baseSize: Float(min(size.width, size.height)) * Float.random(in: 3.10...5.80),
-                    brightnessScale: Float.random(in: 0.60...0.98),
+                    brightnessScale: Float.random(in: 0.66...1.00),
                     anchorX: Float.random(in: -0.14...0.14),
                     anchorY: Float.random(in: -0.14...0.14),
                     anchorZ: Float.random(in: config.minZ + 0.9...config.maxZ - 1.1),
@@ -930,7 +931,12 @@ private enum DynamicTextureFactory {
         }
     }
 
-    static func makeCloudAtlasBitmap(tileSize: Int, columns: Int, rows: Int) -> DynamicTextureBitmap {
+    static func makeCloudAtlasBitmap(
+        tileSize: Int,
+        nominalTileSize: Int,
+        columns: Int,
+        rows: Int
+    ) -> DynamicTextureBitmap {
         guard columns > 0, rows > 0 else {
             return DynamicTextureBitmap(width: 0, height: 0, bytesPerRow: 0, data: [])
         }
@@ -940,7 +946,12 @@ private enum DynamicTextureFactory {
         let bytesPerRow = width * bytesPerPixel
         let tileCount = columns * rows
         let tiles = (0..<tileCount).map { index in
-            makeCloudTileBitmap(tileSize: tileSize, safeInsetRatio: 0.34, tileIndex: index)
+            makeCloudTileBitmap(
+                tileSize: tileSize,
+                nominalTileSize: nominalTileSize,
+                safeInsetRatio: 0.18,
+                tileIndex: index
+            )
         }
         var atlasData = [UInt8](repeating: 0, count: height * bytesPerRow)
 
@@ -966,21 +977,41 @@ private enum DynamicTextureFactory {
         return DynamicTextureBitmap(width: width, height: height, bytesPerRow: bytesPerRow, data: atlasData)
     }
 
-    private static func makeCloudTileBitmap(tileSize: Int, safeInsetRatio: CGFloat, tileIndex: Int) -> DynamicTextureBitmap {
+    private static func makeCloudTileBitmap(
+        tileSize: Int,
+        nominalTileSize: Int,
+        safeInsetRatio: CGFloat,
+        tileIndex: Int
+    ) -> DynamicTextureBitmap {
         let bitmap = makeBitmap(size: tileSize) { context, size in
             context.interpolationQuality = .high
             context.setAllowsAntialiasing(true)
-            let layout = makeCloudTileLayout(tileSize: size, safeInsetRatio: safeInsetRatio)
+            let layout = makeCloudTileLayout(
+                canvasSize: size,
+                nominalTileSize: nominalTileSize,
+                safeInsetRatio: safeInsetRatio
+            )
             drawCloudTile(in: context, layout: layout, tileIndex: tileIndex)
         }
-        return applyCloudTileBoundaryFade(bitmap, fadeWidthRatio: 0.12)
+        return applyCloudTileBoundaryFade(bitmap, fadeWidthRatio: 0.05)
     }
 
-    private static func makeCloudTileLayout(tileSize: Int, safeInsetRatio: CGFloat) -> CloudTileLayout {
-        let canvasSide = CGFloat(tileSize)
+    private static func makeCloudTileLayout(
+        canvasSize: Int,
+        nominalTileSize: Int,
+        safeInsetRatio: CGFloat
+    ) -> CloudTileLayout {
+        let canvasSide = CGFloat(canvasSize)
         let canvasRect = CGRect(x: 0.0, y: 0.0, width: canvasSide, height: canvasSide)
-        let safeInset = canvasSide * max(0.0, min(safeInsetRatio, 0.45))
-        let contentRect = canvasRect.insetBy(dx: safeInset, dy: safeInset)
+        let nominalSide = CGFloat(nominalTileSize)
+        let safeInset = nominalSide * max(0.0, min(safeInsetRatio, 0.45))
+        let contentSide = max(nominalSide - safeInset * 2.0, nominalSide * 0.10)
+        let contentRect = CGRect(
+            x: canvasRect.midX - contentSide * 0.5,
+            y: canvasRect.midY - contentSide * 0.5,
+            width: contentSide,
+            height: contentSide
+        )
         return CloudTileLayout(canvasRect: canvasRect, safeInset: safeInset, contentRect: contentRect)
     }
 
