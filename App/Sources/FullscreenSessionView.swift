@@ -15,7 +15,7 @@ struct FullscreenSessionView: View {
                 sample: model.sample,
                 visualStyle: model.visualGuideStyle,
                 orientation: orientationObserver.orientation,
-                dynamicWarpMode: model.dynamicWarpMode
+                dynamicSpeedMultiplier: model.dynamicSpeedMultiplier
             )
                 .ignoresSafeArea()
 
@@ -25,13 +25,20 @@ struct FullscreenSessionView: View {
                     Spacer()
                 }
                 Spacer()
-                if model.visualGuideStyle == .dynamic {
-                    dynamicWarpControl
-                }
             }
             .padding(.horizontal, 18.0)
             .padding(.top, 12.0)
-            .padding(.bottom, 18.0)
+
+            if model.visualGuideStyle == .dynamic {
+                GeometryReader { proxy in
+                    dynamicSpeedControl
+                        .position(
+                            x: proxy.size.width * 0.5,
+                            y: proxy.size.height * 0.75
+                        )
+                }
+                .ignoresSafeArea()
+            }
         }
         .preferredColorScheme(.dark)
         .statusBarHidden()
@@ -84,42 +91,52 @@ struct FullscreenSessionView: View {
         .buttonStyle(.plain)
     }
 
-    private var dynamicWarpControl: some View {
-        HStack(spacing: 10.0) {
-            dynamicModeButton(.cruise)
-            dynamicModeButton(.warp)
+    private var dynamicSpeedControl: some View {
+        GlassEffectContainer(spacing: 10.0) {
+            ZStack {
+                Slider(value: dynamicSpeedSliderPosition, in: 0.0...1.0)
+                    .tint(Color(red: 0.25, green: 0.72, blue: 1.0))
+                    .frame(width: dynamicSpeedSliderWidth)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .padding(.bottom, 8.0)
+
+                Text("Cruise Speed")
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(Color.white.opacity(0.86))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .padding(.top, 6.0)
+            }
+            .padding(.horizontal, 12.0)
+            .padding(.vertical, 4.0)
+            .frame(height: 76.0)
+            .frame(width: 280.0)
+            .glassEffect(
+                .clear.tint(Color.black.opacity(0.24)).interactive(),
+                in: .rect(cornerRadius: 26.0)
+            )
         }
-        .padding(.horizontal, 10.0)
-        .padding(.vertical, 10.0)
-        .background(
-            Color(red: 0.08, green: 0.10, blue: 0.15).opacity(0.78),
-            in: Capsule(style: .continuous)
-        )
-        .overlay(
-            Capsule(style: .continuous)
-                .stroke(Color.white.opacity(0.14), lineWidth: 1.0)
-                .allowsHitTesting(false)
+    }
+
+    private var dynamicSpeedSliderWidth: CGFloat { 240.0 }
+
+    private var dynamicSpeedSliderPosition: Binding<Double> {
+        Binding(
+            get: {
+                sliderPosition(for: model.dynamicSpeedMultiplier)
+            },
+            set: { sliderPosition in
+                model.dynamicSpeedMultiplier = speedMultiplier(for: sliderPosition)
+            }
         )
     }
 
-    private func dynamicModeButton(_ mode: DynamicWarpMode) -> some View {
-        let isActive = model.dynamicWarpMode == mode
+    private func sliderPosition(for speedMultiplier: Double) -> Double {
+        let clampedSpeed = min(max(speedMultiplier, 0.0), 6.0)
+        return clampedSpeed / 6.0
+    }
 
-        return Button {
-            model.dynamicWarpMode = mode
-        } label: {
-            Text(mode.title)
-                .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                .foregroundStyle(isActive ? Color.white : Color.white.opacity(0.74))
-                .frame(minWidth: 84.0)
-                .padding(.horizontal, 14.0)
-                .padding(.vertical, 10.0)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(isActive ? Color(red: 0.14, green: 0.60, blue: 0.96).opacity(0.84) : Color.white.opacity(0.06))
-                        .allowsHitTesting(false)
-                )
-        }
-        .buttonStyle(.plain)
+    private func speedMultiplier(for sliderPosition: Double) -> Double {
+        let clampedPosition = min(max(sliderPosition, 0.0), 1.0)
+        return clampedPosition * 6.0
     }
 }

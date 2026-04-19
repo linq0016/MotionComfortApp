@@ -9,7 +9,7 @@ import MotionComfortVisual
 final class ComfortSessionViewModel: ObservableObject {
     @Published var visualGuideStyle: VisualGuideStyle = .dynamic
     @Published var motionInputMode: MotionInputMode = .realTime
-    @Published var dynamicWarpMode: DynamicWarpMode = .cruise
+    @Published var dynamicSpeedMultiplier = 1.0
     @Published var audioMode: AudioMode = .melodic {
         didSet {
             guard isRunning else {
@@ -44,7 +44,7 @@ final class ComfortSessionViewModel: ObservableObject {
     // 启动当前选择的 motion 和 audio 模式。
     func start() {
         if visualGuideStyle == .dynamic {
-            dynamicWarpMode = .cruise
+            dynamicSpeedMultiplier = 1.0
         }
 
         motionManager.start(mode: motionInputMode)
@@ -62,7 +62,7 @@ final class ComfortSessionViewModel: ObservableObject {
     func stop() {
         motionManager.stop()
         audioEngine.stopPlayback()
-        dynamicWarpMode = .cruise
+        dynamicSpeedMultiplier = 1.0
     }
 
     // 把最新运动快照同步到页面和音频层。

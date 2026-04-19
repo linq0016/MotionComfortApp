@@ -6,18 +6,18 @@ public struct PeripheralCueOverlay: View {
     public var sample: MotionSample
     public var visualStyle: VisualGuideStyle
     public var orientation: InterfaceRenderOrientation
-    public var dynamicWarpMode: DynamicWarpMode
+    public var dynamicSpeedMultiplier: Double
 
     public init(
         sample: MotionSample = .neutral,
         visualStyle: VisualGuideStyle = .minimal,
         orientation: InterfaceRenderOrientation = .portrait,
-        dynamicWarpMode: DynamicWarpMode = .cruise
+        dynamicSpeedMultiplier: Double = 1.0
     ) {
         self.sample = sample
         self.visualStyle = visualStyle
         self.orientation = orientation
-        self.dynamicWarpMode = dynamicWarpMode
+        self.dynamicSpeedMultiplier = dynamicSpeedMultiplier
     }
 
     public var body: some View {
@@ -29,7 +29,7 @@ public struct PeripheralCueOverlay: View {
                 DynamicFlowOverlay(
                     sample: sample,
                     orientation: orientation,
-                    warpMode: dynamicWarpMode
+                    speedMultiplier: dynamicSpeedMultiplier
                 )
             case .liveView:
                 LiveViewOverlay(sample: sample, style: visualStyle, orientation: orientation)

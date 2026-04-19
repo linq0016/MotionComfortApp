@@ -5,42 +5,26 @@ import QuartzCore
 import SwiftUI
 import UIKit
 
-public enum DynamicWarpMode: String, CaseIterable, Identifiable, Sendable {
-    case cruise
-    case warp
-
-    public var id: String { rawValue }
-
-    public var title: String {
-        switch self {
-        case .cruise:
-            return "Cruise"
-        case .warp:
-            return "Warp"
-        }
-    }
-}
-
 public struct DynamicFlowOverlay: View {
     let sample: MotionSample
     let orientation: InterfaceRenderOrientation
-    let warpMode: DynamicWarpMode
+    let speedMultiplier: Double
 
     public init(
         sample: MotionSample = .neutral,
         orientation: InterfaceRenderOrientation = .portrait,
-        warpMode: DynamicWarpMode = .cruise
+        speedMultiplier: Double = 1.0
     ) {
         self.sample = sample
         self.orientation = orientation
-        self.warpMode = warpMode
+        self.speedMultiplier = speedMultiplier
     }
 
     public var body: some View {
         GeometryReader { proxy in
             DynamicMetalView(
                 sample: sample.rotatedForDisplay(orientation),
-                warpMode: warpMode
+                speedMultiplier: speedMultiplier
             )
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
@@ -58,7 +42,7 @@ private struct DynamicMetalView: UIViewRepresentable {
     typealias UIViewType = DynamicRenderView
 
     let sample: MotionSample
-    let warpMode: DynamicWarpMode
+    let speedMultiplier: Double
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -86,7 +70,7 @@ private struct DynamicMetalView: UIViewRepresentable {
             view.device = resources.device
             let renderer = try DynamicMetalRenderer(mtkView: view, resources: resources)
             renderer.sample = sample
-            renderer.warpMode = warpMode
+            renderer.speedMultiplier = Float(speedMultiplier)
             context.coordinator.renderer = renderer
             view.delegate = renderer
             view.clearFailure()
@@ -100,7 +84,7 @@ private struct DynamicMetalView: UIViewRepresentable {
     func updateUIView(_ uiView: DynamicRenderView, context: Context) {
         uiView.updateDrawableSizeIfNeeded()
         context.coordinator.renderer?.sample = sample
-        context.coordinator.renderer?.warpMode = warpMode
+        context.coordinator.renderer?.speedMultiplier = Float(speedMultiplier)
     }
 
     final class Coordinator {
@@ -164,7 +148,6 @@ private struct DynamicSpaceConfiguration {
     let minZ: Float = 0.2
     let maxZ: Float = 5.0
     let idleSpeed: Float = 0.005
-    let warpSpeed: Float = 0.14
     let camSensX: Float = 0.060
     let camSensY: Float = 0.060
     let nebulaCloudCount = 12
@@ -415,7 +398,7 @@ private final class DynamicRenderResourceCache: @unchecked Sendable {
 @MainActor
 private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     var sample: MotionSample = .neutral
-    var warpMode: DynamicWarpMode = .cruise
+    var speedMultiplier: Float = 1.0
 
     private let config = DynamicSpaceConfiguration()
     private let commandQueue: MTLCommandQueue
@@ -668,7 +651,8 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         let activeBrightness = state.motionEnvelope * 1.05
         let activeHaloScale: Float = 1.0 + (state.motionEnvelope * 0.85)
 
-        let targetWarpSpeed = warpMode == .warp ? config.warpSpeed : config.idleSpeed
+        let clampedMultiplier = min(max(speedMultiplier, 0.0), 6.0)
+        let targetWarpSpeed = config.idleSpeed * clampedMultiplier
         state.currentWarpSpeed += (targetWarpSpeed - state.currentWarpSpeed) * 0.05 * frameScale
 
         buildNebulas(timeMs: timeMs)
