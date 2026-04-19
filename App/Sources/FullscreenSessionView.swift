@@ -125,7 +125,7 @@ struct FullscreenSessionView: View {
             .frame(height: 76.0)
             .frame(width: 280.0)
             .glassEffect(
-                .clear.tint(Color.black.opacity(0.24)).interactive(),
+                .clear.tint(Color.black.opacity(0.36)).interactive(),
                 in: .rect(cornerRadius: 26.0)
             )
         }
@@ -185,7 +185,7 @@ private struct FullscreenAudioModeControl: View {
             .padding(innerPadding)
             .frame(width: controlWidth, height: controlHeight)
             .glassEffect(
-                .clear.tint(Color.black.opacity(0.24)).interactive(),
+                .clear.tint(Color.black.opacity(0.36)).interactive(),
                 in: .capsule
             )
         }
@@ -194,7 +194,7 @@ private struct FullscreenAudioModeControl: View {
     private var selectionHighlight: some View {
         GeometryReader { proxy in
             Capsule(style: .continuous)
-                .fill(Color.white.opacity(0.10))
+                .fill(Color.white.opacity(0.14))
                 .frame(
                     width: segmentWidth(for: proxy.size.width),
                     height: controlHeight - (innerPadding * 2.0)
