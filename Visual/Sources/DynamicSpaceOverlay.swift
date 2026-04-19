@@ -1075,7 +1075,7 @@ private enum DynamicTextureFactory {
 
     static func makeDustBitmap(size: Int) -> DynamicTextureBitmap {
         makeBitmap(size: size) { context, size in
-            UIColor.white.setFill()
+            context.setFillColor(UIColor.white.cgColor)
             context.fill(CGRect(x: 0.0, y: 0.0, width: CGFloat(size), height: CGFloat(size)))
         }
     }
