@@ -83,7 +83,7 @@ struct FullscreenSessionView: View {
         }
         .preferredColorScheme(.dark)
         .statusBarHidden()
-        .animation(.easeInOut(duration: 0.72), value: areHUDControlsVisible)
+        .animation(.easeInOut(duration: 0.24), value: areHUDControlsVisible)
         .onAppear {
             model.startAudioIfNeeded()
             scheduleHUDHide()
@@ -184,7 +184,7 @@ struct FullscreenSessionView: View {
 
     private func registerFullscreenInteraction() {
         if !areHUDControlsVisible {
-            withAnimation(.easeInOut(duration: 0.72)) {
+            withAnimation(.easeInOut(duration: 0.24)) {
                 areHUDControlsVisible = true
             }
         }
@@ -194,7 +194,7 @@ struct FullscreenSessionView: View {
     private func toggleHUDVisibility() {
         hideHUDTask?.cancel()
 
-        withAnimation(.easeInOut(duration: 0.72)) {
+        withAnimation(.easeInOut(duration: 0.24)) {
             areHUDControlsVisible.toggle()
         }
 
@@ -209,7 +209,7 @@ struct FullscreenSessionView: View {
             try? await Task.sleep(for: .seconds(5))
             guard !Task.isCancelled else { return }
             await MainActor.run {
-                withAnimation(.easeInOut(duration: 0.72)) {
+                withAnimation(.easeInOut(duration: 0.24)) {
                     areHUDControlsVisible = false
                 }
             }
@@ -221,10 +221,18 @@ struct AudioModeGlassControl: View {
     @Binding var selection: AudioMode
 
     private let modes = AudioMode.allCases
-    private let controlWidth: CGFloat = 276.0
-    private let controlHeight: CGFloat = 52.0
+    private let controlWidth: CGFloat?
+    private let controlHeight: CGFloat
     private let innerPadding: CGFloat = 6.0
-    private let controlCornerRadius: CGFloat = 26.0
+    private var controlCornerRadius: CGFloat {
+        controlHeight * 0.5
+    }
+
+    init(selection: Binding<AudioMode>, controlWidth: CGFloat? = 276.0, controlHeight: CGFloat = 52.0) {
+        self._selection = selection
+        self.controlWidth = controlWidth
+        self.controlHeight = controlHeight
+    }
 
     var body: some View {
         GlassEffectContainer(spacing: 12.0) {
@@ -246,7 +254,7 @@ struct AudioModeGlassControl: View {
                 }
             }
             .padding(innerPadding)
-            .frame(width: controlWidth, height: controlHeight)
+            .frame(maxWidth: controlWidth ?? .infinity, minHeight: controlHeight, maxHeight: controlHeight)
             .glassEffect(
                 .clear.tint(Color.black.opacity(0.36)).interactive(),
                 in: .rect(cornerRadius: controlCornerRadius)

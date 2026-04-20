@@ -2,6 +2,7 @@
   "sourceLanguage" : "en",
   "strings" : {
     "audio_mode.melodic" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -12,12 +13,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "旋律"
+            "value" : "乐曲"
           }
         }
       }
     },
     "audio_mode.mono" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -34,6 +36,7 @@
       }
     },
     "audio_mode.off" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -60,7 +63,125 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "音频模式"
+            "value" : "听觉模式"
+          }
+        }
+      }
+    },
+    "dashboard.audio_mode.detail.melodic" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A tranquil melody calibrated to G2=100Hz"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以G2=100Hz校准的舒缓乐曲"
+          }
+        }
+      }
+    },
+    "dashboard.audio_mode.detail.mono" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "100Hz monotone sound"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "100Hz的单音"
+          }
+        }
+      }
+    },
+    "dashboard.audio_mode.detail.off" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No audio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无音频"
+          }
+        }
+      }
+    },
+    "dashboard.audio_mode.supporting_copy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exposure to sound at 100Hz can help alleviate vehicle motion sickness"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音高100Hz的声音可以缓解晕动症"
+          }
+        }
+      }
+    },
+    "dashboard.mode.dynamic.subtitle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cruise through the vast galaxy with customizable speed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "穿梭于浩瀚的星空 速度可自定义"
+          }
+        }
+      }
+    },
+    "dashboard.mode.live_view.subtitle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See the real world through the view-finder and peripheral visual guidance"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过相机取景器辅助放松观察世界"
+          }
+        }
+      }
+    },
+    "dashboard.mode.minimal.subtitle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Simple peripheral guidance with a clean and lightweight design"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "简约轻量的视觉引导"
           }
         }
       }
@@ -81,66 +202,18 @@
         }
       }
     },
-    "dashboard.mode.dynamic.subtitle" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Richer motion cues with the current dynamic fullscreen visuals unchanged."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "更丰富的动态运动提示，同时保留当前已调好的 Dynamic 全屏视觉体验。"
-          }
-        }
-      }
-    },
-    "dashboard.mode.live_view.subtitle" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Launch the existing camera-based fullscreen guidance without changing its behavior."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "进入现有基于相机的全屏引导体验，不改变其当前行为。"
-          }
-        }
-      }
-    },
-    "dashboard.mode.minimal.subtitle" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Stable peripheral guidance with a clean and lightweight fullscreen session."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "简洁轻量的全屏体验，提供稳定的周边视觉引导。"
-          }
-        }
-      }
-    },
     "dashboard.subtitle" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choose a visual mode to start the exact fullscreen session experience you already tuned."
+            "value" : "Choose one of the three visual modes below to help alleviate vehicle motion sickness."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择一种视觉模式，直接进入你已经调好的全屏体验。"
+            "value" : "选择一种视觉模式来缓解晕车不适"
           }
         }
       }
@@ -150,13 +223,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MotionComfort"
+            "value" : "Stellar: Motion Comfort"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "MotionComfort"
+            "value" : "Stellar：晕动缓解"
           }
         }
       }
@@ -178,6 +251,7 @@
       }
     },
     "liveview.status.denied.headline" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -194,6 +268,7 @@
       }
     },
     "liveview.status.denied.note" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -210,6 +285,7 @@
       }
     },
     "liveview.status.denied.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -226,6 +302,7 @@
       }
     },
     "liveview.status.not_determined.headline" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -242,6 +319,7 @@
       }
     },
     "liveview.status.not_determined.note" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -258,6 +336,7 @@
       }
     },
     "liveview.status.not_determined.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -274,6 +353,7 @@
       }
     },
     "liveview.status.preparing.note" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -290,6 +370,7 @@
       }
     },
     "liveview.status.preparing.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -306,6 +387,7 @@
       }
     },
     "liveview.status.ready.headline" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -322,6 +404,7 @@
       }
     },
     "liveview.status.ready.note" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -338,6 +421,7 @@
       }
     },
     "liveview.status.ready.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -354,6 +438,7 @@
       }
     },
     "liveview.status.restricted.headline" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -370,6 +455,7 @@
       }
     },
     "liveview.status.restricted.note" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -386,6 +472,7 @@
       }
     },
     "liveview.status.restricted.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -402,6 +489,7 @@
       }
     },
     "liveview.status.sdr.note" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -418,6 +506,7 @@
       }
     },
     "liveview.status.sdr.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -434,6 +523,7 @@
       }
     },
     "liveview.status.starting.headline" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -450,6 +540,7 @@
       }
     },
     "liveview.status.starting.note" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -466,6 +557,7 @@
       }
     },
     "liveview.status.starting.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -482,6 +574,7 @@
       }
     },
     "liveview.status.unavailable.headline" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -498,6 +591,7 @@
       }
     },
     "liveview.status.unavailable.note" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -514,6 +608,7 @@
       }
     },
     "liveview.status.unavailable.title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -578,6 +673,7 @@
       }
     },
     "visual_mode.dynamic" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -594,6 +690,7 @@
       }
     },
     "visual_mode.live_view" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -610,6 +707,7 @@
       }
     },
     "visual_mode.minimal" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -625,7 +723,57 @@
         }
       }
     },
+    "welcome.audio_tip.headphones" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use your headphones\nfor the bext experience"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "佩戴耳机体验最佳"
+          }
+        }
+      }
+    },
+    "welcome.audio_tip.transparency" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please turn on\nTransparency Mode if available"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "若设备支持\n请打开通透模式"
+          }
+        }
+      }
+    },
     "welcome.cta" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续"
+          }
+        }
+      }
+    },
+    "welcome.cta.experience" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -646,13 +794,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Placeholder headline for welcome intro"
+            "value" : "Welcome to Stellar:\nMotion Comfort"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "欢迎使用 MotionComfort"
+            "value" : "欢迎使用\nStellar晕动缓解"
           }
         }
       }
@@ -662,13 +810,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Placeholder supporting copy for the first-launch MotionComfort experience."
+            "value" : "This is a visual and audio experience designed to alleviate motion sickness"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通过视觉与音频引导，为旅途中的舒适体验提供帮助。"
+            "value" : "通过视觉与音频引导\n缓解乘车时的恶心眩晕感"
           }
         }
       }

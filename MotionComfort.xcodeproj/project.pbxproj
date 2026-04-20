@@ -120,7 +120,7 @@
 		50E22921B4585FC5FE4956E2 /* InterfaceRenderOrientation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceRenderOrientation.swift; sourceTree = "<group>"; };
 		5D3CF65ED7E94C90D977498F /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		65489C6CA0910899D6F95843 /* LiveViewCameraSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveViewCameraSupport.swift; sourceTree = "<group>"; };
-		75A6908D8E63FDED07FDD9E0 /* MotionComfortApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MotionComfortApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		75A6908D8E63FDED07FDD9E0 /* Stellar: Motion Comfort.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Stellar: Motion Comfort.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		77CC77D34BEE923AF3B0B2A5 /* MotionSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionSample.swift; sourceTree = "<group>"; };
 		8B14CE6A0852EC363843A281 /* InterfaceOrientationSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceOrientationSupport.swift; sourceTree = "<group>"; };
 		91B5EC0182C29C428285C38E /* MotionComfortCoreTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MotionComfortCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -137,8 +137,8 @@
 		E4A21DC17180624BDB45D2E7 /* PeripheralCueOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeripheralCueOverlay.swift; sourceTree = "<group>"; };
 		E596DD7A7552BBD911094E82 /* AudioMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMode.swift; sourceTree = "<group>"; };
 		E9D576541804142D51D06E41 /* MotionComfortVisual.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MotionComfortVisual.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		F4F2DD69D7C64055BFD5548D /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MotionComfortAudio.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		F4F2DD69D7C64055BFD5548D /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		F6E9DD2657BEDEECD3072A3F /* MathSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathSupport.swift; sourceTree = "<group>"; };
 		FD4D41F7A73555BC0B8DC3B0 /* ComfortSessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComfortSessionViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -194,7 +194,7 @@
 		3AF0618018DA868692371376 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				75A6908D8E63FDED07FDD9E0 /* MotionComfortApp.app */,
+				75A6908D8E63FDED07FDD9E0 /* Stellar: Motion Comfort.app */,
 				F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */,
 				C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */,
 				91B5EC0182C29C428285C38E /* MotionComfortCoreTests.xctest */,
@@ -217,7 +217,7 @@
 			isa = PBXGroup;
 			children = (
 				AD5738EEE3897E6B0DBBEE1A /* App */,
-				E9F90B33C48D4E99869C4CF2 /* Resources */,
+				E9F90B33C48D4E99869C4CF2 /* App/Resources */,
 				75B8DA8081C929A3CB0FA7C4 /* MotionComfortCoreTests */,
 				B089A1907D5C9576FE823964 /* Sources */,
 				4F8C8B7B0D65DBA136CC436E /* Sources */,
@@ -274,7 +274,7 @@
 			path = Visual/Sources;
 			sourceTree = "<group>";
 		};
-		E9F90B33C48D4E99869C4CF2 /* Resources */ = {
+		E9F90B33C48D4E99869C4CF2 /* App/Resources */ = {
 			isa = PBXGroup;
 			children = (
 				F4F2DD69D7C64055BFD5548D /* Localizable.xcstrings */,
@@ -346,7 +346,7 @@
 			packageProductDependencies = (
 			);
 			productName = MotionComfortApp;
-			productReference = 75A6908D8E63FDED07FDD9E0 /* MotionComfortApp.app */;
+			productReference = 75A6908D8E63FDED07FDD9E0 /* Stellar: Motion Comfort.app */;
 			productType = "com.apple.product-type.application";
 		};
 		C741237864A32D9464BFC3CC /* MotionComfortCore */ = {
@@ -405,7 +405,7 @@
 			knownRegions = (
 				Base,
 				en,
-				zh-Hans,
+				"zh-Hans",
 			);
 			mainGroup = 5F7CF635C4D8AAD7FA7BBB6A;
 			minimizedProjectReferenceProxies = 1;
@@ -590,6 +590,7 @@
 				);
 				MARKETING_VERSION = 0.6.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.linq.StellarMotionComfort;
+				PRODUCT_NAME = "Stellar: Motion Comfort";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -615,6 +616,7 @@
 				);
 				MARKETING_VERSION = 0.6.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.linq.StellarMotionComfort;
+				PRODUCT_NAME = "Stellar: Motion Comfort";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
