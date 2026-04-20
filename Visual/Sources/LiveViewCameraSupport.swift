@@ -14,17 +14,19 @@ public struct LiveViewOverlay: View {
     let style: VisualGuideStyle
     let orientation: InterfaceRenderOrientation
 
-    @StateObject private var camera = LiveViewCameraModel()
+    @ObservedObject private var camera: LiveViewCameraModel
     @State private var phase = FlowGridPhase()
 
     public init(
         sample: MotionSample,
         style: VisualGuideStyle = .liveView,
-        orientation: InterfaceRenderOrientation = .portrait
+        orientation: InterfaceRenderOrientation = .portrait,
+        camera: LiveViewCameraModel = LiveViewCameraModel()
     ) {
         self.sample = sample
         self.style = style
         self.orientation = orientation
+        self._camera = ObservedObject(wrappedValue: camera)
     }
 
     public var body: some View {
@@ -84,17 +86,17 @@ struct LiveViewSceneAnalysis: Sendable {
     var dominantDotPolarity: LiveViewDotPolarity = .light
 }
 
-enum LiveViewPreviewState: String, Sendable {
+public enum LiveViewPreviewState: String, Sendable {
     case idle
     case starting
     case ready
     case unavailable
 }
 
-final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable {
-    @Published private(set) var status: AVAuthorizationStatus
-    @Published private(set) var isRunning = false
-    @Published private(set) var previewState: LiveViewPreviewState = .idle
+public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable {
+    @Published public private(set) var status: AVAuthorizationStatus
+    @Published public private(set) var isRunning = false
+    @Published public private(set) var previewState: LiveViewPreviewState = .idle
     @Published private(set) var sceneAnalysis = LiveViewSceneAnalysis()
 
     let session = AVCaptureSession()
@@ -112,16 +114,16 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
     private let luminanceEmaAlpha = 0.18
     private let polarityHoldDuration: TimeInterval = 0.45
 
-    override init() {
+    public override init() {
         self.status = AVCaptureDevice.authorizationStatus(for: .video)
         super.init()
     }
 
-    var canShowPreview: Bool {
+    public var canShowPreview: Bool {
         status == .authorized && previewState == .ready && isRunning
     }
 
-    func start() {
+    public func start() {
         let currentStatus = AVCaptureDevice.authorizationStatus(for: .video)
         DispatchQueue.main.async {
             self.status = currentStatus
@@ -163,7 +165,7 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
         }
     }
 
-    func stop() {
+    public func stop() {
         sessionQueue.async { [weak self] in
             guard let self else {
                 return
@@ -491,8 +493,24 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
     }
 }
 
+public enum LiveViewCameraPreflight {
+    public static func ensureAuthorized() async -> AVAuthorizationStatus {
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+
+        switch status {
+        case .authorized, .denied, .restricted:
+            return status
+        case .notDetermined:
+            let granted = await AVCaptureDevice.requestAccess(for: .video)
+            return granted ? .authorized : .denied
+        @unknown default:
+            return .restricted
+        }
+    }
+}
+
 extension LiveViewCameraModel: AVCaptureVideoDataOutputSampleBufferDelegate {
-    func captureOutput(
+    public func captureOutput(
         _ output: AVCaptureOutput,
         didOutput sampleBuffer: CMSampleBuffer,
         from connection: AVCaptureConnection
@@ -791,47 +809,42 @@ private struct LiveViewUnavailableSurface: View {
         ZStack {
             LiveViewChromeBackground()
 
-            GlassEffectContainer(spacing: 16.0) {
-                VStack(spacing: 18.0) {
-                    Text(style.title)
-                        .font(.system(size: 28.0, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.96))
-                        .multilineTextAlignment(.center)
+            if shouldShowDeniedSurface {
+                GlassEffectContainer(spacing: 16.0) {
+                    VStack(spacing: 18.0) {
+                        Text(style.title)
+                            .font(.system(size: 28.0, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.96))
+                            .multilineTextAlignment(.center)
 
-                    Text(statusMessage)
-                        .font(.system(size: 20.0, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.94))
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
+                        Text(localized("liveview.status.denied.title"))
+                            .font(.system(size: 20.0, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.94))
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                        .frame(maxWidth: 420.0)
+                        .padding(.horizontal, 22.0)
+                        .padding(.vertical, 22.0)
+                        .glassEffect(
+                            .clear.tint(Color.black.opacity(0.36)),
+                            in: .rect(cornerRadius: 30.0)
+                        )
                 }
-                    .frame(maxWidth: 420.0)
-                    .padding(.horizontal, 22.0)
-                    .padding(.vertical, 22.0)
-                    .glassEffect(
-                        .clear.tint(Color.black.opacity(0.36)),
-                        in: .rect(cornerRadius: 30.0)
-                    )
+                .padding(.horizontal, 24.0)
             }
-            .padding(.horizontal, 24.0)
         }
         .ignoresSafeArea()
     }
 
-    private var statusMessage: String {
+    private var shouldShowDeniedSurface: Bool {
         switch status {
         case .denied, .restricted:
-            return localized("liveview.status.denied.title")
-        case .notDetermined:
-            return localized("liveview.status.loading.title")
-        case .authorized:
-            switch previewState {
-            case .ready:
-                return localized("liveview.status.loading.title")
-            case .starting, .idle, .unavailable:
-                return localized("liveview.status.loading.title")
-            }
+            return true
+        case .notDetermined, .authorized:
+            return false
         @unknown default:
-            return localized("liveview.status.loading.title")
+            return false
         }
     }
 }

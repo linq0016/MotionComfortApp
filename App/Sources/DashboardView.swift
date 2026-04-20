@@ -9,7 +9,6 @@ struct DashboardView: View {
     @Binding var quickStartEnabled: Bool
     let shouldAutoStartRememberedSession: Bool
 
-    @State private var isSessionPresented = false
     @State private var isSettingsPresented = false
     @State private var showHeaderSection = false
     @State private var showModeCardsSection = false
@@ -43,16 +42,13 @@ struct DashboardView: View {
                 .padding(.top, 34.0)
                 .padding(.bottom, 34.0)
             }
+            .allowsHitTesting(!model.isLaunchInteractionLocked)
+
         }
+        .allowsHitTesting(!model.isSessionPresented)
         .background {
             InterfaceOrientationReader(observer: orientationObserver)
                 .frame(width: 0.0, height: 0.0)
-        }
-        .fullScreenCover(isPresented: $isSessionPresented, onDismiss: handleSessionDismiss) {
-            FullscreenSessionView(model: model, orientationObserver: orientationObserver) {
-                isSessionPresented = false
-            }
-            .interactiveDismissDisabled()
         }
         .sheet(isPresented: $isSettingsPresented) {
             SettingsPanel(
@@ -69,11 +65,6 @@ struct DashboardView: View {
                 SettingsSheetBackground()
             }
         }
-        .onChange(of: model.isRunning) { _, isRunning in
-            if !isRunning {
-                isSessionPresented = false
-            }
-        }
         .task {
             DynamicRenderPreheater.prewarm()
         }
@@ -84,7 +75,7 @@ struct DashboardView: View {
             didAttemptAutoStart = true
 
             Task { @MainActor in
-                startSession(style: model.visualGuideStyle)
+                launchSession(style: model.visualGuideStyle)
             }
         }
     }
@@ -108,7 +99,7 @@ struct DashboardView: View {
                 title: String(localized: "visual_mode.minimal"),
                 subtitle: String(localized: "dashboard.mode.minimal.subtitle"),
                 action: {
-                    startSession(style: .minimal)
+                    launchSession(style: .minimal)
                 }
             )
 
@@ -116,7 +107,7 @@ struct DashboardView: View {
                 title: String(localized: "visual_mode.dynamic"),
                 subtitle: String(localized: "dashboard.mode.dynamic.subtitle"),
                 action: {
-                    startSession(style: .dynamic)
+                    launchSession(style: .dynamic)
                 }
             )
 
@@ -124,7 +115,7 @@ struct DashboardView: View {
                 title: String(localized: "visual_mode.live_view"),
                 subtitle: String(localized: "dashboard.mode.live_view.subtitle"),
                 action: {
-                    startSession(style: .liveView)
+                    launchSession(style: .liveView)
                 }
             )
         }
@@ -171,20 +162,8 @@ struct DashboardView: View {
         .buttonStyle(.plain)
     }
 
-    private func startSession(style: VisualGuideStyle) {
-        guard !isSessionPresented else {
-            return
-        }
-
-        model.visualGuideStyle = style
-        model.start()
-        isSessionPresented = true
-    }
-
-    private func handleSessionDismiss() {
-        if model.isRunning {
-            model.stop()
-        }
+    private func launchSession(style: VisualGuideStyle) {
+        model.beginSessionLaunch(style: style)
     }
 
     private var audioModeDetailText: LocalizedStringKey {

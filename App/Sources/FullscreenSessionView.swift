@@ -23,7 +23,8 @@ struct FullscreenSessionView: View {
                 sample: model.sample,
                 visualStyle: model.visualGuideStyle,
                 orientation: orientationObserver.orientation,
-                dynamicSpeedMultiplier: model.dynamicSpeedMultiplier
+                dynamicSpeedMultiplier: model.dynamicSpeedMultiplier,
+                liveViewCamera: model.liveViewCamera
             )
                 .ignoresSafeArea()
 
