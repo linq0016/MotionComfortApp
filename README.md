@@ -1,3 +1,11 @@
+# Stellar: The Motion Comfort App 晕动缓解试听体验
+Stellar是我个人用OpenAI Codex从0开发的一款专门用来缓解乘坐机动车时容易产生的晕动症的App，目前项目文件为完全开源。
+由于时效性与中国大陆的法规要求，苹果App Store上架/TestFlight External Testing正在申请中，目前项目可以Internal Testing的形式运行，但需要联系我手动添加权限。如果有需要，请随时联系我的邮箱linq0016@icloud.com。
+
+Stellar的灵感来自于，因为我的女朋友乘坐网约车常常受到晕车的困扰，我也希望以较有效且较注重美学体验的方式来缓解她的这种烦恼。Stellar也是我为晕动症这一受害者广泛的生活烦恼所做的解决方案，目前支持三种视觉模式（极简、星际巡航、实况视窗）以随着加速度变化的粒子特效来使惯性力可视化，辅以两种可选择的听觉模式（一种为纯100Hz正弦波，另一种为基于G2=100Hz调音的原创G大调乐曲，着重强调了G2=100Hz的根音）通过播放100Hz的声波来刺激耳石系统。这两种手段都被过往科研证实对人类及其他动物的晕动症有较明显的缓解。相对于已研究过的类似竞品，Stellar致力于提供一种足够有趣、美观且令人愉悦的视听体验，来保证这两种手段的持续作用，目标是将其基础功能和用户体验打磨到极致；相对于iOS自带的晕动症缓解辅助功能，它又能以一个独立App的形式确保用户接受这种反直觉的体验（即，已经晕车感到不适了，却需要继续看手机来缓解）。
+
+
+以下为自动生成的项目详细介绍
 # MotionComfort
 
 MotionComfort is an iOS 26 passenger-comfort app prototype built around a stable session shell:
@@ -6,7 +14,7 @@ MotionComfort is an iOS 26 passenger-comfort app prototype built around a stable
 - A motion input route: `Real-time Motion` or `Demo Motion`
 - An audio route: `Off`, `Monotone`, or `Melodic`
 
-The project is intentionally split into small modules so the app shell, motion input, visual rendering, and audio playback can evolve independently.
+The project is intentionally split into small modules so the app shell, motion input, visual rendering, and audio playback can evolve independently
 
 ## Why XcodeGen
 
