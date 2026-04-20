@@ -6,10 +6,13 @@ struct DashboardView: View {
     @ObservedObject var model: ComfortSessionViewModel
     @ObservedObject var orientationObserver: InterfaceOrientationObserver
     let resetWelcomeAndReturnToIntro: () -> Void
+    @Binding var quickStartEnabled: Bool
+    let shouldAutoStartRememberedSession: Bool
 
     @State private var isSessionPresented = false
     @State private var isSettingsPresented = false
     @State private var hasAnimatedIn = false
+    @State private var didAttemptAutoStart = false
 
     var body: some View {
         ZStack {
@@ -41,6 +44,7 @@ struct DashboardView: View {
         }
         .sheet(isPresented: $isSettingsPresented) {
             SettingsPanel(
+                quickStartEnabled: $quickStartEnabled,
                 resetWelcomeAndReturnToIntro: {
                     isSettingsPresented = false
                     resetWelcomeAndReturnToIntro()
@@ -62,9 +66,17 @@ struct DashboardView: View {
             DynamicRenderPreheater.prewarm()
         }
         .onAppear {
-            guard !hasAnimatedIn else { return }
-            withAnimation(.easeOut(duration: 1.35).delay(0.10)) {
-                hasAnimatedIn = true
+            if !hasAnimatedIn {
+                withAnimation(.easeOut(duration: 1.35).delay(0.10)) {
+                    hasAnimatedIn = true
+                }
+            }
+
+            guard shouldAutoStartRememberedSession, !didAttemptAutoStart else { return }
+            didAttemptAutoStart = true
+
+            Task { @MainActor in
+                startSession(style: model.visualGuideStyle)
             }
         }
     }
@@ -185,6 +197,7 @@ private struct ModeLaunchCard: View {
 }
 
 private struct SettingsPanel: View {
+    @Binding var quickStartEnabled: Bool
     let resetWelcomeAndReturnToIntro: () -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -218,23 +231,31 @@ private struct SettingsPanel: View {
                     .buttonStyle(.plain)
                 }
 
-                Button(action: resetWelcomeAndReturnToIntro) {
-                    Text("Reset Welcome Screen")
-                        .font(.system(size: 17.0, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 54.0)
-                        .glassEffect(
-                            .clear.tint(Color.black.opacity(0.24)).interactive(),
-                            in: .rect(cornerRadius: 27.0)
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 27.0, style: .continuous)
-                                .stroke(Color.white.opacity(0.15), lineWidth: 0.8)
-                                .blendMode(.screen)
-                        }
+                VStack(alignment: .leading, spacing: 18.0) {
+                    Toggle(isOn: $quickStartEnabled) {
+                        Text("Express Startup")
+                            .font(.system(size: 17.0, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
+
+                    Button(action: resetWelcomeAndReturnToIntro) {
+                        Text("Reset Welcome Screen")
+                            .font(.system(size: 17.0, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54.0)
+                            .glassEffect(
+                                .clear.tint(Color.black.opacity(0.24)).interactive(),
+                                in: .rect(cornerRadius: 27.0)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 27.0, style: .continuous)
+                                    .stroke(Color.white.opacity(0.15), lineWidth: 0.8)
+                                    .blendMode(.screen)
+                            }
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
 
                 Spacer(minLength: 0.0)
             }
