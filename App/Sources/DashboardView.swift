@@ -15,6 +15,8 @@ struct DashboardView: View {
     @State private var showAudioSection = false
     @State private var showSettingsSection = false
     @State private var didAttemptAutoStart = false
+    @State private var isLaunchDimVisible = false
+    @State private var launchDimDismissTask: Task<Void, Never>?
 
     var body: some View {
         ZStack {
@@ -44,8 +46,18 @@ struct DashboardView: View {
             }
             .allowsHitTesting(!model.isLaunchInteractionLocked)
 
+            if isLaunchDimVisible || model.sessionLaunchOverlayState != .none {
+                SessionLaunchOverlay(
+                    overlayState: model.sessionLaunchOverlayState,
+                    showDim: isLaunchDimVisible
+                )
+                    .transition(.opacity)
+            }
+
         }
         .allowsHitTesting(!model.isSessionPresented)
+        .animation(.easeInOut(duration: 0.18), value: model.sessionLaunchOverlayState)
+        .animation(.easeInOut(duration: 0.18), value: isLaunchDimVisible)
         .background {
             InterfaceOrientationReader(observer: orientationObserver)
                 .frame(width: 0.0, height: 0.0)
@@ -77,6 +89,9 @@ struct DashboardView: View {
             Task { @MainActor in
                 launchSession(style: model.visualGuideStyle)
             }
+        }
+        .onChange(of: model.sessionLaunchOverlayState) { _, newValue in
+            handleLaunchOverlayStateChange(newValue)
         }
     }
 
@@ -197,6 +212,84 @@ struct DashboardView: View {
 
         withAnimation(.easeOut(duration: 0.30).delay(0.90)) {
             showSettingsSection = true
+        }
+    }
+
+    private func handleLaunchOverlayStateChange(_ newValue: SessionLaunchOverlayState) {
+        launchDimDismissTask?.cancel()
+        launchDimDismissTask = nil
+
+        if newValue != .none {
+            isLaunchDimVisible = true
+            return
+        }
+
+        launchDimDismissTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            isLaunchDimVisible = false
+            launchDimDismissTask = nil
+        }
+    }
+}
+
+private struct SessionLaunchOverlay: View {
+    let overlayState: SessionLaunchOverlayState
+    let showDim: Bool
+
+    var body: some View {
+        ZStack {
+            if showDim {
+                Color.black
+                    .opacity(0.12)
+                    .ignoresSafeArea()
+            }
+
+            if overlayState != .none {
+                SessionLaunchToast(overlayState: overlayState)
+                    .padding(.horizontal, 24.0)
+            }
+        }
+    }
+}
+
+private struct SessionLaunchToast: View {
+    let overlayState: SessionLaunchOverlayState
+
+    var body: some View {
+        GlassEffectContainer(spacing: 14.0) {
+            HStack(spacing: 14.0) {
+                if overlayState == .loading {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    Image(systemName: "xmark.octagon.fill")
+                        .font(.system(size: 18.0, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.94))
+                }
+
+                Text(messageKey)
+                    .font(.system(size: 18.0, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 20.0)
+            .padding(.vertical, 16.0)
+            .glassEffect(
+                .clear.tint(Color.black.opacity(0.44)),
+                in: .rect(cornerRadius: 28.0)
+            )
+        }
+    }
+
+    private var messageKey: LocalizedStringKey {
+        switch overlayState {
+        case .loading:
+            return "session.loading.title"
+        case .denied:
+            return "session.camera_access_denied.title"
+        case .none:
+            return "session.loading.title"
         }
     }
 }

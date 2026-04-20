@@ -41,11 +41,10 @@ private struct AppRootView: View {
                 .zIndex(1.0)
             }
 
-            if !hasTransitionedFromLaunchPlaceholder {
-                LaunchPlaceholderView()
-                    .transition(.opacity)
-                    .zIndex(2.0)
-            }
+            LaunchPlaceholderView()
+                .opacity(hasTransitionedFromLaunchPlaceholder ? 0.0 : 1.0)
+                .allowsHitTesting(!hasTransitionedFromLaunchPlaceholder)
+                .zIndex(2.0)
         }
         .task {
             await prepareLaunchState()
@@ -172,13 +171,12 @@ private struct LaunchPlaceholderView: View {
             Color.black
                 .ignoresSafeArea()
 
-            Image("LaunchLogo")
+            Image("WelcomeLogo")
                 .resizable()
                 .interpolation(.high)
                 .antialiased(true)
                 .scaledToFit()
                 .frame(width: 132.0, height: 132.0)
-                .compositingGroup()
         }
     }
 }
