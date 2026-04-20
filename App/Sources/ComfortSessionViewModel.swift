@@ -50,7 +50,7 @@ final class ComfortSessionViewModel: ObservableObject {
     private let clock = ContinuousClock()
     private let loadingFeedbackDelay: Duration = .milliseconds(150)
     private let minimumLoadingVisibility: Duration = .milliseconds(300)
-    private let deniedToastVisibility: Duration = .seconds(1.8)
+    private let deniedToastVisibility: Duration = .seconds(1.5)
 
     init() {
         motionManager.$sample
