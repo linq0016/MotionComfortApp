@@ -134,7 +134,7 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: 12.0) {
             VStack(alignment: .leading, spacing: 8.0) {
                 Text("dashboard.audio_mode")
-                    .font(.system(size: 15.0, weight: .semibold, design: .rounded))
+                    .font(.system(size: 18.0, weight: .semibold, design: .rounded))
                     .foregroundStyle(Color.white.opacity(0.82))
 
                 Text("dashboard.audio_mode.supporting_copy")
@@ -288,10 +288,17 @@ private struct SettingsPanel: View {
                 }
 
                 VStack(alignment: .leading, spacing: 18.0) {
-                    Toggle(isOn: $quickStartEnabled) {
-                        Text("settings.express_startup")
-                            .font(.system(size: 17.0, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white)
+                    VStack(alignment: .leading, spacing: 8.0) {
+                        Toggle(isOn: $quickStartEnabled) {
+                            Text("settings.express_startup")
+                                .font(.system(size: 17.0, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.white)
+                        }
+
+                        Text("settings.express_startup.supporting_copy")
+                            .font(.system(size: 13.0, weight: .regular, design: .rounded))
+                            .foregroundStyle(Color.white.opacity(0.62))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
 
                     Button(action: resetWelcomeAndReturnToIntro) {
