@@ -11,7 +11,10 @@ struct DashboardView: View {
 
     @State private var isSessionPresented = false
     @State private var isSettingsPresented = false
-    @State private var hasAnimatedIn = false
+    @State private var showHeaderSection = false
+    @State private var showModeCardsSection = false
+    @State private var showAudioSection = false
+    @State private var showSettingsSection = false
     @State private var didAttemptAutoStart = false
 
     var body: some View {
@@ -21,15 +24,24 @@ struct DashboardView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24.0) {
                     headerSection
+                        .opacity(showHeaderSection ? 1.0 : 0.0)
+                        .offset(y: showHeaderSection ? 0.0 : 14.0)
+
                     modeCardsSection
+                        .opacity(showModeCardsSection ? 1.0 : 0.0)
+                        .offset(y: showModeCardsSection ? 0.0 : 14.0)
+
                     audioSection
+                        .opacity(showAudioSection ? 1.0 : 0.0)
+                        .offset(y: showAudioSection ? 0.0 : 14.0)
+
                     settingsSection
+                        .opacity(showSettingsSection ? 1.0 : 0.0)
+                        .offset(y: showSettingsSection ? 0.0 : 14.0)
                 }
                 .padding(.horizontal, 22.0)
                 .padding(.top, 34.0)
                 .padding(.bottom, 34.0)
-                .opacity(hasAnimatedIn ? 1.0 : 0.0)
-                .offset(y: hasAnimatedIn ? 0.0 : 18.0)
             }
         }
         .background {
@@ -66,11 +78,7 @@ struct DashboardView: View {
             DynamicRenderPreheater.prewarm()
         }
         .onAppear {
-            if !hasAnimatedIn {
-                withAnimation(.easeOut(duration: 1.35).delay(0.10)) {
-                    hasAnimatedIn = true
-                }
-            }
+            playDashboardEntranceAnimation()
 
             guard shouldAutoStartRememberedSession, !didAttemptAutoStart else { return }
             didAttemptAutoStart = true
@@ -124,11 +132,25 @@ struct DashboardView: View {
 
     private var audioSection: some View {
         VStack(alignment: .leading, spacing: 12.0) {
-            Text("dashboard.audio_mode")
-                .font(.system(size: 15.0, weight: .semibold, design: .rounded))
-                .foregroundStyle(Color.white.opacity(0.82))
+            VStack(alignment: .leading, spacing: 8.0) {
+                Text("dashboard.audio_mode")
+                    .font(.system(size: 15.0, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.82))
 
-            AudioModeGlassControl(selection: $model.audioMode)
+                Text("dashboard.audio_mode.supporting_copy")
+                    .font(.system(size: 14.0, weight: .regular, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.64))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            AudioModeGlassControl(selection: $model.audioMode, controlWidth: nil, controlHeight: 60.0)
+                .frame(maxWidth: .infinity)
+                .frame(height: 60.0)
+
+            Text(audioModeDetailText)
+                .font(.system(size: 15.0, weight: .regular, design: .rounded))
+                .foregroundStyle(Color.white.opacity(0.72))
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -162,6 +184,40 @@ struct DashboardView: View {
     private func handleSessionDismiss() {
         if model.isRunning {
             model.stop()
+        }
+    }
+
+    private var audioModeDetailText: LocalizedStringKey {
+        switch model.audioMode {
+        case .melodic:
+            return "dashboard.audio_mode.detail.melodic"
+        case .monotone:
+            return "dashboard.audio_mode.detail.mono"
+        case .off:
+            return "dashboard.audio_mode.detail.off"
+        }
+    }
+
+    private func playDashboardEntranceAnimation() {
+        showHeaderSection = false
+        showModeCardsSection = false
+        showAudioSection = false
+        showSettingsSection = false
+
+        withAnimation(.easeOut(duration: 0.30)) {
+            showHeaderSection = true
+        }
+
+        withAnimation(.easeOut(duration: 0.30).delay(0.30)) {
+            showModeCardsSection = true
+        }
+
+        withAnimation(.easeOut(duration: 0.30).delay(0.60)) {
+            showAudioSection = true
+        }
+
+        withAnimation(.easeOut(duration: 0.30).delay(0.90)) {
+            showSettingsSection = true
         }
     }
 }
@@ -283,71 +339,162 @@ private struct SettingsSheetBackground: View {
 struct WelcomeIntroView: View {
     let enterApp: () -> Void
 
+    private enum OnboardingStep {
+        case intro
+        case audioTips
+    }
+
+    @State private var step: OnboardingStep = .intro
     @State private var showLogo = false
     @State private var showLineOne = false
     @State private var showLineTwo = false
     @State private var showButton = false
+    @State private var showSecondPage = false
+    @State private var isTransitioning = false
 
     var body: some View {
         ZStack {
             SharedChromeBackground()
 
-            VStack(spacing: 18.0) {
-                Spacer()
+            if step == .intro {
+                introPage
+                    .transition(.identity)
+            } else {
+                audioTipsPage
+                    .transition(.identity)
+            }
+        }
+        .task {
+            guard step == .intro else { return }
+            withAnimation(.easeOut(duration: 0.45)) {
+                showLogo = true
+            }
+            withAnimation(.easeOut(duration: 0.45).delay(1.0)) {
+                showLineOne = true
+            }
+            withAnimation(.easeOut(duration: 0.45).delay(2.0)) {
+                showLineTwo = true
+            }
+            withAnimation(.easeOut(duration: 0.45).delay(3.0)) {
+                showButton = true
+            }
+        }
+    }
 
-                logoBlock
-                    .opacity(showLogo ? 1.0 : 0.0)
-                    .offset(y: showLogo ? 0.0 : 14.0)
+    private var introPage: some View {
+        VStack(spacing: 18.0) {
+            Spacer()
 
-                Text("welcome.headline")
-                    .font(.system(size: 34.0, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .opacity(showLineOne ? 1.0 : 0.0)
-                    .offset(y: showLineOne ? 0.0 : 14.0)
+            logoBlock
+                .opacity(showLogo ? 1.0 : 0.0)
+                .offset(y: showLogo ? 0.0 : 14.0)
 
-                Text("welcome.supporting_copy")
-                    .font(.system(size: 17.0, weight: .regular, design: .rounded))
-                    .foregroundStyle(Color.white.opacity(0.70))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 320.0)
-                    .opacity(showLineTwo ? 1.0 : 0.0)
-                    .offset(y: showLineTwo ? 0.0 : 14.0)
+            Text("welcome.headline")
+                .font(.system(size: 34.0, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .opacity(showLineOne ? 1.0 : 0.0)
+                .offset(y: showLineOne ? 0.0 : 14.0)
 
-                Spacer()
-
-                Button(action: enterApp) {
-                    Text("welcome.cta")
-                        .font(.system(size: 18.0, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 58.0)
-                        .glassEffect(
-                            .clear.tint(Color.black.opacity(0.36)).interactive(),
-                            in: .rect(cornerRadius: 29.0)
-                        )
-                }
-                .buttonStyle(.plain)
+            Text("welcome.supporting_copy")
+                .font(.system(size: 17.0, weight: .regular, design: .rounded))
+                .foregroundStyle(Color.white.opacity(0.70))
+                .multilineTextAlignment(.center)
                 .frame(maxWidth: 320.0)
+                .opacity(showLineTwo ? 1.0 : 0.0)
+                .offset(y: showLineTwo ? 0.0 : 14.0)
+
+            Spacer()
+
+            welcomeActionButton(titleKey: "welcome.cta", action: advanceToAudioTips)
                 .opacity(showButton ? 1.0 : 0.0)
                 .offset(y: showButton ? 0.0 : 14.0)
                 .padding(.bottom, 56.0)
-            }
-            .padding(.horizontal, 24.0)
         }
-        .task {
-            withAnimation(.easeOut(duration: 1.35)) {
-                showLogo = true
+        .padding(.horizontal, 24.0)
+    }
+
+    private var audioTipsPage: some View {
+        VStack(spacing: 0.0) {
+            Spacer()
+
+            VStack(spacing: 18.0) {
+                Image(systemName: "airpodspro")
+                    .font(.system(size: 60.0, weight: .regular))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.white.opacity(0.75))
+
+                Text("welcome.audio_tip.headphones")
+                    .font(.system(size: 18.0, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.78))
+                    .multilineTextAlignment(.center)
+
+                Spacer()
+                    .frame(height: 24.0)
+
+                Image("TransparencyModeIcon")
+                    .resizable()
+                    .interpolation(.high)
+                    .antialiased(true)
+                    .scaledToFit()
+                    .frame(width: 74.25, height: 85.8)
+                    .opacity(0.75)
+
+                Text("welcome.audio_tip.transparency")
+                    .font(.system(size: 18.0, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.78))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 320.0)
             }
-            withAnimation(.easeOut(duration: 1.35).delay(1.5)) {
-                showLineOne = true
+
+            Spacer()
+
+            welcomeActionButton(titleKey: "welcome.cta.experience", action: enterApp)
+                .padding(.bottom, 56.0)
+        }
+        .padding(.horizontal, 24.0)
+        .opacity(showSecondPage ? 1.0 : 0.0)
+        .offset(y: showSecondPage ? 0.0 : 14.0)
+    }
+
+    private func welcomeActionButton(titleKey: LocalizedStringKey, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(titleKey)
+                .font(.system(size: 18.0, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 58.0)
+                .glassEffect(
+                    .clear.tint(Color.black.opacity(0.36)).interactive(),
+                    in: .rect(cornerRadius: 29.0)
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(isTransitioning)
+        .frame(maxWidth: 320.0)
+    }
+
+    private func advanceToAudioTips() {
+        guard !isTransitioning else { return }
+
+        isTransitioning = true
+
+        withAnimation(.easeInOut(duration: 0.45)) {
+            showLogo = false
+            showLineOne = false
+            showLineTwo = false
+            showButton = false
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(460))
+            step = .audioTips
+
+            withAnimation(.easeInOut(duration: 0.45)) {
+                showSecondPage = true
             }
-            withAnimation(.easeOut(duration: 1.35).delay(3.0)) {
-                showLineTwo = true
-            }
-            withAnimation(.easeOut(duration: 1.35).delay(4.5)) {
-                showButton = true
-            }
+
+            isTransitioning = false
         }
     }
 

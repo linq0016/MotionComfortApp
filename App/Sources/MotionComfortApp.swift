@@ -77,10 +77,10 @@ private struct AppRootView: View {
             hasLoadedLaunchPreferences = true
         }
 
-        try? await Task.sleep(for: .milliseconds(650))
+        try? await Task.sleep(for: .milliseconds(325))
         hasCompletedMinimumLaunchDisplay = true
 
-        withAnimation(.easeInOut(duration: 0.8)) {
+        withAnimation(.easeInOut(duration: 0.265)) {
             hasTransitionedFromLaunchPlaceholder = true
         }
     }
