@@ -25,21 +25,33 @@ private struct AppRootView: View {
     @State private var hasLoadedLaunchPreferences = false
     @State private var hasCompletedMinimumLaunchDisplay = false
     @State private var hasTransitionedFromLaunchPlaceholder = false
+    @State private var isSessionOverlayMounted = false
+    @State private var isSessionOverlayVisible = false
 
     var body: some View {
         ZStack {
             launchDestinationView
                 .opacity(hasTransitionedFromLaunchPlaceholder ? 1.0 : 0.0)
 
+            if hasLoadedLaunchPreferences && hasCompletedMinimumLaunchDisplay && isSessionOverlayMounted {
+                FullscreenSessionView(model: model, orientationObserver: orientationObserver) {
+                    dismissSessionOverlay()
+                }
+                .opacity(isSessionOverlayVisible ? 1.0 : 0.0)
+                .zIndex(1.0)
+            }
+
             if !hasTransitionedFromLaunchPlaceholder {
                 LaunchPlaceholderView()
                     .transition(.opacity)
+                    .zIndex(2.0)
             }
         }
         .task {
             await prepareLaunchState()
         }
         .preferredColorScheme(.dark)
+        .animation(.easeInOut(duration: 0.28), value: isSessionOverlayVisible)
         .onChange(of: model.visualGuideStyle) { _, style in
             guard hasLoadedLaunchPreferences else { return }
             lastVisualGuideStyle = style.rawValue
@@ -47,6 +59,9 @@ private struct AppRootView: View {
         .onChange(of: model.audioMode) { _, mode in
             guard hasLoadedLaunchPreferences else { return }
             lastAudioMode = mode.rawValue
+        }
+        .onChange(of: model.isSessionPresented) { _, isPresented in
+            handleSessionPresentationChanged(isPresented)
         }
     }
 
@@ -108,6 +123,46 @@ private struct AppRootView: View {
         lastAudioMode = AudioMode.melodic.rawValue
         model.visualGuideStyle = .dynamic
         model.audioMode = .melodic
+    }
+
+    private func handleSessionPresentationChanged(_ isPresented: Bool) {
+        if isPresented {
+            isSessionOverlayMounted = true
+            withAnimation(.easeInOut(duration: 0.28)) {
+                isSessionOverlayVisible = true
+            }
+
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(280))
+                if model.isSessionPresented {
+                    model.completeSessionFadeIn()
+                }
+            }
+        } else if isSessionOverlayMounted {
+            withAnimation(.easeInOut(duration: 0.28)) {
+                isSessionOverlayVisible = false
+            }
+
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(280))
+                if !model.isSessionPresented {
+                    isSessionOverlayMounted = false
+                }
+            }
+        }
+    }
+
+    private func dismissSessionOverlay() {
+        model.prepareForSessionDismiss()
+        withAnimation(.easeInOut(duration: 0.28)) {
+            isSessionOverlayVisible = false
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(280))
+            isSessionOverlayMounted = false
+            model.stop()
+        }
     }
 }
 

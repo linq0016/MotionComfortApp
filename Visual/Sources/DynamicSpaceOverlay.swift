@@ -36,6 +36,10 @@ public enum DynamicRenderPreheater {
     public static func prewarm() {
         DynamicRenderResourceCache.shared.prewarmIfNeeded()
     }
+
+    public static func ensureReady() async {
+        await DynamicRenderResourceCache.shared.ensureReady()
+    }
 }
 
 private struct DynamicMetalView: UIViewRepresentable {
@@ -372,6 +376,23 @@ private final class DynamicRenderResourceCache: @unchecked Sendable {
             self.isPrewarming = false
             self.lock.unlock()
         }
+    }
+
+    func ensureReady(pixelFormat: MTLPixelFormat = .bgra8Unorm) async {
+        if hasCachedResources(pixelFormat: pixelFormat) {
+            return
+        }
+
+        await Task.detached(priority: .userInitiated) {
+            _ = try? self.resources(pixelFormat: pixelFormat)
+        }.value
+    }
+
+    private func hasCachedResources(pixelFormat: MTLPixelFormat) -> Bool {
+        lock.lock()
+        let hasMatchingResources = cachedResources?.pixelFormat == pixelFormat
+        lock.unlock()
+        return hasMatchingResources
     }
 
     func resources(pixelFormat: MTLPixelFormat) throws -> DynamicRenderResources {
