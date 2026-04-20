@@ -124,13 +124,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exposure to sound at 100Hz can help alleviate vehicle motion sickness"
+            "value" : "Research shows that exposure to sound at 100Hz can help alleviate vehicle motion sickness."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "音高100Hz的声音可以缓解晕动症"
+            "value" : "研究表明音高100Hz的声音可以缓解晕动症。"
           }
         }
       }
@@ -207,13 +207,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choose one of the three visual modes below to help alleviate vehicle motion sickness."
+            "value" : "Alleviate vehicle motion sickness by utilizing various particle effects that dynamically visualize acceleration."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择一种视觉模式来缓解晕车不适"
+            "value" : "通过随着加速度动态变化的丰富粒子效果，可视化乘车时承受的加速度，以缓解眩晕恶心感。"
           }
         }
       }
@@ -640,6 +640,22 @@
         }
       }
     },
+    "settings.express_startup.supporting_copy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save the current configuration and launch straight into it next time."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存当前模式，下次启动直接进入。"
+          }
+        }
+      }
+    },
     "settings.reset_welcome" : {
       "localizations" : {
         "en" : {
@@ -816,7 +832,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通过视觉与音频引导\n缓解乘车时的恶心眩晕感"
+            "value" : "通过视觉引导与听觉刺激\n缓解乘车时的恶心眩晕感"
           }
         }
       }
