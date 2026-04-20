@@ -1,0 +1,40 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSCameraUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera access is used to show the live-view comfort mode with real-world scene guidance and adaptive edge overlays."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要访问相机，以显示带有真实场景引导和自适应边缘提示的 Live View 舒适模式。"
+          }
+        }
+      }
+    },
+    "NSMotionUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motion data is used to draw peripheral comfort guides that help reduce passenger discomfort in vehicles."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要使用运动数据来绘制周边舒适引导，帮助缓解乘车时的不适感。"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -83,11 +83,11 @@ struct DashboardView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 10.0) {
-            Text("MotionComfort")
+            Text("dashboard.title")
                 .font(.system(size: 36.0, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
 
-            Text("Choose a visual mode to start the exact fullscreen session experience you already tuned.")
+            Text("dashboard.subtitle")
                 .font(.system(size: 16.0, weight: .regular, design: .rounded))
                 .foregroundStyle(Color.white.opacity(0.72))
                 .fixedSize(horizontal: false, vertical: true)
@@ -97,24 +97,24 @@ struct DashboardView: View {
     private var modeCardsSection: some View {
         VStack(spacing: 16.0) {
             ModeLaunchCard(
-                title: "Minimal",
-                subtitle: "Stable peripheral guidance with a clean and lightweight fullscreen session.",
+                title: String(localized: "visual_mode.minimal"),
+                subtitle: String(localized: "dashboard.mode.minimal.subtitle"),
                 action: {
                     startSession(style: .minimal)
                 }
             )
 
             ModeLaunchCard(
-                title: "Dynamic",
-                subtitle: "Richer motion cues with the current dynamic fullscreen visuals unchanged.",
+                title: String(localized: "visual_mode.dynamic"),
+                subtitle: String(localized: "dashboard.mode.dynamic.subtitle"),
                 action: {
                     startSession(style: .dynamic)
                 }
             )
 
             ModeLaunchCard(
-                title: "Live View",
-                subtitle: "Launch the existing camera-based fullscreen guidance without changing its behavior.",
+                title: String(localized: "visual_mode.live_view"),
+                subtitle: String(localized: "dashboard.mode.live_view.subtitle"),
                 action: {
                     startSession(style: .liveView)
                 }
@@ -124,7 +124,7 @@ struct DashboardView: View {
 
     private var audioSection: some View {
         VStack(alignment: .leading, spacing: 12.0) {
-            Text("Audio Mode")
+            Text("dashboard.audio_mode")
                 .font(.system(size: 15.0, weight: .semibold, design: .rounded))
                 .foregroundStyle(Color.white.opacity(0.82))
 
@@ -136,7 +136,7 @@ struct DashboardView: View {
         Button(action: {
             isSettingsPresented = true
         }) {
-            Text("More Settings")
+            Text("dashboard.more_settings")
                 .font(.system(size: 17.0, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
@@ -205,7 +205,7 @@ private struct SettingsPanel: View {
         GlassEffectContainer(spacing: 18.0) {
             VStack(alignment: .leading, spacing: 22.0) {
                 HStack {
-                    Text("Settings")
+                    Text("settings.title")
                         .font(.system(size: 24.0, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
 
@@ -233,13 +233,13 @@ private struct SettingsPanel: View {
 
                 VStack(alignment: .leading, spacing: 18.0) {
                     Toggle(isOn: $quickStartEnabled) {
-                        Text("Express Startup")
+                        Text("settings.express_startup")
                             .font(.system(size: 17.0, weight: .semibold, design: .rounded))
                             .foregroundStyle(.white)
                     }
 
                     Button(action: resetWelcomeAndReturnToIntro) {
-                        Text("Reset Welcome Screen")
+                        Text("settings.reset_welcome")
                             .font(.system(size: 17.0, weight: .semibold, design: .rounded))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -299,14 +299,14 @@ struct WelcomeIntroView: View {
                     .opacity(showLogo ? 1.0 : 0.0)
                     .offset(y: showLogo ? 0.0 : 14.0)
 
-                Text("Placeholder headline for welcome intro")
+                Text("welcome.headline")
                     .font(.system(size: 34.0, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
                     .opacity(showLineOne ? 1.0 : 0.0)
                     .offset(y: showLineOne ? 0.0 : 14.0)
 
-                Text("Placeholder supporting copy for the first-launch MotionComfort experience.")
+                Text("welcome.supporting_copy")
                     .font(.system(size: 17.0, weight: .regular, design: .rounded))
                     .foregroundStyle(Color.white.opacity(0.70))
                     .multilineTextAlignment(.center)
@@ -317,7 +317,7 @@ struct WelcomeIntroView: View {
                 Spacer()
 
                 Button(action: enterApp) {
-                    Text("Experience")
+                    Text("welcome.cta")
                         .font(.system(size: 18.0, weight: .semibold, design: .rounded))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)

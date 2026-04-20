@@ -1,12 +1,13 @@
 name: MotionComfort
 options:
   bundleIdPrefix: com.example
+  developmentLanguage: en
 settings:
   base:
     SWIFT_VERSION: 6.0
     IPHONEOS_DEPLOYMENT_TARGET: 26.0
-    MARKETING_VERSION: 0.6.0
-    CURRENT_PROJECT_VERSION: 0.6.0
+    MARKETING_VERSION: 0.6.1
+    CURRENT_PROJECT_VERSION: 0.6.1
 targets:
   MotionComfortApp:
     type: application
@@ -17,8 +18,8 @@ targets:
         DEVELOPMENT_TEAM: 9NWVQ7RFAT
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: App/Info.plist
-        MARKETING_VERSION: 0.6.0
-        CURRENT_PROJECT_VERSION: 0.6.0
+        MARKETING_VERSION: 0.6.1
+        CURRENT_PROJECT_VERSION: 0.6.1
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: com.linq.StellarMotionComfort
         SUPPORTED_PLATFORMS: iphoneos iphonesimulator
@@ -32,6 +33,8 @@ targets:
         buildPhase: resources
     resources:
       - path: Audio/Resources/GStringsFinal.wav
+      - path: App/Resources/Localizable.xcstrings
+      - path: App/Resources/InfoPlist.xcstrings
     preBuildScripts:
       - name: Copy Melodic Asset
         script: cp "${SRCROOT}/Audio/Resources/GStringsFinal.wav" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GStringsFinal.wav"
@@ -44,8 +47,8 @@ targets:
       properties:
         CFBundleDisplayName: Stellar
         CFBundleIconName: AppIcon
-        CFBundleShortVersionString: 0.6.0
-        CFBundleVersion: 0.6.0
+        CFBundleShortVersionString: 0.6.1
+        CFBundleVersion: 0.6.1
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false

@@ -4,6 +4,10 @@ import CoreVideo
 import MotionComfortCore
 import SwiftUI
 
+private func localized(_ key: String) -> String {
+    String(localized: String.LocalizationValue(key))
+}
+
 // Live View：全屏相机预览加四边光流。
 public struct LiveViewOverlay: View {
     let sample: MotionSample
@@ -95,18 +99,18 @@ enum LiveViewDynamicRangeState: Sendable {
     var statusTitle: String {
         switch self {
         case .pending:
-            return "PREPARING"
+            return localized("liveview.status.preparing.title")
         case .standard:
-            return "SDR"
+            return localized("liveview.status.sdr.title")
         }
     }
 
     var note: String {
         switch self {
         case .pending:
-            return "Camera preview is still preparing its standard dynamic range pipeline."
+            return localized("liveview.status.preparing.note")
         case .standard:
-            return "Preview is running in standard dynamic range."
+            return localized("liveview.status.sdr.note")
         }
     }
 }
@@ -871,63 +875,63 @@ private struct LiveViewUnavailableSurface: View {
     private var statusTitle: String {
         switch (status, previewState) {
         case (.authorized, .starting):
-            return "STARTING"
+            return localized("liveview.status.starting.title")
         case (.authorized, .ready):
             return dynamicRangeState.statusTitle
         case (.authorized, .idle):
-            return "READY"
+            return localized("liveview.status.ready.title")
         case (.authorized, .unavailable):
-            return "UNAVAILABLE"
+            return localized("liveview.status.unavailable.title")
         case (.notDetermined, _):
-            return "REQUEST"
+            return localized("liveview.status.not_determined.title")
         case (.denied, _):
-            return "DENIED"
+            return localized("liveview.status.denied.title")
         case (.restricted, _):
-            return "RESTRICTED"
+            return localized("liveview.status.restricted.title")
         @unknown default:
-            return "UNAVAILABLE"
+            return localized("liveview.status.unavailable.title")
         }
     }
 
     private var statusHeadline: String {
         switch (status, previewState) {
         case (.authorized, .starting):
-            return "Starting camera preview"
+            return localized("liveview.status.starting.headline")
         case (.authorized, .ready):
-            return "Camera preview live"
+            return localized("liveview.status.ready.headline")
         case (.authorized, .idle):
-            return "Camera preview ready"
+            return localized("liveview.status.ready.headline")
         case (.authorized, .unavailable):
-            return "Camera preview unavailable"
+            return localized("liveview.status.unavailable.headline")
         case (.notDetermined, _):
-            return "Camera permission pending"
+            return localized("liveview.status.not_determined.headline")
         case (.denied, _):
-            return "Camera access denied"
+            return localized("liveview.status.denied.headline")
         case (.restricted, _):
-            return "Camera unavailable"
+            return localized("liveview.status.restricted.headline")
         @unknown default:
-            return "Camera unavailable"
+            return localized("liveview.status.restricted.headline")
         }
     }
 
     private var statusNote: String {
         switch (status, previewState) {
         case (.authorized, .starting):
-            return "The session is authorized and is still preparing the live camera preview."
+            return localized("liveview.status.starting.note")
         case (.authorized, .ready):
-            return "The live camera preview is active, and the edge overlays are adapting to the current scene brightness."
+            return localized("liveview.status.ready.note")
         case (.authorized, .idle):
-            return "Camera access is authorized. The live-view session will switch into the real preview as soon as the session starts."
+            return localized("liveview.status.ready.note")
         case (.authorized, .unavailable):
-            return "Camera access is authorized, but the current device session could not start a preview feed."
+            return localized("liveview.status.unavailable.note")
         case (.notDetermined, _):
-            return "The app can request camera access now. Once granted, the live-view session will switch into the real camera preview."
+            return localized("liveview.status.not_determined.note")
         case (.denied, _):
-            return "Camera access is currently denied, so the live-view session stays on this placeholder."
+            return localized("liveview.status.denied.note")
         case (.restricted, _):
-            return "Camera access is restricted or unavailable on this device session."
+            return localized("liveview.status.restricted.note")
         @unknown default:
-            return "Camera access is unavailable."
+            return localized("liveview.status.restricted.note")
         }
     }
 }

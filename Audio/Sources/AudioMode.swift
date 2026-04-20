@@ -10,11 +10,11 @@ public enum AudioMode: String, CaseIterable, Identifiable, Sendable {
     public var title: String {
         switch self {
         case .off:
-            return "Off"
+            return String(localized: "audio_mode.off")
         case .melodic:
-            return "Melodic"
+            return String(localized: "audio_mode.melodic")
         case .monotone:
-            return "Mono"
+            return String(localized: "audio_mode.mono")
         }
     }
 

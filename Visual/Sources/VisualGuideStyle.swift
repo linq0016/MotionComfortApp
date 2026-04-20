@@ -10,11 +10,11 @@ public enum VisualGuideStyle: String, CaseIterable, Identifiable, Sendable {
     public var title: String {
         switch self {
         case .minimal:
-            return "Minimal"
+            return String(localized: "visual_mode.minimal")
         case .dynamic:
-            return "Dynamic"
+            return String(localized: "visual_mode.dynamic")
         case .liveView:
-            return "Live View"
+            return String(localized: "visual_mode.live_view")
         }
     }
 }

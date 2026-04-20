@@ -142,7 +142,7 @@ struct FullscreenSessionView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     .padding(.bottom, 8.0)
 
-                Text("Cruise Speed")
+                Text("fullscreen.cruise_speed")
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundStyle(Color.white.opacity(0.86))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
