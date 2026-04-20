@@ -1,3 +1,4 @@
+<img width="573" height="573" alt="Screenshot 2026-04-20 at 10 48 10" src="https://github.com/user-attachments/assets/392b76e9-f4d9-4cea-8004-71b0e7460c9f" />
 # Stellar: The Motion Comfort App 晕动缓解试听体验
 Stellar是我个人用OpenAI Codex从0开发的一款专门用来缓解乘坐机动车时容易产生的晕动症的App，目前项目文件为完全开源。
 由于时效性与中国大陆的法规要求，苹果App Store上架/TestFlight External Testing正在申请中，目前项目可以Internal Testing的形式运行，但需要联系我手动添加权限。如果有需要，请随时联系我的邮箱linq0016@icloud.com。
