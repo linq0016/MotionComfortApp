@@ -237,14 +237,13 @@ private struct SettingsPanel: View {
 
 private struct SettingsSheetBackground: View {
     var body: some View {
-        Color.clear
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .glassEffect(
-                .clear.tint(Color.black.opacity(0.24)),
-                in: .rect(cornerRadius: 0.0)
-            )
-            .opacity(0.72)
-            .ignoresSafeArea()
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+
+            Color.black.opacity(0.30)
+        }
+        .ignoresSafeArea()
     }
 }
 
