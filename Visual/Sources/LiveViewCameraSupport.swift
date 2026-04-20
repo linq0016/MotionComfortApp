@@ -43,8 +43,7 @@ public struct LiveViewOverlay: View {
                 LiveViewUnavailableSurface(
                     style: style,
                     status: camera.status,
-                    previewState: camera.previewState,
-                    dynamicRangeState: camera.previewDynamicRangeState
+                    previewState: camera.previewState
                 )
             }
         }
@@ -92,34 +91,10 @@ enum LiveViewPreviewState: String, Sendable {
     case unavailable
 }
 
-enum LiveViewDynamicRangeState: Sendable {
-    case pending
-    case standard
-
-    var statusTitle: String {
-        switch self {
-        case .pending:
-            return localized("liveview.status.preparing.title")
-        case .standard:
-            return localized("liveview.status.sdr.title")
-        }
-    }
-
-    var note: String {
-        switch self {
-        case .pending:
-            return localized("liveview.status.preparing.note")
-        case .standard:
-            return localized("liveview.status.sdr.note")
-        }
-    }
-}
-
 final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable {
     @Published private(set) var status: AVAuthorizationStatus
     @Published private(set) var isRunning = false
     @Published private(set) var previewState: LiveViewPreviewState = .idle
-    @Published private(set) var previewDynamicRangeState: LiveViewDynamicRangeState = .pending
     @Published private(set) var sceneAnalysis = LiveViewSceneAnalysis()
 
     let session = AVCaptureSession()
@@ -150,7 +125,6 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
         let currentStatus = AVCaptureDevice.authorizationStatus(for: .video)
         DispatchQueue.main.async {
             self.status = currentStatus
-            self.previewDynamicRangeState = .pending
             if currentStatus == .authorized {
                 self.previewState = .starting
             }
@@ -167,7 +141,6 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
 
                 DispatchQueue.main.async {
                     self.status = granted ? .authorized : .denied
-                    self.previewDynamicRangeState = granted ? .pending : .standard
                     self.previewState = granted ? .starting : .unavailable
                 }
 
@@ -284,16 +257,9 @@ final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable
 
             configureVideoOutput()
 
-            DispatchQueue.main.async {
-                self.previewDynamicRangeState = .standard
-            }
-
             isConfigured = true
             return true
         } catch {
-            DispatchQueue.main.async {
-                self.previewDynamicRangeState = .standard
-            }
             return false
         }
     }
@@ -820,7 +786,6 @@ private struct LiveViewUnavailableSurface: View {
     let style: VisualGuideStyle
     let status: AVAuthorizationStatus
     let previewState: LiveViewPreviewState
-    let dynamicRangeState: LiveViewDynamicRangeState
 
     var body: some View {
         ZStack {
@@ -833,31 +798,12 @@ private struct LiveViewUnavailableSurface: View {
                         .foregroundStyle(.white.opacity(0.96))
                         .multilineTextAlignment(.center)
 
-                    VStack(spacing: 12.0) {
-                        Text(statusTitle)
-                            .font(.system(.caption2, design: .rounded).weight(.bold))
-                            .foregroundStyle(.white.opacity(0.90))
-                            .padding(.horizontal, 10.0)
-                            .padding(.vertical, 6.0)
-                            .background(Color.white.opacity(0.08), in: Capsule())
-
-                        Text(statusHeadline)
-                            .font(.system(.headline, design: .rounded).weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.94))
-                            .multilineTextAlignment(.center)
-
-                        Text(statusNote)
-                            .font(.system(.body, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.76))
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(dynamicRangeState.note)
-                            .font(.system(.caption, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.60))
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                    Text(statusMessage)
+                        .font(.system(size: 20.0, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.94))
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                     .frame(maxWidth: 420.0)
                     .padding(.horizontal, 22.0)
                     .padding(.vertical, 22.0)
@@ -865,73 +811,27 @@ private struct LiveViewUnavailableSurface: View {
                         .clear.tint(Color.black.opacity(0.36)),
                         in: .rect(cornerRadius: 30.0)
                     )
-                }
             }
             .padding(.horizontal, 24.0)
         }
         .ignoresSafeArea()
     }
 
-    private var statusTitle: String {
-        switch (status, previewState) {
-        case (.authorized, .starting):
-            return localized("liveview.status.starting.title")
-        case (.authorized, .ready):
-            return dynamicRangeState.statusTitle
-        case (.authorized, .idle):
-            return localized("liveview.status.ready.title")
-        case (.authorized, .unavailable):
-            return localized("liveview.status.unavailable.title")
-        case (.notDetermined, _):
-            return localized("liveview.status.not_determined.title")
-        case (.denied, _):
+    private var statusMessage: String {
+        switch status {
+        case .denied, .restricted:
             return localized("liveview.status.denied.title")
-        case (.restricted, _):
-            return localized("liveview.status.restricted.title")
+        case .notDetermined:
+            return localized("liveview.status.loading.title")
+        case .authorized:
+            switch previewState {
+            case .ready:
+                return localized("liveview.status.loading.title")
+            case .starting, .idle, .unavailable:
+                return localized("liveview.status.loading.title")
+            }
         @unknown default:
-            return localized("liveview.status.unavailable.title")
-        }
-    }
-
-    private var statusHeadline: String {
-        switch (status, previewState) {
-        case (.authorized, .starting):
-            return localized("liveview.status.starting.headline")
-        case (.authorized, .ready):
-            return localized("liveview.status.ready.headline")
-        case (.authorized, .idle):
-            return localized("liveview.status.ready.headline")
-        case (.authorized, .unavailable):
-            return localized("liveview.status.unavailable.headline")
-        case (.notDetermined, _):
-            return localized("liveview.status.not_determined.headline")
-        case (.denied, _):
-            return localized("liveview.status.denied.headline")
-        case (.restricted, _):
-            return localized("liveview.status.restricted.headline")
-        @unknown default:
-            return localized("liveview.status.restricted.headline")
-        }
-    }
-
-    private var statusNote: String {
-        switch (status, previewState) {
-        case (.authorized, .starting):
-            return localized("liveview.status.starting.note")
-        case (.authorized, .ready):
-            return localized("liveview.status.ready.note")
-        case (.authorized, .idle):
-            return localized("liveview.status.ready.note")
-        case (.authorized, .unavailable):
-            return localized("liveview.status.unavailable.note")
-        case (.notDetermined, _):
-            return localized("liveview.status.not_determined.note")
-        case (.denied, _):
-            return localized("liveview.status.denied.note")
-        case (.restricted, _):
-            return localized("liveview.status.restricted.note")
-        @unknown default:
-            return localized("liveview.status.restricted.note")
+            return localized("liveview.status.loading.title")
         }
     }
 }
