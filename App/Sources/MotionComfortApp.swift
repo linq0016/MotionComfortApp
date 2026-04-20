@@ -8,7 +8,32 @@ struct MotionComfortApp: App {
 
     var body: some Scene {
         WindowGroup {
-            DashboardView(model: model, orientationObserver: orientationObserver)
+            AppRootView(model: model, orientationObserver: orientationObserver)
         }
+    }
+}
+
+private struct AppRootView: View {
+    @ObservedObject var model: ComfortSessionViewModel
+    @ObservedObject var orientationObserver: InterfaceOrientationObserver
+    @AppStorage("hasCompletedWelcome") private var hasCompletedWelcome = false
+
+    var body: some View {
+        Group {
+            if hasCompletedWelcome {
+                DashboardView(
+                    model: model,
+                    orientationObserver: orientationObserver,
+                    resetWelcomeAndReturnToIntro: {
+                        hasCompletedWelcome = false
+                    }
+                )
+            } else {
+                WelcomeIntroView {
+                    hasCompletedWelcome = true
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
     }
 }

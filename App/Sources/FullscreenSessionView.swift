@@ -83,7 +83,7 @@ struct FullscreenSessionView: View {
         }
         .preferredColorScheme(.dark)
         .statusBarHidden()
-        .animation(.easeInOut(duration: 0.24), value: areHUDControlsVisible)
+        .animation(.easeInOut(duration: 0.72), value: areHUDControlsVisible)
         .onAppear {
             model.startAudioIfNeeded()
             scheduleHUDHide()
@@ -130,7 +130,7 @@ struct FullscreenSessionView: View {
     }
 
     private var fullscreenAudioModeControl: some View {
-        FullscreenAudioModeControl(selection: $model.audioMode)
+        AudioModeGlassControl(selection: $model.audioMode)
     }
 
     private var dynamicSpeedControl: some View {
@@ -184,7 +184,7 @@ struct FullscreenSessionView: View {
 
     private func registerFullscreenInteraction() {
         if !areHUDControlsVisible {
-            withAnimation(.easeInOut(duration: 0.24)) {
+            withAnimation(.easeInOut(duration: 0.72)) {
                 areHUDControlsVisible = true
             }
         }
@@ -194,7 +194,7 @@ struct FullscreenSessionView: View {
     private func toggleHUDVisibility() {
         hideHUDTask?.cancel()
 
-        withAnimation(.easeInOut(duration: 0.24)) {
+        withAnimation(.easeInOut(duration: 0.72)) {
             areHUDControlsVisible.toggle()
         }
 
@@ -209,7 +209,7 @@ struct FullscreenSessionView: View {
             try? await Task.sleep(for: .seconds(5))
             guard !Task.isCancelled else { return }
             await MainActor.run {
-                withAnimation(.easeInOut(duration: 0.24)) {
+                withAnimation(.easeInOut(duration: 0.72)) {
                     areHUDControlsVisible = false
                 }
             }
@@ -217,7 +217,7 @@ struct FullscreenSessionView: View {
     }
 }
 
-private struct FullscreenAudioModeControl: View {
+struct AudioModeGlassControl: View {
     @Binding var selection: AudioMode
 
     private let modes = AudioMode.allCases
