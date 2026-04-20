@@ -189,48 +189,60 @@ private struct SettingsPanel: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 22.0) {
-            HStack {
-                Text("Settings")
-                    .font(.system(size: 24.0, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-
-                Spacer()
-
-                Button(action: {
-                    dismiss()
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14.0, weight: .bold))
+        GlassEffectContainer(spacing: 18.0) {
+            VStack(alignment: .leading, spacing: 22.0) {
+                HStack {
+                    Text("Settings")
+                        .font(.system(size: 24.0, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                        .frame(width: 38.0, height: 38.0)
+
+                    Spacer()
+
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14.0, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 38.0, height: 38.0)
+                            .glassEffect(
+                                .clear.tint(Color.black.opacity(0.24)).interactive(),
+                                in: .circle
+                            )
+                            .overlay {
+                                Circle()
+                                    .stroke(Color.white.opacity(0.16), lineWidth: 0.8)
+                                    .blendMode(.screen)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Button(action: resetWelcomeAndReturnToIntro) {
+                    Text("Reset Welcome Screen")
+                        .font(.system(size: 17.0, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54.0)
                         .glassEffect(
-                            .clear.tint(Color.black.opacity(0.36)).interactive(),
-                            in: .circle
+                            .clear.tint(Color.black.opacity(0.24)).interactive(),
+                            in: .rect(cornerRadius: 27.0)
                         )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 27.0, style: .continuous)
+                                .stroke(Color.white.opacity(0.15), lineWidth: 0.8)
+                                .blendMode(.screen)
+                        }
                 }
                 .buttonStyle(.plain)
-            }
 
-            Button(action: resetWelcomeAndReturnToIntro) {
-                Text("Reset Welcome Screen")
-                    .font(.system(size: 17.0, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 54.0)
-                    .glassEffect(
-                        .clear.tint(Color.black.opacity(0.36)).interactive(),
-                        in: .rect(cornerRadius: 27.0)
-                    )
+                Spacer(minLength: 0.0)
             }
-            .buttonStyle(.plain)
-
-            Spacer(minLength: 0.0)
+            .padding(.horizontal, 22.0)
+            .padding(.top, 22.0)
+            .padding(.bottom, 12.0)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .padding(.horizontal, 22.0)
-        .padding(.top, 22.0)
-        .padding(.bottom, 12.0)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .preferredColorScheme(.dark)
     }
 }
