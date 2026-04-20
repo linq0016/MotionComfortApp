@@ -23,31 +23,21 @@ private struct AppRootView: View {
     @AppStorage("lastVisualGuideStyle") private var lastVisualGuideStyle = VisualGuideStyle.dynamic.rawValue
     @AppStorage("lastAudioMode") private var lastAudioMode = AudioMode.melodic.rawValue
     @State private var hasLoadedLaunchPreferences = false
+    @State private var hasCompletedMinimumLaunchDisplay = false
+    @State private var hasTransitionedFromLaunchPlaceholder = false
 
     var body: some View {
-        Group {
-            if hasLoadedLaunchPreferences {
-                if hasCompletedWelcome {
-                    DashboardView(
-                        model: model,
-                        orientationObserver: orientationObserver,
-                        resetWelcomeAndReturnToIntro: resetAppStartupState,
-                        quickStartEnabled: $quickStartEnabled,
-                        shouldAutoStartRememberedSession: quickStartEnabled
-                    )
-                } else {
-                    WelcomeIntroView {
-                        hasCompletedWelcome = true
-                    }
-                }
-            } else {
-                SharedChromeBackground()
-                    .task {
-                        guard !hasLoadedLaunchPreferences else { return }
-                        restorePersistedSessionSelection()
-                        hasLoadedLaunchPreferences = true
-                    }
+        ZStack {
+            launchDestinationView
+                .opacity(hasTransitionedFromLaunchPlaceholder ? 1.0 : 0.0)
+
+            if !hasTransitionedFromLaunchPlaceholder {
+                LaunchPlaceholderView()
+                    .transition(.opacity)
             }
+        }
+        .task {
+            await prepareLaunchState()
         }
         .preferredColorScheme(.dark)
         .onChange(of: model.visualGuideStyle) { _, style in
@@ -57,6 +47,41 @@ private struct AppRootView: View {
         .onChange(of: model.audioMode) { _, mode in
             guard hasLoadedLaunchPreferences else { return }
             lastAudioMode = mode.rawValue
+        }
+    }
+
+    @ViewBuilder
+    private var launchDestinationView: some View {
+        if hasLoadedLaunchPreferences && hasCompletedMinimumLaunchDisplay {
+            if hasCompletedWelcome {
+                DashboardView(
+                    model: model,
+                    orientationObserver: orientationObserver,
+                    resetWelcomeAndReturnToIntro: resetAppStartupState,
+                    quickStartEnabled: $quickStartEnabled,
+                    shouldAutoStartRememberedSession: quickStartEnabled
+                )
+            } else {
+                WelcomeIntroView {
+                    hasCompletedWelcome = true
+                }
+            }
+        }
+    }
+
+    private func prepareLaunchState() async {
+        guard !hasTransitionedFromLaunchPlaceholder else { return }
+
+        if !hasLoadedLaunchPreferences {
+            restorePersistedSessionSelection()
+            hasLoadedLaunchPreferences = true
+        }
+
+        try? await Task.sleep(for: .milliseconds(650))
+        hasCompletedMinimumLaunchDisplay = true
+
+        withAnimation(.easeInOut(duration: 0.8)) {
+            hasTransitionedFromLaunchPlaceholder = true
         }
     }
 
@@ -83,5 +108,22 @@ private struct AppRootView: View {
         lastAudioMode = AudioMode.melodic.rawValue
         model.visualGuideStyle = .dynamic
         model.audioMode = .melodic
+    }
+}
+
+private struct LaunchPlaceholderView: View {
+    var body: some View {
+        ZStack {
+            Color.black
+                .ignoresSafeArea()
+
+            Image("LaunchLogo")
+                .resizable()
+                .interpolation(.high)
+                .antialiased(true)
+                .scaledToFit()
+                .frame(width: 132.0, height: 132.0)
+                .compositingGroup()
+        }
     }
 }

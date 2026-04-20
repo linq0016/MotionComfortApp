@@ -336,32 +336,39 @@ struct WelcomeIntroView: View {
             .padding(.horizontal, 24.0)
         }
         .task {
-            withAnimation(.easeOut(duration: 2.10).delay(3.0)) {
+            withAnimation(.easeOut(duration: 1.35)) {
                 showLogo = true
             }
-            withAnimation(.easeOut(duration: 2.10).delay(6.0)) {
+            withAnimation(.easeOut(duration: 1.35).delay(1.5)) {
                 showLineOne = true
             }
-            withAnimation(.easeOut(duration: 2.10).delay(9.0)) {
+            withAnimation(.easeOut(duration: 1.35).delay(3.0)) {
                 showLineTwo = true
             }
-            withAnimation(.easeOut(duration: 2.10).delay(12.0)) {
+            withAnimation(.easeOut(duration: 1.35).delay(4.5)) {
                 showButton = true
             }
         }
     }
 
     private var logoBlock: some View {
-        ZStack {
-            Circle()
-                .fill(Color(red: 0.09, green: 0.80, blue: 0.92).opacity(0.16))
-                .frame(width: 168.0, height: 168.0)
-                .blur(radius: 26.0)
+        MotionComfortLogoImage(
+            size: 154.0
+        )
+    }
+}
 
-            Image(systemName: "wave.3.forward.circle.fill")
-                .font(.system(size: 72.0, weight: .medium))
-                .foregroundStyle(Color(red: 0.11, green: 0.84, blue: 0.95))
-        }
+struct MotionComfortLogoImage: View {
+    let size: CGFloat
+
+    var body: some View {
+        Image("WelcomeLogo")
+            .resizable()
+            .interpolation(.high)
+            .antialiased(true)
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .compositingGroup()
     }
 }
 

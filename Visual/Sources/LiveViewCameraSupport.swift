@@ -820,52 +820,52 @@ private struct LiveViewUnavailableSurface: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.06, green: 0.08, blue: 0.10),
-                    Color(red: 0.10, green: 0.12, blue: 0.15),
-                    Color(red: 0.05, green: 0.06, blue: 0.08)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            LiveViewChromeBackground()
 
-            VStack(alignment: .leading, spacing: 12.0) {
-                HStack {
+            GlassEffectContainer(spacing: 16.0) {
+                VStack(spacing: 18.0) {
                     Text(style.title)
-                        .font(.system(size: 26.0, weight: .bold, design: .rounded))
+                        .font(.system(size: 28.0, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.96))
+                        .multilineTextAlignment(.center)
 
-                    Spacer(minLength: 0.0)
+                    VStack(spacing: 12.0) {
+                        Text(statusTitle)
+                            .font(.system(.caption2, design: .rounded).weight(.bold))
+                            .foregroundStyle(.white.opacity(0.90))
+                            .padding(.horizontal, 10.0)
+                            .padding(.vertical, 6.0)
+                            .background(Color.white.opacity(0.08), in: Capsule())
 
-                    Text(statusTitle)
-                        .font(.system(.caption2, design: .rounded).weight(.bold))
-                        .padding(.horizontal, 10.0)
-                        .padding(.vertical, 6.0)
-                        .background(Color.white.opacity(0.10), in: Capsule())
+                        Text(statusHeadline)
+                            .font(.system(.headline, design: .rounded).weight(.semibold))
+                            .foregroundStyle(.white.opacity(0.94))
+                            .multilineTextAlignment(.center)
+
+                        Text(statusNote)
+                            .font(.system(.body, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.76))
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(dynamicRangeState.note)
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.60))
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: 420.0)
+                    .padding(.horizontal, 22.0)
+                    .padding(.vertical, 22.0)
+                    .glassEffect(
+                        .clear.tint(Color.black.opacity(0.36)),
+                        in: .rect(cornerRadius: 30.0)
+                    )
                 }
-
-                Text(statusHeadline)
-                    .font(.system(.headline, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.92))
-
-                Text(statusNote)
-                    .font(.system(.body, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.72))
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(dynamicRangeState.note)
-                    .font(.system(.caption, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.58))
             }
-            .frame(maxWidth: 420.0, alignment: .leading)
-            .padding(24.0)
-            .background(Color.black.opacity(0.34), in: RoundedRectangle(cornerRadius: 30.0, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 30.0, style: .continuous)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1.0)
-            )
             .padding(.horizontal, 24.0)
         }
+        .ignoresSafeArea()
     }
 
     private var statusTitle: String {
@@ -929,5 +929,82 @@ private struct LiveViewUnavailableSurface: View {
         @unknown default:
             return "Camera access is unavailable."
         }
+    }
+}
+
+private struct LiveViewChromeBackground: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+            GeometryReader { proxy in
+                let time = timeline.date.timeIntervalSinceReferenceDate
+                let width = proxy.size.width
+                let height = proxy.size.height
+
+                ZStack {
+                    Color(red: 0.012, green: 0.012, blue: 0.020)
+                        .ignoresSafeArea()
+
+                    blob(
+                        color: Color(red: 0.00, green: 0.92, blue: 0.84).opacity(0.18),
+                        size: width * 0.78,
+                        blur: width * 0.17,
+                        x: (-width * 0.12) + (sin(time * 0.17) * width * 0.06),
+                        y: (-height * 0.05) + (cos(time * 0.13) * height * 0.05)
+                    )
+
+                    blob(
+                        color: Color(red: 0.08, green: 0.28, blue: 1.00).opacity(0.18),
+                        size: width * 0.82,
+                        blur: width * 0.18,
+                        x: (width * 0.14) + (cos(time * 0.14) * width * 0.06),
+                        y: (height * 0.01) + (sin(time * 0.11) * height * 0.05)
+                    )
+
+                    blob(
+                        color: Color(red: 1.00, green: 0.16, blue: 0.24).opacity(0.13),
+                        size: width * 0.70,
+                        blur: width * 0.16,
+                        x: (-width * 0.02) + (sin(time * 0.16) * width * 0.05),
+                        y: (height * 0.14) + (cos(time * 0.18) * height * 0.05)
+                    )
+
+                    blob(
+                        color: Color.white.opacity(0.10),
+                        size: width * 0.64,
+                        blur: width * 0.14,
+                        x: (width * 0.04) + (cos(time * 0.20) * width * 0.05),
+                        y: (-height * 0.12) + (sin(time * 0.15) * height * 0.04)
+                    )
+
+                    blob(
+                        color: Color(red: 1.00, green: 0.86, blue: 0.22).opacity(0.12),
+                        size: width * 0.62,
+                        blur: width * 0.14,
+                        x: (width * 0.02) + (sin(time * 0.12) * width * 0.04),
+                        y: (height * 0.26) + (cos(time * 0.14) * height * 0.04)
+                    )
+
+                    Rectangle()
+                        .fill(Color.black.opacity(0.34))
+                        .ignoresSafeArea()
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func blob(
+        color: Color,
+        size: CGFloat,
+        blur: CGFloat,
+        x: CGFloat,
+        y: CGFloat
+    ) -> some View {
+        Circle()
+            .fill(color)
+            .frame(width: size, height: size)
+            .blur(radius: blur)
+            .blendMode(.screen)
+            .offset(x: x, y: y)
     }
 }
