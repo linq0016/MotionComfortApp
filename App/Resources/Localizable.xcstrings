@@ -229,7 +229,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stellar: 晕动缓解"
+            "value" : "Stellar 晕动缓解"
           }
         }
       }
@@ -534,7 +534,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通过视觉引导与听觉刺激\n缓解乘车时的恶心眩晕感"
+            "value" : "通过视听引导与刺激\n缓解乘车时的恶心眩晕感"
           }
         }
       }

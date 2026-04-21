@@ -89,7 +89,10 @@ final class ComfortSessionViewModel: ObservableObject {
         motionManager.start(mode: motionInputMode)
     }
 
-    func beginSessionLaunch(style: VisualGuideStyle) {
+    func beginSessionLaunch(
+        style: VisualGuideStyle,
+        loadingFeedbackStart: ContinuousClock.Instant? = nil
+    ) {
         guard !isLaunchInteractionLocked else {
             return
         }
@@ -100,7 +103,7 @@ final class ComfortSessionViewModel: ObservableObject {
         visualGuideStyle = style
         sessionLaunchState = .preparing(style: style)
 
-        scheduleLoadingFeedback()
+        scheduleLoadingFeedback(startedAt: loadingFeedbackStart ?? clock.now)
 
         if style == .liveView {
             beginLiveViewLaunch()
@@ -268,14 +271,18 @@ final class ComfortSessionViewModel: ObservableObject {
         }
     }
 
-    private func scheduleLoadingFeedback() {
+    private func scheduleLoadingFeedback(startedAt: ContinuousClock.Instant) {
         loadingFeedbackTask?.cancel()
         loadingFeedbackTask = Task { [weak self] in
             guard let self else {
                 return
             }
 
-            try? await Task.sleep(for: loadingFeedbackDelay)
+            let elapsed = startedAt.duration(to: clock.now)
+            let remainingDelay = elapsed < loadingFeedbackDelay ? loadingFeedbackDelay - elapsed : .zero
+            if remainingDelay > .zero {
+                try? await Task.sleep(for: remainingDelay)
+            }
             await MainActor.run {
                 guard case .preparing = self.sessionLaunchState else {
                     return
@@ -344,6 +351,16 @@ final class ComfortSessionViewModel: ObservableObject {
 
     func prepareForSessionDismiss() {
         sessionLaunchOverlayState = .none
+    }
+
+    func finishSessionDismiss() async {
+        motionManager.stop()
+        audioEngine.stopPlayback()
+        liveViewCamera.stop()
+        dynamicSpeedMultiplier = 1.0
+        loadingVisibleAt = nil
+        sessionLaunchState = .idle
+        isRunning = false
     }
 
     private var remainingLoadingVisibility: Duration {

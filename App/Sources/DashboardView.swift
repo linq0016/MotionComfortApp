@@ -202,7 +202,10 @@ struct DashboardView: View {
     }
 
     private func launchSession(style: VisualGuideStyle) {
-        model.beginSessionLaunch(style: style)
+        model.beginSessionLaunch(
+            style: style,
+            loadingFeedbackStart: ContinuousClock().now
+        )
     }
 
     private var audioModeDetailText: LocalizedStringKey {
@@ -304,7 +307,7 @@ private struct SessionLaunchToast: View {
             .padding(.horizontal, 20.0)
             .padding(.vertical, 16.0)
             .glassEffect(
-                .clear.tint(Color.black.opacity(0.56)),
+                .clear.tint(Color.black.opacity(0.24)),
                 in: .rect(cornerRadius: 28.0)
             )
         }
@@ -331,7 +334,7 @@ private struct ModeLaunchCard: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 10.0) {
                 Text(title)
-                    .font(.system(size: 28.0, weight: .bold, design: .rounded))
+                    .font(.system(size: 26.0, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
 
                 Text(subtitle)

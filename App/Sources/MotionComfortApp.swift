@@ -27,6 +27,8 @@ private struct AppRootView: View {
     @State private var hasTransitionedFromLaunchPlaceholder = false
     @State private var isSessionOverlayMounted = false
     @State private var isSessionOverlayVisible = false
+    @State private var sessionFadeTask: Task<Void, Never>?
+    @State private var sessionDismissTask: Task<Void, Never>?
 
     var body: some View {
         ZStack {
@@ -38,6 +40,7 @@ private struct AppRootView: View {
                     dismissSessionOverlay()
                 }
                 .opacity(isSessionOverlayVisible ? 1.0 : 0.0)
+                .allowsHitTesting(isSessionOverlayVisible)
                 .zIndex(1.0)
             }
 
@@ -126,41 +129,56 @@ private struct AppRootView: View {
 
     private func handleSessionPresentationChanged(_ isPresented: Bool) {
         if isPresented {
+            sessionDismissTask?.cancel()
+            sessionDismissTask = nil
+            sessionFadeTask?.cancel()
+
             isSessionOverlayMounted = true
             withAnimation(.easeInOut(duration: 0.28)) {
                 isSessionOverlayVisible = true
             }
 
-            Task { @MainActor in
+            sessionFadeTask = Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(280))
+                guard !Task.isCancelled else { return }
                 if model.isSessionPresented {
                     model.completeSessionFadeIn()
                 }
+                sessionFadeTask = nil
             }
         } else if isSessionOverlayMounted {
+            sessionFadeTask?.cancel()
+            sessionFadeTask = nil
             withAnimation(.easeInOut(duration: 0.28)) {
                 isSessionOverlayVisible = false
             }
 
-            Task { @MainActor in
+            sessionDismissTask = Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(280))
+                guard !Task.isCancelled else { return }
                 if !model.isSessionPresented {
                     isSessionOverlayMounted = false
                 }
+                sessionDismissTask = nil
             }
         }
     }
 
     private func dismissSessionOverlay() {
+        sessionFadeTask?.cancel()
+        sessionFadeTask = nil
+        sessionDismissTask?.cancel()
         model.prepareForSessionDismiss()
         withAnimation(.easeInOut(duration: 0.28)) {
             isSessionOverlayVisible = false
         }
 
-        Task { @MainActor in
+        sessionDismissTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(280))
+            guard !Task.isCancelled else { return }
+            await model.finishSessionDismiss()
             isSessionOverlayMounted = false
-            model.stop()
+            sessionDismissTask = nil
         }
     }
 }

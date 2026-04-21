@@ -35,32 +35,18 @@ public struct PeripheralCueOverlay: View {
                     speedMultiplier: dynamicSpeedMultiplier
                 )
             case .liveView:
-                LiveViewOverlayHost(
-                    sample: sample,
-                    style: visualStyle,
-                    orientation: orientation,
-                    externalCamera: liveViewCamera
-                )
+                if let liveViewCamera {
+                    LiveViewOverlay(
+                        sample: sample,
+                        style: visualStyle,
+                        orientation: orientation,
+                        camera: liveViewCamera
+                    )
+                } else {
+                    Color.clear
+                }
             }
         }
         .allowsHitTesting(false)
-    }
-}
-
-private struct LiveViewOverlayHost: View {
-    let sample: MotionSample
-    let style: VisualGuideStyle
-    let orientation: InterfaceRenderOrientation
-    let externalCamera: LiveViewCameraModel?
-
-    @StateObject private var ownedCamera = LiveViewCameraModel()
-
-    var body: some View {
-        LiveViewOverlay(
-            sample: sample,
-            style: style,
-            orientation: orientation,
-            camera: externalCamera ?? ownedCamera
-        )
     }
 }
