@@ -8,6 +8,7 @@ struct DashboardView: View {
     @ObservedObject var orientationObserver: InterfaceOrientationObserver
     let resetWelcomeAndReturnToIntro: () -> Void
     @Binding var quickStartEnabled: Bool
+    @Binding var backgroundAudioEnabled: Bool
     let shouldAutoStartRememberedSession: Bool
 
     @State private var isSettingsPresented = false
@@ -66,12 +67,13 @@ struct DashboardView: View {
         .sheet(isPresented: $isSettingsPresented) {
             SettingsPanel(
                 quickStartEnabled: $quickStartEnabled,
+                backgroundAudioEnabled: $backgroundAudioEnabled,
                 resetWelcomeAndReturnToIntro: {
                     isSettingsPresented = false
                     resetWelcomeAndReturnToIntro()
                 }
             )
-            .presentationDetents([.fraction(0.36), .large])
+            .presentationDetents([.fraction(0.42), .large])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(54.0)
             .presentationBackground {
@@ -357,6 +359,7 @@ private struct ModeLaunchCard: View {
 
 private struct SettingsPanel: View {
     @Binding var quickStartEnabled: Bool
+    @Binding var backgroundAudioEnabled: Bool
     let resetWelcomeAndReturnToIntro: () -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -389,6 +392,7 @@ private struct SettingsPanel: View {
                     }
                     .buttonStyle(.plain)
                 }
+                .offset(y: 1.0)
 
                 VStack(alignment: .leading, spacing: 18.0) {
                     VStack(alignment: .leading, spacing: 8.0) {
@@ -399,6 +403,19 @@ private struct SettingsPanel: View {
                         }
 
                         Text("settings.express_startup.supporting_copy")
+                            .font(.system(size: 13.0, weight: .regular, design: .rounded))
+                            .foregroundStyle(Color.white.opacity(0.62))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8.0) {
+                        Toggle(isOn: $backgroundAudioEnabled) {
+                            Text("settings.background_audio")
+                                .font(.system(size: 17.0, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.white)
+                        }
+
+                        Text("settings.background_audio.supporting_copy")
                             .font(.system(size: 13.0, weight: .regular, design: .rounded))
                             .foregroundStyle(Color.white.opacity(0.62))
                             .fixedSize(horizontal: false, vertical: true)
@@ -425,9 +442,7 @@ private struct SettingsPanel: View {
 
                 Spacer(minLength: 0.0)
             }
-            .padding(.horizontal, 22.0)
-            .padding(.top, 22.0)
-            .padding(.bottom, 22.0)
+            .padding(24.0)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .preferredColorScheme(.dark)

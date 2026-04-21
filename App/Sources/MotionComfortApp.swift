@@ -18,8 +18,10 @@ struct MotionComfortApp: App {
 private struct AppRootView: View {
     @ObservedObject var model: ComfortSessionViewModel
     @ObservedObject var orientationObserver: InterfaceOrientationObserver
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("hasCompletedWelcome") private var hasCompletedWelcome = false
     @AppStorage("quickStartEnabled") private var quickStartEnabled = false
+    @AppStorage("backgroundAudioEnabled") private var backgroundAudioEnabled = true
     @AppStorage("lastVisualGuideStyle") private var lastVisualGuideStyle = VisualGuideStyle.dynamic.rawValue
     @AppStorage("lastAudioMode") private var lastAudioMode = AudioMode.melodic.rawValue
     @State private var hasLoadedLaunchPreferences = false
@@ -62,6 +64,12 @@ private struct AppRootView: View {
             guard hasLoadedLaunchPreferences else { return }
             lastAudioMode = mode.rawValue
         }
+        .onChange(of: backgroundAudioEnabled) { _, _ in
+            syncBackgroundAudioPolicy(for: scenePhase)
+        }
+        .onChange(of: scenePhase) { _, nextPhase in
+            syncBackgroundAudioPolicy(for: nextPhase)
+        }
         .onChange(of: model.isSessionPresented) { _, isPresented in
             handleSessionPresentationChanged(isPresented)
         }
@@ -76,6 +84,7 @@ private struct AppRootView: View {
                     orientationObserver: orientationObserver,
                     resetWelcomeAndReturnToIntro: resetAppStartupState,
                     quickStartEnabled: $quickStartEnabled,
+                    backgroundAudioEnabled: $backgroundAudioEnabled,
                     shouldAutoStartRememberedSession: quickStartEnabled
                 )
             } else {
@@ -125,6 +134,23 @@ private struct AppRootView: View {
         lastAudioMode = AudioMode.melodic.rawValue
         model.visualGuideStyle = .dynamic
         model.audioMode = .melodic
+    }
+
+    private func syncBackgroundAudioPolicy(for phase: ScenePhase) {
+        guard model.audioMode != .off else {
+            return
+        }
+
+        switch phase {
+        case .active:
+            model.startAudioIfNeeded()
+        case .inactive, .background:
+            if !backgroundAudioEnabled {
+                model.stopAudioPlayback()
+            }
+        @unknown default:
+            break
+        }
     }
 
     private func handleSessionPresentationChanged(_ isPresented: Bool) {

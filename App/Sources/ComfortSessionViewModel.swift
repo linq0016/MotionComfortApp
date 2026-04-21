@@ -122,6 +122,10 @@ final class ComfortSessionViewModel: ObservableObject {
         audioEngine.setMode(audioMode)
     }
 
+    func stopAudioPlayback() {
+        audioEngine.stopPlayback()
+    }
+
     func completeSessionPresentation() {
         guard case .preparing(let style) = sessionLaunchState else {
             return

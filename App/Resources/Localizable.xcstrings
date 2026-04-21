@@ -207,7 +207,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alleviate vehicle motion sickness by utilizing various particle effects that dynamically visualize acceleration."
+            "value" : "Alleviate vehicle motion sickness with dynamic particle effects that visualize acceleration."
           }
         },
         "zh-Hans" : {
@@ -350,6 +350,38 @@
           "stringUnit" : {
             "state" : "translated",
           "value" : "记忆上次使用的模式，下次启动直接进入。"
+          }
+        }
+      }
+    },
+    "settings.background_audio" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background Audio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "后台音频"
+          }
+        }
+      }
+    },
+    "settings.background_audio.supporting_copy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep audio playing when the app moves to the background."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用进入后台时继续播放音频。"
           }
         }
       }
