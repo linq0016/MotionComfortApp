@@ -73,7 +73,7 @@ struct DashboardView: View {
             )
             .presentationDetents([.fraction(0.36), .large])
             .presentationDragIndicator(.visible)
-            .presentationCornerRadius(34.0)
+            .presentationCornerRadius(54.0)
             .presentationBackground {
                 SettingsSheetBackground()
             }
@@ -348,7 +348,7 @@ private struct ModeLaunchCard: View {
             .padding(.vertical, 24.0)
             .glassEffect(
                 .clear.tint(Color.black.opacity(0.36)).interactive(),
-                in: .rect(cornerRadius: 30.0)
+                in: .rect(cornerRadius: 38.0)
             )
         }
         .buttonStyle(.plain)
@@ -427,7 +427,7 @@ private struct SettingsPanel: View {
             }
             .padding(.horizontal, 22.0)
             .padding(.top, 22.0)
-            .padding(.bottom, 12.0)
+            .padding(.bottom, 22.0)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .preferredColorScheme(.dark)

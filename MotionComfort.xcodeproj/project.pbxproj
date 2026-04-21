@@ -218,21 +218,12 @@
 			children = (
 				AD5738EEE3897E6B0DBBEE1A /* App */,
 				E9F90B33C48D4E99869C4CF2 /* App/Resources */,
-				75B8DA8081C929A3CB0FA7C4 /* MotionComfortCoreTests */,
 				B089A1907D5C9576FE823964 /* Sources */,
 				4F8C8B7B0D65DBA136CC436E /* Sources */,
 				13C572B481556EB25489E1E2 /* Sources */,
 				CB94E36AF8122CFCBE1A6782 /* Sources */,
 				3AF0618018DA868692371376 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		75B8DA8081C929A3CB0FA7C4 /* MotionComfortCoreTests */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = MotionComfortCoreTests;
-			path = Tests/MotionComfortCoreTests;
 			sourceTree = "<group>";
 		};
 		AD5738EEE3897E6B0DBBEE1A /* App */ = {

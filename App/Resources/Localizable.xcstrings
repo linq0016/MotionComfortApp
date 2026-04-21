@@ -349,7 +349,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "保存当前模式，下次启动直接进入。"
+          "value" : "记忆上次使用的模式，下次启动直接进入。"
           }
         }
       }
