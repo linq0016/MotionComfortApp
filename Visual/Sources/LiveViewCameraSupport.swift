@@ -3,6 +3,21 @@ import CoreMedia
 import CoreVideo
 import MotionComfortCore
 import SwiftUI
+#if DEBUG
+import os
+#endif
+
+#if DEBUG
+private let liveViewCameraLogger = Logger(
+    subsystem: "com.motioncomfort.app",
+    category: "LiveViewCamera"
+)
+
+private func liveViewCameraLog(_ message: String, attemptID: UInt64?) {
+    let attemptDescription = attemptID.map(String.init) ?? "-"
+    liveViewCameraLogger.debug("[attempt \(attemptDescription, privacy: .public)] \(message, privacy: .public)")
+}
+#endif
 
 private func localized(_ key: String) -> String {
     String(localized: String.LocalizationValue(key))
@@ -31,17 +46,27 @@ public struct LiveViewOverlay: View {
 
     public var body: some View {
         ZStack {
-            if camera.canShowPreview {
-                LiveViewCameraPreview(session: camera.session, orientation: orientation)
+            if camera.status == .authorized,
+               let previewSession = camera.previewSession {
+                LiveViewCameraPreview(
+                    session: previewSession,
+                    orientation: orientation,
+                    previewBridge: camera.previewBridge,
+                    attemptID: camera.debugAttemptID
+                )
                     .overlay {
+                        if camera.canShowPreview {
                         LiveViewEdgeFlowOverlay(
                             sample: sample,
                             sceneAnalysis: camera.sceneAnalysis,
                             phase: $phase,
                             orientation: orientation
                         )
+                        }
                     }
-            } else {
+            }
+
+            if camera.status != .authorized || camera.previewState == .unavailable {
                 LiveViewUnavailableSurface(
                     style: style,
                     status: camera.status,
@@ -51,11 +76,7 @@ public struct LiveViewOverlay: View {
         }
         .ignoresSafeArea()
         .onAppear {
-            camera.start()
             camera.updateOrientation(orientation)
-        }
-        .onDisappear {
-            camera.stop()
         }
         .onChange(of: orientation) { _, nextOrientation in
             camera.updateOrientation(nextOrientation)
@@ -93,10 +114,45 @@ public enum LiveViewPreviewState: String, Sendable {
     case unavailable
 }
 
+private enum LiveViewCameraLifecycleState: Sendable {
+    case idle
+    case configuring
+    case running
+    case stopping
+    case failed
+}
+
+private final class LiveViewPreviewBridge {
+    private var unbindHandler: (() -> Void)?
+    private(set) var isTeardownRequested = false
+
+    func attach(unbindHandler: @escaping () -> Void) {
+        self.unbindHandler = unbindHandler
+        guard isTeardownRequested else {
+            return
+        }
+        unbindHandler()
+    }
+
+    func detach() {
+        unbindHandler = nil
+    }
+
+    func requestTeardown() {
+        isTeardownRequested = true
+        unbindHandler?()
+    }
+
+    func unbindSession() {
+        unbindHandler?()
+    }
+}
+
 public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable {
     @Published public private(set) var status: AVAuthorizationStatus
     @Published public private(set) var isRunning = false
     @Published public private(set) var previewState: LiveViewPreviewState = .idle
+    @Published public private(set) var previewSession: AVCaptureSession?
     @Published private(set) var sceneAnalysis = LiveViewSceneAnalysis()
 
     let session = AVCaptureSession()
@@ -109,18 +165,37 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
     private var latestSceneAnalysis = LiveViewSceneAnalysis()
     private var smoothedLuminance: Double?
     private var lastPolaritySwitchAt: TimeInterval?
-    private var currentOrientation: InterfaceRenderOrientation = .portrait
+    private var analysisOrientation: InterfaceRenderOrientation = .portrait
+    private var connectionOrientation: InterfaceRenderOrientation = .portrait
+    private var lifecycleState: LiveViewCameraLifecycleState = .idle
+    private var stopContinuations: [CheckedContinuation<Void, Never>] = []
 
     private let luminanceEmaAlpha = 0.18
     private let polarityHoldDuration: TimeInterval = 0.45
+    fileprivate let previewBridge = LiveViewPreviewBridge()
+    fileprivate let debugAttemptID: UInt64?
 
-    public override init() {
+    public init(launchAttemptID: UInt64? = nil) {
+        self.debugAttemptID = launchAttemptID
         self.status = AVCaptureDevice.authorizationStatus(for: .video)
         super.init()
+        self.previewSession = session
+        #if DEBUG
+        liveViewCameraLog("camera instance created", attemptID: debugAttemptID)
+        #endif
     }
 
     public var canShowPreview: Bool {
         status == .authorized && previewState == .ready && isRunning
+    }
+
+    @MainActor
+    public func detachPreviewForTeardown() {
+        previewBridge.requestTeardown()
+        previewSession = nil
+        #if DEBUG
+        liveViewCameraLog("preview detach requested", attemptID: debugAttemptID)
+        #endif
     }
 
     public func start() {
@@ -129,6 +204,9 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
             self.status = currentStatus
             if currentStatus == .authorized {
                 self.previewState = .starting
+                if self.previewSession == nil {
+                    self.previewSession = self.session
+                }
             }
         }
 
@@ -144,6 +222,9 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
                 DispatchQueue.main.async {
                     self.status = granted ? .authorized : .denied
                     self.previewState = granted ? .starting : .unavailable
+                    if granted, self.previewSession == nil {
+                        self.previewSession = self.session
+                    }
                 }
 
                 if granted {
@@ -166,25 +247,42 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
     }
 
     public func stop() {
-        sessionQueue.async { [weak self] in
-            guard let self else {
-                return
-            }
-
-            if self.session.isRunning {
-                self.session.stopRunning()
-            }
+        Task {
+            await stopAndWait()
         }
+    }
 
-        DispatchQueue.main.async {
-            self.isRunning = false
-            self.previewState = self.status == .authorized ? .idle : .unavailable
+    public func stopAndWait() async {
+        await withCheckedContinuation { continuation in
+            sessionQueue.async { [weak self] in
+                guard let self else {
+                    continuation.resume()
+                    return
+                }
+
+                if self.lifecycleState == .stopping {
+                    self.stopContinuations.append(continuation)
+                    return
+                }
+
+                guard self.lifecycleState != .idle || self.session.isRunning || self.isConfigured else {
+                    DispatchQueue.main.async {
+                        self.isRunning = false
+                        self.previewState = self.status == .authorized ? .idle : .unavailable
+                        continuation.resume()
+                    }
+                    return
+                }
+
+                self.stopContinuations.append(continuation)
+                self.performStopLocked()
+            }
         }
     }
 
     func updateOrientation(_ orientation: InterfaceRenderOrientation) {
         analysisQueue.async { [weak self] in
-            self?.currentOrientation = orientation
+            self?.analysisOrientation = orientation
         }
 
         sessionQueue.async { [weak self] in
@@ -192,11 +290,8 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
                 return
             }
 
-            let rotationAngle = orientation.videoRotationAngle
-            if let connection = self.videoOutput.connection(with: .video),
-               connection.isVideoRotationAngleSupported(rotationAngle) {
-                connection.videoRotationAngle = rotationAngle
-            }
+            self.connectionOrientation = orientation
+            self.applyOrientationToConnections(orientation)
         }
     }
 
@@ -206,8 +301,29 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
                 return
             }
 
+            switch self.lifecycleState {
+            case .configuring, .running, .stopping:
+                #if DEBUG
+                liveViewCameraLog(
+                    "start skipped while \(String(describing: self.lifecycleState))",
+                    attemptID: self.debugAttemptID
+                )
+                #endif
+                return
+            case .idle, .failed:
+                break
+            }
+
+            self.lifecycleState = .configuring
+            #if DEBUG
+            liveViewCameraLog("configure begin", attemptID: self.debugAttemptID)
+            #endif
             if !self.isConfigured {
                 guard self.configureSession() else {
+                    self.lifecycleState = .failed
+                    #if DEBUG
+                    liveViewCameraLog("configure failed", attemptID: self.debugAttemptID)
+                    #endif
                     DispatchQueue.main.async {
                         self.isRunning = false
                         self.previewState = .unavailable
@@ -215,11 +331,23 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
                     return
                 }
             }
+            #if DEBUG
+            liveViewCameraLog("configure end", attemptID: self.debugAttemptID)
+            #endif
 
+            self.videoOutput.setSampleBufferDelegate(self, queue: self.analysisQueue)
+            self.applyOrientationToConnections(self.connectionOrientation)
             if !self.session.isRunning {
+                #if DEBUG
+                liveViewCameraLog("startRunning begin", attemptID: self.debugAttemptID)
+                #endif
                 self.session.startRunning()
+                #if DEBUG
+                liveViewCameraLog("startRunning end", attemptID: self.debugAttemptID)
+                #endif
             }
 
+            self.lifecycleState = .running
             DispatchQueue.main.async {
                 self.isRunning = true
                 self.previewState = .ready
@@ -232,8 +360,6 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
         defer {
             session.commitConfiguration()
         }
-
-        session.automaticallyConfiguresCaptureDeviceForWideColor = true
 
         if session.canSetSessionPreset(.hd1280x720) {
             session.sessionPreset = .hd1280x720
@@ -249,7 +375,6 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
         }
 
         do {
-            try configureVideoDevice(on: device)
             let input = try AVCaptureDeviceInput(device: device)
 
             guard session.canAddInput(input) else {
@@ -271,62 +396,67 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
             ?? AVCaptureDevice.default(for: .video)
     }
 
-    private func configureVideoDevice(on device: AVCaptureDevice) throws {
-        guard let selectedFormat = bestFormat(for: device) else {
-            return
-        }
-
-        try device.lockForConfiguration()
-        defer { device.unlockForConfiguration() }
-
-        device.activeFormat = selectedFormat
-
-        let desiredDuration = CMTime(value: 1, timescale: 60)
-        if selectedFormat.videoSupportedFrameRateRanges.contains(where: { $0.maxFrameRate >= 60.0 }) {
-            device.activeVideoMinFrameDuration = desiredDuration
-            device.activeVideoMaxFrameDuration = desiredDuration
-        }
-    }
-
-    private func bestFormat(for device: AVCaptureDevice) -> AVCaptureDevice.Format? {
-        let targetWidth = 1280
-        let targetHeight = 720
-
-        return device.formats.max { lhs, rhs in
-            formatScore(lhs, targetWidth: targetWidth, targetHeight: targetHeight)
-                < formatScore(rhs, targetWidth: targetWidth, targetHeight: targetHeight)
-        }
-    }
-
-    private func formatScore(
-        _ format: AVCaptureDevice.Format,
-        targetWidth: Int,
-        targetHeight: Int
-    ) -> Int {
-        let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
-        let maxFrameRate = Int(format.videoSupportedFrameRateRanges.map(\.maxFrameRate).max() ?? 0.0)
-        let supports60fps = maxFrameRate >= 60 ? 1 : 0
-        let mediumResolution = (960...1920).contains(Int(dimensions.width)) ? 1 : 0
-        let distancePenalty = abs(Int(dimensions.width) - targetWidth) + abs(Int(dimensions.height) - targetHeight)
-
-        return (supports60fps * 1_000_000)
-            + (mediumResolution * 100_000)
-            + (maxFrameRate * 10)
-            - distancePenalty
-    }
-
     private func configureVideoOutput() {
         videoOutput.alwaysDiscardsLateVideoFrames = true
         videoOutput.videoSettings = [
             kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
         ]
-        videoOutput.setSampleBufferDelegate(self, queue: analysisQueue)
 
         guard session.canAddOutput(videoOutput) else {
             return
         }
 
         session.addOutput(videoOutput)
+    }
+
+    private func performStopLocked() {
+        lifecycleState = .stopping
+        #if DEBUG
+        liveViewCameraLog("stopRunning begin", attemptID: debugAttemptID)
+        #endif
+
+        videoOutput.setSampleBufferDelegate(nil, queue: nil)
+
+        if session.isRunning {
+            session.stopRunning()
+        }
+
+        if isConfigured {
+            session.beginConfiguration()
+            session.inputs.forEach { session.removeInput($0) }
+            session.outputs.forEach { session.removeOutput($0) }
+            session.commitConfiguration()
+            isConfigured = false
+        }
+
+        latestSceneAnalysis = LiveViewSceneAnalysis()
+        smoothedLuminance = nil
+        lastPolaritySwitchAt = nil
+        lifecycleState = .idle
+
+        let continuations = stopContinuations
+        stopContinuations.removeAll()
+
+        #if DEBUG
+        liveViewCameraLog("stopRunning end", attemptID: debugAttemptID)
+        #endif
+
+        DispatchQueue.main.async {
+            self.isRunning = false
+            self.previewState = self.status == .authorized ? .idle : .unavailable
+            #if DEBUG
+            liveViewCameraLog("teardown finished", attemptID: self.debugAttemptID)
+            #endif
+            continuations.forEach { $0.resume() }
+        }
+    }
+
+    private func applyOrientationToConnections(_ orientation: InterfaceRenderOrientation) {
+        guard let connection = videoOutput.connection(with: .video) else {
+            return
+        }
+
+        connection.applyVideoRotationAngle(orientation.videoRotationAngle)
     }
 
     private func analyze(pixelBuffer: CVPixelBuffer) -> LiveViewSceneAnalysis {
@@ -408,7 +538,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
             )
         )
 
-        return rawAnalysis.rotatedForDisplay(currentOrientation)
+        return rawAnalysis.rotatedForDisplay(analysisOrientation)
     }
 
     private func applyLuminanceSmoothing(_ luminance: Double) -> Double {
@@ -531,36 +661,87 @@ extension LiveViewCameraModel: AVCaptureVideoDataOutputSampleBufferDelegate {
 private struct LiveViewCameraPreview: UIViewRepresentable {
     let session: AVCaptureSession
     let orientation: InterfaceRenderOrientation
+    let previewBridge: LiveViewPreviewBridge
+    let attemptID: UInt64?
 
     func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
-        view.previewLayer.session = session
-        view.previewLayer.videoGravity = .resizeAspectFill
-        let rotationAngle = orientation.videoRotationAngle
-        if let connection = view.previewLayer.connection,
-           connection.isVideoRotationAngleSupported(rotationAngle) {
-            connection.videoRotationAngle = rotationAngle
+        previewBridge.attach {
+            view.requestTeardownUnbind(attemptID: attemptID)
         }
+        view.bindSessionIfNeeded(session, attemptID: attemptID)
+        view.updateOrientation(orientation)
+        view.previewLayer.videoGravity = .resizeAspectFill
         return view
     }
 
     func updateUIView(_ uiView: PreviewView, context: Context) {
-        uiView.previewLayer.session = session
-        uiView.previewLayer.videoGravity = .resizeAspectFill
-        let rotationAngle = orientation.videoRotationAngle
-        if let connection = uiView.previewLayer.connection,
-           connection.isVideoRotationAngleSupported(rotationAngle) {
-            connection.videoRotationAngle = rotationAngle
+        previewBridge.attach {
+            uiView.requestTeardownUnbind(attemptID: attemptID)
         }
+
+        if previewBridge.isTeardownRequested {
+            uiView.requestTeardownUnbind(attemptID: attemptID)
+            return
+        }
+
+        uiView.bindSessionIfNeeded(session, attemptID: attemptID)
+        uiView.updateOrientation(orientation)
+        uiView.previewLayer.videoGravity = .resizeAspectFill
+    }
+
+    static func dismantleUIView(_ uiView: PreviewView, coordinator: ()) {
+        uiView.requestTeardownUnbind(attemptID: uiView.attemptID)
+        uiView.previewLayer.connection?.applyVideoRotationAngle(.zero)
     }
 
     final class PreviewView: UIView {
+        var attemptID: UInt64?
+        private var isBindingLocked = false
+
         override class var layerClass: AnyClass {
             AVCaptureVideoPreviewLayer.self
         }
 
         var previewLayer: AVCaptureVideoPreviewLayer {
             layer as! AVCaptureVideoPreviewLayer
+        }
+
+        func bindSessionIfNeeded(_ session: AVCaptureSession, attemptID: UInt64?) {
+            if isBindingLocked {
+                #if DEBUG
+                liveViewCameraLog("preview bind skipped (teardown locked)", attemptID: attemptID)
+                #endif
+                return
+            }
+
+            guard previewLayer.session !== session else {
+                return
+            }
+            self.attemptID = attemptID
+            previewLayer.session = session
+            #if DEBUG
+            liveViewCameraLog("preview bind", attemptID: attemptID)
+            #endif
+        }
+
+        func requestTeardownUnbind(attemptID: UInt64?) {
+            isBindingLocked = true
+            unbindSession(attemptID: attemptID)
+        }
+
+        func unbindSession(attemptID: UInt64?) {
+            guard previewLayer.session != nil else {
+                return
+            }
+            previewLayer.session = nil
+            #if DEBUG
+            liveViewCameraLog("preview unbind", attemptID: attemptID)
+            #endif
+        }
+
+        func updateOrientation(_ orientation: InterfaceRenderOrientation) {
+            previewLayer.connection?.applyVideoRotationAngle(orientation.videoRotationAngle)
         }
     }
 }
@@ -771,6 +952,14 @@ private extension InterfaceRenderOrientation {
             return 180
         case .landscapeRight:
             return 0
+        }
+    }
+}
+
+private extension AVCaptureConnection {
+    func applyVideoRotationAngle(_ angle: CGFloat) {
+        if isVideoRotationAngleSupported(angle) {
+            videoRotationAngle = angle
         }
     }
 }

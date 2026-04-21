@@ -38,15 +38,18 @@ final class ComfortSessionViewModel: ObservableObject {
     @Published private(set) var isRunning = false
     @Published private(set) var sessionLaunchState: SessionLaunchState = .idle
     @Published private(set) var sessionLaunchOverlayState: SessionLaunchOverlayState = .none
+    @Published private(set) var liveViewCamera: LiveViewCameraModel?
 
     private let motionManager = MotionManager()
     private let audioEngine = AudioComfortEngine()
-    let liveViewCamera = LiveViewCameraModel()
     private var cancellables: Set<AnyCancellable> = []
+    private var liveViewCameraStateCancellable: AnyCancellable?
     private var loadingFeedbackTask: Task<Void, Never>?
     private var presentationTask: Task<Void, Never>?
     private var deniedDismissTask: Task<Void, Never>?
+    private var liveViewTeardownTask: Task<Void, Never>?
     private var loadingVisibleAt: ContinuousClock.Instant?
+    private var launchAttemptID: UInt64 = 0
     private let clock = ContinuousClock()
     private let loadingFeedbackDelay: Duration = .milliseconds(150)
     private let minimumLoadingVisibility: Duration = .milliseconds(300)
@@ -65,19 +68,6 @@ final class ComfortSessionViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        Publishers.CombineLatest3(
-            liveViewCamera.$status.removeDuplicates(),
-            liveViewCamera.$previewState.removeDuplicates(),
-            liveViewCamera.$isRunning.removeDuplicates()
-        )
-            .sink { [weak self] status, previewState, isRunning in
-                self?.handleLiveViewCameraUpdate(
-                    status: status,
-                    previewState: previewState,
-                    isRunning: isRunning
-                )
-            }
-            .store(in: &cancellables)
     }
 
     // 启动当前选择的 motion 和 audio 模式。
@@ -94,20 +84,23 @@ final class ComfortSessionViewModel: ObservableObject {
             return
         }
 
+        launchAttemptID &+= 1
+        let attemptID = launchAttemptID
         cancelTransientLaunchTasks()
         sessionLaunchOverlayState = .none
         loadingVisibleAt = nil
         visualGuideStyle = style
         sessionLaunchState = .preparing(style: style)
 
-        scheduleLoadingFeedback()
+        scheduleLoadingFeedback(attemptID: attemptID)
 
         if style == .liveView {
-            beginLiveViewLaunch()
+            beginLiveViewLaunch(attemptID: attemptID)
         } else if style == .dynamic {
-            beginDynamicLaunch()
+            beginDynamicLaunch(attemptID: attemptID)
         } else {
             start()
+            schedulePresentation(for: .minimal, attemptID: attemptID)
         }
     }
 
@@ -124,14 +117,15 @@ final class ComfortSessionViewModel: ObservableObject {
             return
         }
 
-        schedulePresentation(for: style)
+        schedulePresentation(for: style, attemptID: launchAttemptID)
     }
 
     func cancelSessionLaunchIfNeeded() {
+        launchAttemptID &+= 1
         cancelTransientLaunchTasks()
 
         if case .preparing(let style) = sessionLaunchState, style == .liveView {
-            liveViewCamera.stop()
+            beginLiveViewTeardown()
         }
 
         sessionLaunchOverlayState = .none
@@ -157,14 +151,18 @@ final class ComfortSessionViewModel: ObservableObject {
 
     // 停止会话，并把视觉状态收回到中性值。
     func stop() {
+        launchAttemptID &+= 1
         cancelTransientLaunchTasks()
         motionManager.stop()
         audioEngine.stopPlayback()
-        liveViewCamera.stop()
         dynamicSpeedMultiplier = 1.0
         sessionLaunchOverlayState = .none
         loadingVisibleAt = nil
         sessionLaunchState = .idle
+
+        if liveViewCamera != nil {
+            beginLiveViewTeardown()
+        }
     }
 
     // 把最新运动快照同步到页面和音频层。
@@ -176,22 +174,58 @@ final class ComfortSessionViewModel: ObservableObject {
         }
     }
 
-    private func beginLiveViewLaunch() {
+    private func beginLiveViewLaunch(attemptID: UInt64) {
         Task { [weak self] in
             guard let self else {
                 return
             }
 
             let status = await LiveViewCameraPreflight.ensureAuthorized()
+            #if DEBUG
+            debugLiveViewLaunch("preflight result: \(String(describing: status))", attemptID: attemptID)
+            #endif
             await MainActor.run {
-                guard case .preparing(let style) = self.sessionLaunchState, style == .liveView else {
+                guard self.launchAttemptID == attemptID,
+                      case .preparing(let style) = self.sessionLaunchState,
+                      style == .liveView else {
                     return
                 }
 
                 switch status {
                 case .authorized:
+                    if let liveViewTeardownTask = self.liveViewTeardownTask {
+                        #if DEBUG
+                        self.debugLiveViewLaunch("waiting for previous teardown before relaunch", attemptID: attemptID)
+                        #endif
+                        Task { [weak self] in
+                            await liveViewTeardownTask.value
+                            await MainActor.run {
+                                guard let self,
+                                      self.launchAttemptID == attemptID,
+                                      case .preparing(let style) = self.sessionLaunchState,
+                                      style == .liveView else {
+                                    return
+                                }
+
+                                self.beginLiveViewLaunch(attemptID: attemptID)
+                            }
+                        }
+                        return
+                    }
+
+                    if let existingCamera = self.liveViewCamera {
+                        #if DEBUG
+                        self.debugLiveViewLaunch("reusing existing camera instance", attemptID: attemptID)
+                        #endif
+                        self.start()
+                        existingCamera.start()
+                        return
+                    }
+
+                    let camera = LiveViewCameraModel(launchAttemptID: attemptID)
+                    self.setLiveViewCamera(camera)
                     self.start()
-                    self.liveViewCamera.start()
+                    camera.start()
                 case .denied, .restricted:
                     self.presentDeniedToast(for: .liveView)
                 case .notDetermined:
@@ -203,7 +237,7 @@ final class ComfortSessionViewModel: ObservableObject {
         }
     }
 
-    private func beginDynamicLaunch() {
+    private func beginDynamicLaunch(attemptID: UInt64) {
         Task { [weak self] in
             guard let self else {
                 return
@@ -211,11 +245,14 @@ final class ComfortSessionViewModel: ObservableObject {
 
             await DynamicRenderPreheater.ensureReady()
             await MainActor.run {
-                guard case .preparing(let style) = self.sessionLaunchState, style == .dynamic else {
+                guard self.launchAttemptID == attemptID,
+                      case .preparing(let style) = self.sessionLaunchState,
+                      style == .dynamic else {
                     return
                 }
 
                 self.start()
+                self.schedulePresentation(for: .dynamic, attemptID: attemptID)
             }
         }
     }
@@ -235,12 +272,11 @@ final class ComfortSessionViewModel: ObservableObject {
         }
 
         if style == .liveView {
-            guard liveViewCamera.canShowPreview else {
+            guard let liveViewCamera, liveViewCamera.canShowPreview else {
                 return
             }
+            schedulePresentation(for: .liveView, attemptID: launchAttemptID)
         }
-
-        schedulePresentation(for: style)
     }
 
     private func handleLiveViewCameraUpdate(
@@ -256,11 +292,16 @@ final class ComfortSessionViewModel: ObservableObject {
         case .denied, .restricted:
             presentDeniedToast(for: .liveView)
         case .authorized:
+            if previewState == .unavailable {
+                resetLiveViewLaunchFailure()
+                return
+            }
+
             guard previewState == .ready, isRunning, self.isRunning else {
                 return
             }
 
-            schedulePresentation(for: .liveView)
+            schedulePresentation(for: .liveView, attemptID: launchAttemptID)
         case .notDetermined:
             return
         @unknown default:
@@ -268,16 +309,18 @@ final class ComfortSessionViewModel: ObservableObject {
         }
     }
 
-    private func scheduleLoadingFeedback() {
+    private func scheduleLoadingFeedback(attemptID: UInt64) {
         loadingFeedbackTask?.cancel()
         loadingFeedbackTask = Task { [weak self] in
             guard let self else {
                 return
             }
 
+            await Task.yield()
             try? await Task.sleep(for: loadingFeedbackDelay)
             await MainActor.run {
-                guard case .preparing = self.sessionLaunchState else {
+                guard self.launchAttemptID == attemptID,
+                      case .preparing = self.sessionLaunchState else {
                     return
                 }
 
@@ -287,7 +330,7 @@ final class ComfortSessionViewModel: ObservableObject {
         }
     }
 
-    private func schedulePresentation(for style: VisualGuideStyle) {
+    private func schedulePresentation(for style: VisualGuideStyle, attemptID: UInt64) {
         presentationTask?.cancel()
         loadingFeedbackTask?.cancel()
         let remainingDelay = remainingLoadingVisibility
@@ -301,7 +344,9 @@ final class ComfortSessionViewModel: ObservableObject {
             }
 
             await MainActor.run {
-                guard case .preparing(let currentStyle) = self.sessionLaunchState, currentStyle == style else {
+                guard self.launchAttemptID == attemptID,
+                      case .preparing(let currentStyle) = self.sessionLaunchState,
+                      currentStyle == style else {
                     return
                 }
 
@@ -313,11 +358,13 @@ final class ComfortSessionViewModel: ObservableObject {
     }
 
     private func presentDeniedToast(for style: VisualGuideStyle) {
+        launchAttemptID &+= 1
         cancelTransientLaunchTasks()
-        liveViewCamera.stop()
         loadingVisibleAt = nil
         sessionLaunchState = .denied(style: style)
         sessionLaunchOverlayState = .denied
+
+        beginLiveViewTeardown()
 
         deniedDismissTask = Task { [weak self] in
             guard let self else {
@@ -336,6 +383,16 @@ final class ComfortSessionViewModel: ObservableObject {
         }
     }
 
+    private func resetLiveViewLaunchFailure() {
+        launchAttemptID &+= 1
+        cancelTransientLaunchTasks()
+        loadingVisibleAt = nil
+        sessionLaunchOverlayState = .none
+        sessionLaunchState = .idle
+
+        beginLiveViewTeardown()
+    }
+
     func completeSessionFadeIn() {
         guard case .presenting = sessionLaunchState else {
             return
@@ -343,7 +400,26 @@ final class ComfortSessionViewModel: ObservableObject {
     }
 
     func prepareForSessionDismiss() {
+        launchAttemptID &+= 1
+        cancelTransientLaunchTasks()
         sessionLaunchOverlayState = .none
+        if visualGuideStyle == .liveView {
+            beginLiveViewTeardown()
+        }
+    }
+
+    func finishSessionDismiss() async {
+        motionManager.stop()
+        audioEngine.stopPlayback()
+        if let liveViewTeardownTask {
+            await liveViewTeardownTask.value
+        } else {
+            await teardownLiveViewCamera()
+        }
+        dynamicSpeedMultiplier = 1.0
+        loadingVisibleAt = nil
+        sessionLaunchState = .idle
+        isRunning = false
     }
 
     private var remainingLoadingVisibility: Duration {
@@ -365,4 +441,73 @@ final class ComfortSessionViewModel: ObservableObject {
         deniedDismissTask?.cancel()
         deniedDismissTask = nil
     }
+
+    private func setLiveViewCamera(_ camera: LiveViewCameraModel?) {
+        liveViewCameraStateCancellable?.cancel()
+        liveViewCamera = camera
+
+        guard let camera else {
+            liveViewCameraStateCancellable = nil
+            return
+        }
+
+        liveViewCameraStateCancellable = Publishers.CombineLatest3(
+            camera.$status.removeDuplicates(),
+            camera.$previewState.removeDuplicates(),
+            camera.$isRunning.removeDuplicates()
+        )
+        .sink { [weak self] status, previewState, isRunning in
+            self?.handleLiveViewCameraUpdate(
+                status: status,
+                previewState: previewState,
+                isRunning: isRunning
+            )
+        }
+    }
+
+    private func beginLiveViewTeardown() {
+        guard liveViewTeardownTask == nil else {
+            return
+        }
+
+        guard liveViewCamera != nil else {
+            return
+        }
+
+        liveViewTeardownTask = Task { [weak self] in
+            guard let self else {
+                return
+            }
+
+            if let camera = await MainActor.run(body: { self.liveViewCamera }) {
+                await MainActor.run {
+                    camera.detachPreviewForTeardown()
+                }
+            }
+
+            await self.teardownLiveViewCamera()
+            await MainActor.run {
+                self.liveViewTeardownTask = nil
+            }
+        }
+    }
+
+    private func teardownLiveViewCamera() async {
+        guard let camera = liveViewCamera else {
+            setLiveViewCamera(nil)
+            return
+        }
+
+        await camera.stopAndWait()
+        guard liveViewCamera === camera else {
+            return
+        }
+        setLiveViewCamera(nil)
+    }
+
+    #if DEBUG
+    private func debugLiveViewLaunch(_ message: String, attemptID: UInt64) {
+        print("[LiveView][attempt \(attemptID)] \(message)")
+    }
+    #endif
 }
