@@ -3,6 +3,7 @@ import MotionComfortVisual
 import SwiftUI
 
 struct DashboardView: View {
+    @Environment(\.locale) private var locale
     @ObservedObject var model: ComfortSessionViewModel
     @ObservedObject var orientationObserver: InterfaceOrientationObserver
     let resetWelcomeAndReturnToIntro: () -> Void
@@ -97,9 +98,19 @@ struct DashboardView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 10.0) {
-            Text("dashboard.title")
-                .font(.system(size: 36.0, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+            HStack(alignment: .center, spacing: 10.0) {
+                Image("WelcomeLogo")
+                    .resizable()
+                    .interpolation(.high)
+                    .antialiased(true)
+                    .scaledToFit()
+                    .frame(width: isEnglishInterface ? 72.0 : 48.0, height: isEnglishInterface ? 72.0 : 48.0)
+
+                Text("dashboard.title")
+                    .font(.system(size: isEnglishInterface ? 28.0 : 32.0, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.leading)
+            }
 
             Text("dashboard.subtitle")
                 .font(.system(size: 16.0, weight: .regular, design: .rounded))
@@ -140,7 +151,7 @@ struct DashboardView: View {
         VStack(alignment: .leading, spacing: 12.0) {
             VStack(alignment: .leading, spacing: 8.0) {
                 Text("dashboard.audio_mode")
-                    .font(.system(size: 18.0, weight: .semibold, design: .rounded))
+                    .font(.system(size: 24.0, weight: .semibold, design: .rounded))
                     .foregroundStyle(Color.white.opacity(0.82))
 
                 Text("dashboard.audio_mode.supporting_copy")
@@ -190,6 +201,10 @@ struct DashboardView: View {
         case .off:
             return "dashboard.audio_mode.detail.off"
         }
+    }
+
+    private var isEnglishInterface: Bool {
+        locale.language.languageCode?.identifier == "en"
     }
 
     private func playDashboardEntranceAnimation() {

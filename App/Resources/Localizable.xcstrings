@@ -213,7 +213,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通过随着加速度动态变化的丰富粒子效果，可视化乘车时承受的加速度，以缓解眩晕恶心感。"
+            "value" : "通过随加速度动态变化的丰富粒子效果，可视化乘车时承受的加速度，以缓解眩晕恶心感。"
           }
         }
       }
@@ -223,7 +223,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stellar: Motion Comfort"
+            "value" : "Stellar:\nMotion Comfort"
           }
         },
         "zh-Hans" : {
