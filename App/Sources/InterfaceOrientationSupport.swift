@@ -44,6 +44,13 @@ final class OrientationReaderController: UIViewController {
 
     override func viewWillTransition(to size: CGSize, with coordinator: any UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
+        if let nextOrientation = view.window?.windowScene?.effectiveGeometry.interfaceOrientation
+            ?? UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first?.effectiveGeometry.interfaceOrientation {
+            observer?.update(from: nextOrientation)
+        }
+
         coordinator.animate(alongsideTransition: nil) { _ in
             self.reportCurrentOrientation()
         }
