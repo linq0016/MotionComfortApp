@@ -32,7 +32,7 @@ public struct LiveViewOverlay: View {
     public var body: some View {
         ZStack {
             if camera.canShowPreview {
-                LiveViewCameraPreview(session: camera.session, orientation: orientation)
+                LiveViewCameraPreview(session: camera.session, initialOrientation: orientation)
                     .overlay {
                         LiveViewEdgeFlowOverlay(
                             sample: sample,
@@ -530,37 +530,52 @@ extension LiveViewCameraModel: AVCaptureVideoDataOutputSampleBufferDelegate {
 
 private struct LiveViewCameraPreview: UIViewRepresentable {
     let session: AVCaptureSession
-    let orientation: InterfaceRenderOrientation
+    let initialOrientation: InterfaceRenderOrientation
 
     func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
-        view.previewLayer.session = session
-        view.previewLayer.videoGravity = .resizeAspectFill
-        let rotationAngle = orientation.videoRotationAngle
-        if let connection = view.previewLayer.connection,
-           connection.isVideoRotationAngleSupported(rotationAngle) {
-            connection.videoRotationAngle = rotationAngle
-        }
+        view.configure(session: session)
+        view.applyInitialOrientationIfNeeded(initialOrientation)
         return view
     }
 
     func updateUIView(_ uiView: PreviewView, context: Context) {
-        uiView.previewLayer.session = session
-        uiView.previewLayer.videoGravity = .resizeAspectFill
-        let rotationAngle = orientation.videoRotationAngle
-        if let connection = uiView.previewLayer.connection,
-           connection.isVideoRotationAngleSupported(rotationAngle) {
-            connection.videoRotationAngle = rotationAngle
-        }
+        uiView.configure(session: session)
     }
 
     final class PreviewView: UIView {
+        private var hasAppliedInitialOrientation = false
+
         override class var layerClass: AnyClass {
             AVCaptureVideoPreviewLayer.self
         }
 
         var previewLayer: AVCaptureVideoPreviewLayer {
             layer as! AVCaptureVideoPreviewLayer
+        }
+
+        func configure(session: AVCaptureSession) {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            previewLayer.session = session
+            previewLayer.videoGravity = .resizeAspectFill
+            CATransaction.commit()
+        }
+
+        func applyInitialOrientationIfNeeded(_ orientation: InterfaceRenderOrientation) {
+            guard !hasAppliedInitialOrientation else {
+                return
+            }
+
+            let rotationAngle = orientation.videoRotationAngle
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            if let connection = previewLayer.connection,
+               connection.isVideoRotationAngleSupported(rotationAngle) {
+                connection.videoRotationAngle = rotationAngle
+            }
+            CATransaction.commit()
+            hasAppliedInitialOrientation = true
         }
     }
 }
