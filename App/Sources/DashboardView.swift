@@ -106,10 +106,23 @@ struct DashboardView: View {
                     .scaledToFit()
                     .frame(width: isEnglishInterface ? 72.0 : 48.0, height: isEnglishInterface ? 72.0 : 48.0)
 
-                Text("dashboard.title")
-                    .font(.system(size: isEnglishInterface ? 28.0 : 32.0, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                if isEnglishInterface {
+                    VStack(alignment: .leading, spacing: 0.0) {
+                        Text("Stellar:")
+                            .font(.system(size: 32.0, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+
+                        Text("Motion Comfort")
+                            .font(.system(size: 24.0, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                    }
                     .multilineTextAlignment(.leading)
+                } else {
+                    Text("dashboard.title")
+                        .font(.system(size: 32.0, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.leading)
+                }
             }
 
             Text("dashboard.subtitle")
@@ -291,7 +304,7 @@ private struct SessionLaunchToast: View {
             .padding(.horizontal, 20.0)
             .padding(.vertical, 16.0)
             .glassEffect(
-                .clear.tint(Color.black.opacity(0.44)),
+                .clear.tint(Color.black.opacity(0.56)),
                 in: .rect(cornerRadius: 28.0)
             )
         }
