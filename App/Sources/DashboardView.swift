@@ -422,7 +422,7 @@ private struct SettingsPanel: View {
                     }
 
                     Button(action: resetWelcomeAndReturnToIntro) {
-                        Text("settings.reset_welcome")
+                        Text("settings.reset_stellar")
                             .font(.system(size: 17.0, weight: .semibold, design: .rounded))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -478,15 +478,19 @@ struct WelcomeIntroView: View {
     @State private var isTransitioning = false
 
     var body: some View {
-        ZStack {
-            SharedChromeBackground()
+        GeometryReader { proxy in
+            let isLandscape = proxy.size.width > proxy.size.height
 
-            if step == .intro {
-                introPage
-                    .transition(.identity)
-            } else {
-                audioTipsPage
-                    .transition(.identity)
+            ZStack {
+                SharedChromeBackground()
+
+                if step == .intro {
+                    introPage(isLandscape: isLandscape, size: proxy.size)
+                        .transition(.identity)
+                } else {
+                    audioTipsPage(isLandscape: isLandscape, size: proxy.size)
+                        .transition(.identity)
+                }
             }
         }
         .task {
@@ -506,83 +510,199 @@ struct WelcomeIntroView: View {
         }
     }
 
-    private var introPage: some View {
-        VStack(spacing: 18.0) {
-            Spacer()
+    @ViewBuilder
+    private func introPage(isLandscape: Bool, size: CGSize) -> some View {
+        if isLandscape {
+            VStack(spacing: 0.0) {
+                VStack(spacing: 14.0) {
+                    logoBlock(size: 144.0)
+                        .opacity(showLogo ? 1.0 : 0.0)
+                        .offset(y: showLogo ? 0.0 : 14.0)
 
-            logoBlock
-                .opacity(showLogo ? 1.0 : 0.0)
-                .offset(y: showLogo ? 0.0 : 14.0)
+                    Text("welcome.headline")
+                        .font(.system(size: 34.0, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .opacity(showLineOne ? 1.0 : 0.0)
+                        .offset(y: showLineOne ? 0.0 : 14.0)
 
-            Text("welcome.headline")
-                .font(.system(size: 34.0, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .opacity(showLineOne ? 1.0 : 0.0)
-                .offset(y: showLineOne ? 0.0 : 14.0)
+                    Text("welcome.supporting_copy")
+                        .font(.system(size: 17.0, weight: .regular, design: .rounded))
+                        .foregroundStyle(Color.white.opacity(0.70))
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .opacity(showLineTwo ? 1.0 : 0.0)
+                        .offset(y: showLineTwo ? 0.0 : 14.0)
+                }
+                .frame(maxWidth: .infinity)
 
-            Text("welcome.supporting_copy")
-                .font(.system(size: 17.0, weight: .regular, design: .rounded))
-                .foregroundStyle(Color.white.opacity(0.70))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 320.0)
-                .opacity(showLineTwo ? 1.0 : 0.0)
-                .offset(y: showLineTwo ? 0.0 : 14.0)
+                Spacer(minLength: 0.0)
 
-            Spacer()
-
-            welcomeActionButton(titleKey: "welcome.cta", action: advanceToAudioTips)
+                welcomeActionButton(
+                    titleKey: "welcome.cta",
+                    width: landscapeWelcomeButtonWidth(for: size),
+                    action: advanceToAudioTips
+                )
                 .opacity(showButton ? 1.0 : 0.0)
                 .offset(y: showButton ? 0.0 : 14.0)
-                .padding(.bottom, 56.0)
-        }
-        .padding(.horizontal, 24.0)
-    }
-
-    private var audioTipsPage: some View {
-        VStack(spacing: 0.0) {
-            Spacer()
-
+            }
+            .padding(.horizontal, 40.0)
+            .padding(.top, 24.0)
+            .padding(.bottom, 24.0)
+        } else {
             VStack(spacing: 18.0) {
-                Image(systemName: "airpodspro")
-                    .font(.system(size: 60.0, weight: .regular))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.white.opacity(0.75))
+                Spacer()
 
-                Text("welcome.audio_tip.headphones")
-                    .font(.system(size: 18.0, weight: .medium, design: .rounded))
-                    .foregroundStyle(Color.white.opacity(0.78))
+                logoBlock(size: 160.0)
+                    .opacity(showLogo ? 1.0 : 0.0)
+                    .offset(y: showLogo ? 0.0 : 14.0)
+
+                Text("welcome.headline")
+                    .font(.system(size: 34.0, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
+                    .opacity(showLineOne ? 1.0 : 0.0)
+                    .offset(y: showLineOne ? 0.0 : 14.0)
+
+                Text("welcome.supporting_copy")
+                    .font(.system(size: 17.0, weight: .regular, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.70))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .opacity(showLineTwo ? 1.0 : 0.0)
+                    .offset(y: showLineTwo ? 0.0 : 14.0)
 
                 Spacer()
-                    .frame(height: 24.0)
 
-                Image("TransparencyModeIcon")
-                    .resizable()
-                    .interpolation(.high)
-                    .antialiased(true)
-                    .scaledToFit()
-                    .frame(width: 74.25, height: 85.8)
-                    .opacity(0.75)
-
-                Text("welcome.audio_tip.transparency")
-                    .font(.system(size: 18.0, weight: .medium, design: .rounded))
-                    .foregroundStyle(Color.white.opacity(0.78))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 320.0)
+                welcomeActionButton(titleKey: "welcome.cta", action: advanceToAudioTips)
+                    .opacity(showButton ? 1.0 : 0.0)
+                    .offset(y: showButton ? 0.0 : 14.0)
+                    .padding(.bottom, 56.0)
             }
-
-            Spacer()
-
-            welcomeActionButton(titleKey: "welcome.cta.experience", action: enterApp)
-                .padding(.bottom, 56.0)
+            .padding(.horizontal, 24.0)
         }
-        .padding(.horizontal, 24.0)
-        .opacity(showSecondPage ? 1.0 : 0.0)
-        .offset(y: showSecondPage ? 0.0 : 14.0)
     }
 
-    private func welcomeActionButton(titleKey: LocalizedStringKey, action: @escaping () -> Void) -> some View {
+    @ViewBuilder
+    private func audioTipsPage(isLandscape: Bool, size: CGSize) -> some View {
+        if isLandscape {
+            VStack(spacing: 0.0) {
+                Spacer(minLength: 0.0)
+
+                HStack(alignment: .top, spacing: 0.0) {
+                    Spacer(minLength: 0.0)
+
+                    welcomeTipColumn(
+                        icon: AnyView(
+                            Image(systemName: "airpodspro")
+                                .font(.system(size: 60.0, weight: .regular))
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(.white.opacity(0.75))
+                        ),
+                        textKey: "welcome.audio_tip.headphones"
+                    )
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                    Spacer(minLength: 0.0)
+
+                    welcomeTipColumn(
+                        icon: AnyView(
+                            Image("TransparencyModeIcon")
+                                .resizable()
+                                .interpolation(.high)
+                                .antialiased(true)
+                                .scaledToFit()
+                                .frame(width: 74.25, height: 85.8)
+                                .opacity(0.75)
+                        ),
+                        textKey: "welcome.audio_tip.transparency"
+                    )
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                    Spacer(minLength: 0.0)
+                }
+
+                Spacer(minLength: 0.0)
+
+                welcomeActionButton(
+                    titleKey: "welcome.cta.experience",
+                    width: landscapeWelcomeButtonWidth(for: size),
+                    action: enterApp
+                )
+            }
+            .padding(.horizontal, 24.0)
+            .padding(.top, 32.0)
+            .padding(.bottom, 24.0)
+            .opacity(showSecondPage ? 1.0 : 0.0)
+            .offset(y: showSecondPage ? 0.0 : 14.0)
+        } else {
+            VStack(spacing: 0.0) {
+                Spacer()
+
+                VStack(spacing: 18.0) {
+                    Image(systemName: "airpodspro")
+                        .font(.system(size: 60.0, weight: .regular))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.white.opacity(0.75))
+
+                    Text("welcome.audio_tip.headphones")
+                        .font(.system(size: 18.0, weight: .medium, design: .rounded))
+                        .foregroundStyle(Color.white.opacity(0.78))
+                        .multilineTextAlignment(.center)
+
+                    Spacer()
+                        .frame(height: 24.0)
+
+                    Image("TransparencyModeIcon")
+                        .resizable()
+                        .interpolation(.high)
+                        .antialiased(true)
+                        .scaledToFit()
+                        .frame(width: 74.25, height: 85.8)
+                        .opacity(0.75)
+
+                    Text("welcome.audio_tip.transparency")
+                        .font(.system(size: 18.0, weight: .medium, design: .rounded))
+                        .foregroundStyle(Color.white.opacity(0.78))
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer()
+
+                welcomeActionButton(titleKey: "welcome.cta.experience", action: enterApp)
+                    .padding(.bottom, 56.0)
+            }
+            .padding(.horizontal, 24.0)
+            .opacity(showSecondPage ? 1.0 : 0.0)
+            .offset(y: showSecondPage ? 0.0 : 14.0)
+        }
+    }
+
+    private func welcomeTipColumn(icon: AnyView, textKey: LocalizedStringKey) -> some View {
+        VStack(spacing: 18.0) {
+            icon
+                .frame(height: 86.0, alignment: .center)
+
+            Text(textKey)
+                .font(.system(size: 18.0, weight: .medium, design: .rounded))
+                .foregroundStyle(Color.white.opacity(0.78))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    private func landscapeWelcomeButtonWidth(for size: CGSize) -> CGFloat {
+        min(size.width - 80.0, 360.0)
+    }
+
+    private func welcomeActionButton(
+        titleKey: LocalizedStringKey,
+        width: CGFloat? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Text(titleKey)
                 .font(.system(size: 18.0, weight: .semibold, design: .rounded))
@@ -596,7 +716,7 @@ struct WelcomeIntroView: View {
         }
         .buttonStyle(.plain)
         .disabled(isTransitioning)
-        .frame(maxWidth: 320.0)
+        .frame(width: width)
     }
 
     private func advanceToAudioTips() {
@@ -623,9 +743,9 @@ struct WelcomeIntroView: View {
         }
     }
 
-    private var logoBlock: some View {
+    private func logoBlock(size: CGFloat) -> some View {
         MotionComfortLogoImage(
-            size: 154.0
+            size: size
         )
     }
 }

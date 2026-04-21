@@ -8,8 +8,11 @@ struct FullscreenSessionView: View {
     @ObservedObject var orientationObserver: InterfaceOrientationObserver
     var onClose: () -> Void
 
+    @AppStorage("hasShownLiveViewGuidanceToast") private var hasShownLiveViewGuidanceToast = false
     @State private var areHUDControlsVisible = true
     @State private var hideHUDTask: Task<Void, Never>?
+    @State private var isLiveViewGuidanceToastVisible = false
+    @State private var liveViewGuidanceToastTask: Task<Void, Never>?
 
     var body: some View {
         ZStack {
@@ -50,7 +53,7 @@ struct FullscreenSessionView: View {
                 fullscreenAudioModeControl
                     .position(
                         x: proxy.size.width * 0.5,
-                        y: proxy.size.height * 0.25
+                        y: proxy.size.height * audioControlVerticalPositionRatio
                     )
             }
             .ignoresSafeArea()
@@ -68,7 +71,7 @@ struct FullscreenSessionView: View {
                     dynamicSpeedControl
                         .position(
                             x: proxy.size.width * 0.5,
-                            y: proxy.size.height * 0.75
+                            y: proxy.size.height * dynamicSpeedControlVerticalPositionRatio
                         )
                 }
                 .ignoresSafeArea()
@@ -78,19 +81,46 @@ struct FullscreenSessionView: View {
                     DragGesture(minimumDistance: 0.0)
                         .onChanged { _ in
                             registerFullscreenInteraction()
-                        }
+                    }
                 )
+            }
+
+            if isLiveViewGuidanceToastVisible {
+                liveViewGuidanceToast
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                    .zIndex(2.0)
             }
         }
         .preferredColorScheme(.dark)
         .statusBarHidden()
         .animation(.easeInOut(duration: 0.24), value: areHUDControlsVisible)
+        .animation(.easeInOut(duration: 0.24), value: isLiveViewGuidanceToastVisible)
         .onAppear {
             model.startAudioIfNeeded()
             scheduleHUDHide()
+            scheduleLiveViewGuidanceToastIfNeeded()
         }
         .onDisappear {
             hideHUDTask?.cancel()
+            liveViewGuidanceToastTask?.cancel()
+            isLiveViewGuidanceToastVisible = false
+        }
+        .onChange(of: model.visualGuideStyle) { _, _ in
+            scheduleLiveViewGuidanceToastIfNeeded()
+        }
+        .onChange(of: orientationObserver.orientation) { _, newOrientation in
+            guard isLiveViewGuidanceToastVisible else { return }
+            guard newOrientation == .landscapeLeft || newOrientation == .landscapeRight else {
+                return
+            }
+
+            liveViewGuidanceToastTask?.cancel()
+            liveViewGuidanceToastTask = nil
+            withAnimation(.easeInOut(duration: 0.24)) {
+                isLiveViewGuidanceToastVisible = false
+            }
         }
     }
 
@@ -134,6 +164,39 @@ struct FullscreenSessionView: View {
         AudioModeGlassControl(selection: $model.audioMode)
     }
 
+    private var liveViewGuidanceToast: some View {
+        GlassEffectContainer(spacing: 0.0) {
+            VStack(spacing: 8.0) {
+                Image("LiveViewGuidanceIcon")
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .frame(width: 110.0, height: 60.0)
+                    .opacity(0.75)
+
+                Text("liveview.tip.first_entry")
+                    .font(.system(size: 15.0, weight: .medium, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.92))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(12.0)
+            .frame(width: 200.0, height: 150.0, alignment: .center)
+            .glassEffect(
+                .clear.tint(Color.black.opacity(0.36)),
+                in: .rect(cornerRadius: 26.0)
+            )
+        }
+    }
+
+    private var audioControlVerticalPositionRatio: CGFloat {
+        switch orientationObserver.orientation {
+        case .portrait:
+            return 0.25
+        case .landscapeLeft, .landscapeRight:
+            return 0.20
+        }
+    }
     private var dynamicSpeedControl: some View {
         GlassEffectContainer(spacing: 10.0) {
             ZStack {
@@ -157,6 +220,15 @@ struct FullscreenSessionView: View {
                 .clear.tint(Color.black.opacity(0.36)).interactive(),
                 in: .rect(cornerRadius: 26.0)
             )
+        }
+    }
+
+    private var dynamicSpeedControlVerticalPositionRatio: CGFloat {
+        switch orientationObserver.orientation {
+        case .portrait:
+            return 0.75
+        case .landscapeLeft, .landscapeRight:
+            return 0.80
         }
     }
 
@@ -213,6 +285,29 @@ struct FullscreenSessionView: View {
                 withAnimation(.easeInOut(duration: 0.24)) {
                     areHUDControlsVisible = false
                 }
+            }
+        }
+    }
+
+    private func scheduleLiveViewGuidanceToastIfNeeded() {
+        liveViewGuidanceToastTask?.cancel()
+
+        guard model.visualGuideStyle == .liveView, !hasShownLiveViewGuidanceToast else {
+            isLiveViewGuidanceToastVisible = false
+            return
+        }
+
+        hasShownLiveViewGuidanceToast = true
+        isLiveViewGuidanceToastVisible = true
+
+        liveViewGuidanceToastTask = Task {
+            try? await Task.sleep(for: .seconds(4.0))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.24)) {
+                    isLiveViewGuidanceToastVisible = false
+                }
+                liveViewGuidanceToastTask = nil
             }
         }
     }

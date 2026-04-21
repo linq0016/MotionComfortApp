@@ -24,6 +24,7 @@ private struct AppRootView: View {
     @AppStorage("backgroundAudioEnabled") private var backgroundAudioEnabled = true
     @AppStorage("lastVisualGuideStyle") private var lastVisualGuideStyle = VisualGuideStyle.dynamic.rawValue
     @AppStorage("lastAudioMode") private var lastAudioMode = AudioMode.melodic.rawValue
+    @AppStorage("hasShownLiveViewGuidanceToast") private var hasShownLiveViewGuidanceToast = false
     @State private var hasLoadedLaunchPreferences = false
     @State private var hasCompletedMinimumLaunchDisplay = false
     @State private var hasTransitionedFromLaunchPlaceholder = false
@@ -130,6 +131,7 @@ private struct AppRootView: View {
     private func resetAppStartupState() {
         hasCompletedWelcome = false
         quickStartEnabled = false
+        hasShownLiveViewGuidanceToast = false
         lastVisualGuideStyle = VisualGuideStyle.dynamic.rawValue
         lastAudioMode = AudioMode.melodic.rawValue
         model.visualGuideStyle = .dynamic
@@ -220,7 +222,7 @@ private struct LaunchPlaceholderView: View {
                 .interpolation(.high)
                 .antialiased(true)
                 .scaledToFit()
-                .frame(width: 132.0, height: 132.0)
+                .frame(width: 160.0, height: 160.0)
         }
     }
 }

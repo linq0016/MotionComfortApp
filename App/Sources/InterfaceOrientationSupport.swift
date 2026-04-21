@@ -30,7 +30,7 @@ struct InterfaceOrientationReader: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: OrientationReaderController, context: Context) {
         uiViewController.observer = observer
-        uiViewController.reportCurrentOrientation()
+        uiViewController.scheduleCurrentOrientationReport()
     }
 }
 
@@ -39,29 +39,24 @@ final class OrientationReaderController: UIViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        reportCurrentOrientation()
+        scheduleCurrentOrientationReport()
     }
 
     override func viewWillTransition(to size: CGSize, with coordinator: any UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
-        if let nextOrientation = view.window?.windowScene?.effectiveGeometry.interfaceOrientation
-            ?? UIApplication.shared.connectedScenes
-                .compactMap({ $0 as? UIWindowScene })
-                .first?.effectiveGeometry.interfaceOrientation {
-            observer?.update(from: nextOrientation)
-        }
+        scheduleCurrentOrientationReport()
 
         coordinator.animate(alongsideTransition: nil) { _ in
-            self.reportCurrentOrientation()
+            self.scheduleCurrentOrientationReport()
         }
     }
 
     override func didMove(toParent parent: UIViewController?) {
         super.didMove(toParent: parent)
-        reportCurrentOrientation()
+        scheduleCurrentOrientationReport()
     }
 
-    func reportCurrentOrientation() {
+    func scheduleCurrentOrientationReport() {
         guard let observer else {
             return
         }
@@ -72,7 +67,10 @@ final class OrientationReaderController: UIViewController {
                 .first?.effectiveGeometry.interfaceOrientation
 
         if let sceneOrientation {
-            observer.update(from: sceneOrientation)
+            Task { @MainActor [weak observer] in
+                guard let observer else { return }
+                observer.update(from: sceneOrientation)
+            }
         }
     }
 }
