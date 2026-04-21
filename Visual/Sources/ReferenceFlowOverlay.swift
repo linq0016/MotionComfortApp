@@ -70,8 +70,8 @@ private struct FlowGridOverlay: View {
                         )
                         let edgeWeight = flowEdgeDistanceWeight(
                             point: point,
-                            canvasSize: canvasSize,
-                            safeRect: layout.safeRect
+                            safeRect: layout.safeRect,
+                            inverseEdgeMaxDistance: layout.inverseEdgeMaxDistance
                         )
 
                         guard var appearance = flowDotAppearance(

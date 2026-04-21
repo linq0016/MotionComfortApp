@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 
 // 屏幕渲染方向：只保留 app 真正支持的三个界面方向。
-public enum InterfaceRenderOrientation: Sendable, Equatable {
+public enum InterfaceRenderOrientation: Sendable, Equatable, Hashable {
     case portrait
     case landscapeLeft
     case landscapeRight

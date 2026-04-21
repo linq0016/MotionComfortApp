@@ -109,6 +109,7 @@ struct FlowGridStaticLayout: Sendable {
     let size: CGSize
     let safeRect: CGRect
     let safeZoneCornerRadius: CGFloat
+    let inverseEdgeMaxDistance: CGFloat
     let points: [FlowGridStaticPoint]
 }
 
@@ -158,12 +159,17 @@ final class FlowGridLayoutCache: @unchecked Sendable {
             configuration.safeZoneCornerRadius,
             min(safeRect.width, safeRect.height) * 0.5
         )
+        let inverseEdgeMaxDistance = flowInverseEdgeMaxDistance(
+            canvasSize: size,
+            safeRect: safeRect
+        )
 
         guard size.width > 0.0, size.height > 0.0, configuration.dotSpacing > 0.0 else {
             return FlowGridStaticLayout(
                 size: size,
                 safeRect: safeRect,
                 safeZoneCornerRadius: safeZoneCornerRadius,
+                inverseEdgeMaxDistance: inverseEdgeMaxDistance,
                 points: []
             )
         }
@@ -192,6 +198,7 @@ final class FlowGridLayoutCache: @unchecked Sendable {
             size: size,
             safeRect: safeRect,
             safeZoneCornerRadius: safeZoneCornerRadius,
+            inverseEdgeMaxDistance: inverseEdgeMaxDistance,
             points: points
         )
     }
@@ -275,29 +282,47 @@ struct FlowGridPhase {
 }
 
 private final class FlowGridLayoutCacheKey: NSObject {
-    private let rawValue: String
+    private let widthKey: Int
+    private let heightKey: Int
+    private let dotSpacingKey: Int
+    private let marginRatioKey: Int
+    private let horizontalMarginRatioKey: Int
+    private let verticalMarginRatioKey: Int
+    private let safeZoneCornerRadiusKey: Int
+    private let safeZoneFeatherWidthKey: Int
+    private let orientation: InterfaceRenderOrientation
+    private let cachedHash: Int
 
     init(
         size: CGSize,
         configuration: FlowGridConfiguration,
         orientation: InterfaceRenderOrientation
     ) {
-        rawValue = [
-            flowGridCacheComponent(size.width),
-            flowGridCacheComponent(size.height),
-            flowGridCacheComponent(configuration.dotSpacing),
-            flowGridCacheComponent(configuration.marginRatio),
-            flowGridCacheComponent(configuration.horizontalMarginRatio),
-            flowGridCacheComponent(configuration.verticalMarginRatio),
-            flowGridCacheComponent(configuration.safeZoneCornerRadius),
-            flowGridCacheComponent(configuration.safeZoneFeatherWidth),
-            flowGridOrientationCacheComponent(orientation)
-        ]
-            .joined(separator: ":")
+        widthKey = flowGridCacheComponent(size.width)
+        heightKey = flowGridCacheComponent(size.height)
+        dotSpacingKey = flowGridCacheComponent(configuration.dotSpacing)
+        marginRatioKey = flowGridCacheComponent(configuration.marginRatio)
+        horizontalMarginRatioKey = flowGridCacheComponent(configuration.horizontalMarginRatio)
+        verticalMarginRatioKey = flowGridCacheComponent(configuration.verticalMarginRatio)
+        safeZoneCornerRadiusKey = flowGridCacheComponent(configuration.safeZoneCornerRadius)
+        safeZoneFeatherWidthKey = flowGridCacheComponent(configuration.safeZoneFeatherWidth)
+        self.orientation = orientation
+
+        var hasher = Hasher()
+        hasher.combine(widthKey)
+        hasher.combine(heightKey)
+        hasher.combine(dotSpacingKey)
+        hasher.combine(marginRatioKey)
+        hasher.combine(horizontalMarginRatioKey)
+        hasher.combine(verticalMarginRatioKey)
+        hasher.combine(safeZoneCornerRadiusKey)
+        hasher.combine(safeZoneFeatherWidthKey)
+        hasher.combine(orientation)
+        cachedHash = hasher.finalize()
     }
 
     override var hash: Int {
-        rawValue.hashValue
+        cachedHash
     }
 
     override func isEqual(_ object: Any?) -> Bool {
@@ -305,7 +330,15 @@ private final class FlowGridLayoutCacheKey: NSObject {
             return false
         }
 
-        return rawValue == other.rawValue
+        return widthKey == other.widthKey
+            && heightKey == other.heightKey
+            && dotSpacingKey == other.dotSpacingKey
+            && marginRatioKey == other.marginRatioKey
+            && horizontalMarginRatioKey == other.horizontalMarginRatioKey
+            && verticalMarginRatioKey == other.verticalMarginRatioKey
+            && safeZoneCornerRadiusKey == other.safeZoneCornerRadiusKey
+            && safeZoneFeatherWidthKey == other.safeZoneFeatherWidthKey
+            && orientation == other.orientation
     }
 }
 
@@ -368,18 +401,25 @@ func flowGridSafeRect(
 }
 
 func flowEdgeDistanceWeight(point: CGPoint, canvasSize: CGSize, safeRect: CGRect) -> CGFloat {
+    flowEdgeDistanceWeight(
+        point: point,
+        safeRect: safeRect,
+        inverseEdgeMaxDistance: flowInverseEdgeMaxDistance(
+            canvasSize: canvasSize,
+            safeRect: safeRect
+        )
+    )
+}
+
+func flowEdgeDistanceWeight(
+    point: CGPoint,
+    safeRect: CGRect,
+    inverseEdgeMaxDistance: CGFloat
+) -> CGFloat {
     let safeDistanceX = max(safeRect.minX - point.x, 0.0, point.x - safeRect.maxX)
     let safeDistanceY = max(safeRect.minY - point.y, 0.0, point.y - safeRect.maxY)
     let distanceFromSafeZone = sqrt((safeDistanceX * safeDistanceX) + (safeDistanceY * safeDistanceY))
-
-    let cornerDistances = [
-        hypot(safeRect.minX, safeRect.minY),
-        hypot(canvasSize.width - safeRect.maxX, safeRect.minY),
-        hypot(safeRect.minX, canvasSize.height - safeRect.maxY),
-        hypot(canvasSize.width - safeRect.maxX, canvasSize.height - safeRect.maxY)
-    ]
-    let maxDistance = max(cornerDistances.max() ?? 1.0, 1.0)
-    let normalized = min(max(distanceFromSafeZone / maxDistance, 0.0), 1.0)
+    let normalized = min(max(distanceFromSafeZone * inverseEdgeMaxDistance, 0.0), 1.0)
     return normalized
 }
 
@@ -415,19 +455,19 @@ func flowPseudoRandom(gridX: Int, gridY: Int) -> Double {
         .truncatingRemainder(dividingBy: 1.0)
 }
 
-private func flowGridCacheComponent(_ value: CGFloat) -> String {
-    String(Int((value * 1000.0).rounded()))
+private func flowGridCacheComponent(_ value: CGFloat) -> Int {
+    Int((value * 1000.0).rounded())
 }
 
-private func flowGridOrientationCacheComponent(_ orientation: InterfaceRenderOrientation) -> String {
-    switch orientation {
-    case .portrait:
-        return "portrait"
-    case .landscapeLeft:
-        return "landscapeLeft"
-    case .landscapeRight:
-        return "landscapeRight"
-    }
+private func flowInverseEdgeMaxDistance(canvasSize: CGSize, safeRect: CGRect) -> CGFloat {
+    let cornerDistances = [
+        hypot(safeRect.minX, safeRect.minY),
+        hypot(canvasSize.width - safeRect.maxX, safeRect.minY),
+        hypot(safeRect.minX, canvasSize.height - safeRect.maxY),
+        hypot(canvasSize.width - safeRect.maxX, canvasSize.height - safeRect.maxY)
+    ]
+    let maxDistance = max(cornerDistances.max() ?? 1.0, 1.0)
+    return 1.0 / maxDistance
 }
 
 func flowDotAppearance(
