@@ -141,18 +141,18 @@ struct FullscreenSessionView: View {
                     .tint(Color(red: 0.25, green: 0.72, blue: 1.0))
                     .frame(width: dynamicSpeedSliderWidth)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .padding(.bottom, 8.0)
+                    .padding(.bottom, 7.0)
 
                 Text("fullscreen.cruise_speed")
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .foregroundStyle(Color.white.opacity(0.86))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .padding(.top, 6.0)
+                    .padding(.top, 5.0)
             }
-            .padding(.horizontal, 12.0)
+            .padding(.horizontal, 8.0)
             .padding(.vertical, 4.0)
-            .frame(height: 76.0)
-            .frame(width: 280.0)
+            .frame(height: 74.0)
+            .frame(width: 210.0)
             .glassEffect(
                 .clear.tint(Color.black.opacity(0.36)).interactive(),
                 in: .rect(cornerRadius: 26.0)
@@ -160,7 +160,7 @@ struct FullscreenSessionView: View {
         }
     }
 
-    private var dynamicSpeedSliderWidth: CGFloat { 240.0 }
+    private var dynamicSpeedSliderWidth: CGFloat { 178.0 }
 
     private var dynamicSpeedSliderPosition: Binding<Double> {
         Binding(
@@ -229,7 +229,7 @@ struct AudioModeGlassControl: View {
         controlHeight * 0.5
     }
 
-    init(selection: Binding<AudioMode>, controlWidth: CGFloat? = 276.0, controlHeight: CGFloat = 52.0) {
+    init(selection: Binding<AudioMode>, controlWidth: CGFloat? = 280.0, controlHeight: CGFloat = 52.0) {
         self._selection = selection
         self.controlWidth = controlWidth
         self.controlHeight = controlHeight

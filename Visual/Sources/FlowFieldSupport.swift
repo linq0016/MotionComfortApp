@@ -1,3 +1,4 @@
+import Foundation
 import MotionComfortCore
 import SwiftUI
 
@@ -98,6 +99,104 @@ struct FlowGridConfiguration: Sendable {
     )
 }
 
+struct FlowGridStaticPoint: Sendable {
+    let basePosition: CGPoint
+    let gridX: Int
+    let gridY: Int
+}
+
+struct FlowGridStaticLayout: Sendable {
+    let size: CGSize
+    let safeRect: CGRect
+    let safeZoneCornerRadius: CGFloat
+    let points: [FlowGridStaticPoint]
+}
+
+final class FlowGridLayoutCache: @unchecked Sendable {
+    static let shared = FlowGridLayoutCache()
+
+    private let cache = NSCache<FlowGridLayoutCacheKey, FlowGridLayoutBox>()
+
+    private init() {
+        cache.countLimit = 24
+    }
+
+    func layout(
+        size: CGSize,
+        configuration: FlowGridConfiguration,
+        orientation: InterfaceRenderOrientation
+    ) -> FlowGridStaticLayout {
+        let key = FlowGridLayoutCacheKey(
+            size: size,
+            configuration: configuration,
+            orientation: orientation
+        )
+        if let cached = cache.object(forKey: key) {
+            return cached.layout
+        }
+
+        let layout = makeLayout(
+            size: size,
+            configuration: configuration,
+            orientation: orientation
+        )
+        cache.setObject(FlowGridLayoutBox(layout: layout), forKey: key)
+        return layout
+    }
+
+    private func makeLayout(
+        size: CGSize,
+        configuration: FlowGridConfiguration,
+        orientation: InterfaceRenderOrientation
+    ) -> FlowGridStaticLayout {
+        let safeRect = flowGridSafeRect(
+            in: size,
+            configuration: configuration,
+            orientation: orientation
+        )
+        let safeZoneCornerRadius = min(
+            configuration.safeZoneCornerRadius,
+            min(safeRect.width, safeRect.height) * 0.5
+        )
+
+        guard size.width > 0.0, size.height > 0.0, configuration.dotSpacing > 0.0 else {
+            return FlowGridStaticLayout(
+                size: size,
+                safeRect: safeRect,
+                safeZoneCornerRadius: safeZoneCornerRadius,
+                points: []
+            )
+        }
+
+        let maxGridX = Int(floor((size.width + configuration.dotSpacing) / configuration.dotSpacing))
+        let maxGridY = Int(floor((size.height + configuration.dotSpacing) / configuration.dotSpacing))
+        var points: [FlowGridStaticPoint] = []
+        points.reserveCapacity((maxGridX + 2) * (maxGridY + 2))
+
+        for gridX in -1...maxGridX {
+            let baseX = CGFloat(gridX) * configuration.dotSpacing
+
+            for gridY in -1...maxGridY {
+                let baseY = CGFloat(gridY) * configuration.dotSpacing
+                points.append(
+                    FlowGridStaticPoint(
+                        basePosition: CGPoint(x: baseX, y: baseY),
+                        gridX: gridX,
+                        gridY: gridY
+                    )
+                )
+            }
+        }
+
+        return FlowGridStaticLayout(
+            size: size,
+            safeRect: safeRect,
+            safeZoneCornerRadius: safeZoneCornerRadius,
+            points: points
+        )
+    }
+}
+
 // 共享相位：把传感器输入积分成连续滚动的点阵状态。
 struct FlowGridPhase {
     var filteredAcceleration: CGVector = .zero
@@ -175,6 +274,49 @@ struct FlowGridPhase {
     }
 }
 
+private final class FlowGridLayoutCacheKey: NSObject {
+    private let rawValue: String
+
+    init(
+        size: CGSize,
+        configuration: FlowGridConfiguration,
+        orientation: InterfaceRenderOrientation
+    ) {
+        rawValue = [
+            flowGridCacheComponent(size.width),
+            flowGridCacheComponent(size.height),
+            flowGridCacheComponent(configuration.dotSpacing),
+            flowGridCacheComponent(configuration.marginRatio),
+            flowGridCacheComponent(configuration.horizontalMarginRatio),
+            flowGridCacheComponent(configuration.verticalMarginRatio),
+            flowGridCacheComponent(configuration.safeZoneCornerRadius),
+            flowGridCacheComponent(configuration.safeZoneFeatherWidth),
+            flowGridOrientationCacheComponent(orientation)
+        ]
+            .joined(separator: ":")
+    }
+
+    override var hash: Int {
+        rawValue.hashValue
+    }
+
+    override func isEqual(_ object: Any?) -> Bool {
+        guard let other = object as? FlowGridLayoutCacheKey else {
+            return false
+        }
+
+        return rawValue == other.rawValue
+    }
+}
+
+private final class FlowGridLayoutBox: NSObject {
+    let layout: FlowGridStaticLayout
+
+    init(layout: FlowGridStaticLayout) {
+        self.layout = layout
+    }
+}
+
 func flowWrappedOffset(_ offset: CGFloat, spacing: CGFloat) -> CGFloat {
     guard spacing > 0.0 else {
         return 0.0
@@ -184,9 +326,108 @@ func flowWrappedOffset(_ offset: CGFloat, spacing: CGFloat) -> CGFloat {
     return remainder >= 0.0 ? remainder : remainder + spacing
 }
 
+func flowIntegralCellOffset(_ offset: CGFloat, spacing: CGFloat) -> Int {
+    guard spacing > 0.0 else {
+        return 0
+    }
+
+    let wrappedOffset = flowWrappedOffset(offset, spacing: spacing)
+    return Int(round((offset - wrappedOffset) / spacing))
+}
+
+func flowGridSafeRect(
+    in size: CGSize,
+    configuration: FlowGridConfiguration,
+    orientation: InterfaceRenderOrientation
+) -> CGRect {
+    let baseHorizontalMargin = configuration.horizontalMarginRatio > 0.0
+        ? configuration.horizontalMarginRatio
+        : configuration.marginRatio
+    let baseVerticalMargin = configuration.verticalMarginRatio > 0.0
+        ? configuration.verticalMarginRatio
+        : configuration.marginRatio
+
+    let horizontalMarginRatio: CGFloat
+    let verticalMarginRatio: CGFloat
+
+    switch orientation {
+    case .portrait:
+        horizontalMarginRatio = baseHorizontalMargin
+        verticalMarginRatio = baseVerticalMargin
+    case .landscapeLeft, .landscapeRight:
+        horizontalMarginRatio = baseVerticalMargin
+        verticalMarginRatio = baseHorizontalMargin
+    }
+
+    return CGRect(
+        x: size.width * horizontalMarginRatio,
+        y: size.height * verticalMarginRatio,
+        width: size.width * (1.0 - (horizontalMarginRatio * 2.0)),
+        height: size.height * (1.0 - (verticalMarginRatio * 2.0))
+    )
+}
+
+func flowEdgeDistanceWeight(point: CGPoint, canvasSize: CGSize, safeRect: CGRect) -> CGFloat {
+    let safeDistanceX = max(safeRect.minX - point.x, 0.0, point.x - safeRect.maxX)
+    let safeDistanceY = max(safeRect.minY - point.y, 0.0, point.y - safeRect.maxY)
+    let distanceFromSafeZone = sqrt((safeDistanceX * safeDistanceX) + (safeDistanceY * safeDistanceY))
+
+    let cornerDistances = [
+        hypot(safeRect.minX, safeRect.minY),
+        hypot(canvasSize.width - safeRect.maxX, safeRect.minY),
+        hypot(safeRect.minX, canvasSize.height - safeRect.maxY),
+        hypot(canvasSize.width - safeRect.maxX, canvasSize.height - safeRect.maxY)
+    ]
+    let maxDistance = max(cornerDistances.max() ?? 1.0, 1.0)
+    let normalized = min(max(distanceFromSafeZone / maxDistance, 0.0), 1.0)
+    return normalized
+}
+
+func flowRoundedRectContains(point: CGPoint, rect: CGRect, cornerRadius: CGFloat) -> Bool {
+    flowDistanceToRoundedRect(point: point, rect: rect, cornerRadius: cornerRadius) <= 0.0
+}
+
+func flowDistanceToRoundedRect(
+    point: CGPoint,
+    rect: CGRect,
+    cornerRadius: CGFloat
+) -> CGFloat {
+    let radius = min(cornerRadius, min(rect.width, rect.height) * 0.5)
+    let center = CGPoint(x: rect.midX, y: rect.midY)
+    let localX = abs(point.x - center.x)
+    let localY = abs(point.y - center.y)
+    let halfWidth = (rect.width * 0.5) - radius
+    let halfHeight = (rect.height * 0.5) - radius
+    let deltaX = localX - max(halfWidth, 0.0)
+    let deltaY = localY - max(halfHeight, 0.0)
+    let outsideDistance = hypot(max(deltaX, 0.0), max(deltaY, 0.0))
+    let insideDistance = min(max(deltaX, deltaY), 0.0)
+    return outsideDistance + insideDistance - radius
+}
+
+func flowSmootherstep(_ value: CGFloat) -> CGFloat {
+    let clamped = min(max(value, 0.0), 1.0)
+    return clamped * clamped * clamped * (clamped * ((6.0 * clamped) - 15.0) + 10.0)
+}
+
 func flowPseudoRandom(gridX: Int, gridY: Int) -> Double {
     abs(sin((Double(gridX) * 12.9898) + (Double(gridY) * 78.233)) * 43758.5453)
         .truncatingRemainder(dividingBy: 1.0)
+}
+
+private func flowGridCacheComponent(_ value: CGFloat) -> String {
+    String(Int((value * 1000.0).rounded()))
+}
+
+private func flowGridOrientationCacheComponent(_ orientation: InterfaceRenderOrientation) -> String {
+    switch orientation {
+    case .portrait:
+        return "portrait"
+    case .landscapeLeft:
+        return "landscapeLeft"
+    case .landscapeRight:
+        return "landscapeRight"
+    }
 }
 
 func flowDotAppearance(

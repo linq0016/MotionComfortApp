@@ -32,11 +32,11 @@ public struct LiveViewOverlay: View {
     public var body: some View {
         ZStack {
             if camera.canShowPreview {
-                LiveViewCameraPreview(session: camera.session, orientation: orientation)
+                LiveViewPreviewSurface(session: camera.session, orientation: orientation)
                     .overlay {
                         LiveViewEdgeFlowOverlay(
                             sample: sample,
-                            sceneAnalysis: camera.sceneAnalysis,
+                            renderState: camera.overlayRenderState,
                             phase: $phase,
                             orientation: orientation
                         )
@@ -51,11 +51,7 @@ public struct LiveViewOverlay: View {
         }
         .ignoresSafeArea()
         .onAppear {
-            camera.start()
             camera.updateOrientation(orientation)
-        }
-        .onDisappear {
-            camera.stop()
         }
         .onChange(of: orientation) { _, nextOrientation in
             camera.updateOrientation(nextOrientation)
@@ -64,7 +60,7 @@ public struct LiveViewOverlay: View {
     }
 }
 
-enum LiveViewDotPolarity: Sendable {
+enum LiveViewDotPolarity: Sendable, Equatable {
     case light
     case dark
 
@@ -86,6 +82,10 @@ struct LiveViewSceneAnalysis: Sendable {
     var dominantDotPolarity: LiveViewDotPolarity = .light
 }
 
+struct LiveViewOverlayRenderState: Equatable, Sendable {
+    var dominantDotPolarity: LiveViewDotPolarity = .light
+}
+
 public enum LiveViewPreviewState: String, Sendable {
     case idle
     case starting
@@ -97,7 +97,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
     @Published public private(set) var status: AVAuthorizationStatus
     @Published public private(set) var isRunning = false
     @Published public private(set) var previewState: LiveViewPreviewState = .idle
-    @Published private(set) var sceneAnalysis = LiveViewSceneAnalysis()
+    @Published private(set) var overlayRenderState = LiveViewOverlayRenderState()
 
     let session = AVCaptureSession()
 
@@ -107,6 +107,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
     private var isConfigured = false
     private var latestSceneAnalysis = LiveViewSceneAnalysis()
+    private var latestOverlayRenderState = LiveViewOverlayRenderState()
     private var smoothedLuminance: Double?
     private var lastPolaritySwitchAt: TimeInterval?
     private var currentOrientation: InterfaceRenderOrientation = .portrait
@@ -174,11 +175,17 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
             if self.session.isRunning {
                 self.session.stopRunning()
             }
+
+            self.latestSceneAnalysis = LiveViewSceneAnalysis()
+            self.latestOverlayRenderState = LiveViewOverlayRenderState()
+            self.smoothedLuminance = nil
+            self.lastPolaritySwitchAt = nil
         }
 
         DispatchQueue.main.async {
             self.isRunning = false
             self.previewState = self.status == .authorized ? .idle : .unavailable
+            self.overlayRenderState = LiveViewOverlayRenderState()
         }
     }
 
@@ -521,10 +528,32 @@ extension LiveViewCameraModel: AVCaptureVideoDataOutputSampleBufferDelegate {
 
         let nextAnalysis = analyze(pixelBuffer: pixelBuffer)
         latestSceneAnalysis = nextAnalysis
+        let nextRenderState = LiveViewOverlayRenderState(
+            dominantDotPolarity: nextAnalysis.dominantDotPolarity
+        )
+
+        guard nextRenderState != latestOverlayRenderState else {
+            return
+        }
+
+        latestOverlayRenderState = nextRenderState
 
         DispatchQueue.main.async {
-            self.sceneAnalysis = nextAnalysis
+            guard self.overlayRenderState != nextRenderState else {
+                return
+            }
+
+            self.overlayRenderState = nextRenderState
         }
+    }
+}
+
+private struct LiveViewPreviewSurface: View {
+    let session: AVCaptureSession
+    let orientation: InterfaceRenderOrientation
+
+    var body: some View {
+        LiveViewCameraPreview(session: session, orientation: orientation)
     }
 }
 
@@ -584,7 +613,7 @@ private struct LiveViewCameraPreview: UIViewRepresentable {
 // Live View 的四边点阵：复用 Minimal 的连续光流手感。
 private struct LiveViewEdgeFlowOverlay: View {
     let sample: MotionSample
-    let sceneAnalysis: LiveViewSceneAnalysis
+    let renderState: LiveViewOverlayRenderState
     @Binding var phase: FlowGridPhase
     let orientation: InterfaceRenderOrientation
 
@@ -596,78 +625,77 @@ private struct LiveViewEdgeFlowOverlay: View {
             GeometryReader { proxy in
                 let timestamp = timeline.date.timeIntervalSinceReferenceDate
                 let orientedSample = sample.rotatedForDisplay(orientation)
+                let layout = FlowGridLayoutCache.shared.layout(
+                    size: proxy.size,
+                    configuration: configuration,
+                    orientation: orientation
+                )
 
                 Canvas(opaque: false, rendersAsynchronously: true) { context, canvasSize in
-                    let renderState = phase.renderState
-                    let startX = flowWrappedOffset(renderState.offset.x, spacing: configuration.dotSpacing) - configuration.dotSpacing
-                    let startY = flowWrappedOffset(renderState.offset.y, spacing: configuration.dotSpacing) - configuration.dotSpacing
-                    let normA = min(renderState.smoothedMagnitude / configuration.maxAccelThreshold, 1.0)
-                    let dotColor = sceneAnalysis.dominantDotPolarity.color
-                    let coreSafeRect = makeSafeRect(
-                        in: canvasSize,
-                        horizontalMarginRatio: configuration.horizontalMarginRatio,
-                        verticalMarginRatio: configuration.verticalMarginRatio,
-                        orientation: orientation
-                    )
-                    let safeZoneCornerRadius = min(
-                        configuration.safeZoneCornerRadius,
-                        min(coreSafeRect.width, coreSafeRect.height) * 0.5
-                    )
+                    let flowState = phase.renderState
+                    let normA = min(flowState.smoothedMagnitude / configuration.maxAccelThreshold, 1.0)
+                    let dotColor = renderState.dominantDotPolarity.color
+                    let wrappedOffsetX = flowWrappedOffset(flowState.offset.x, spacing: configuration.dotSpacing)
+                    let wrappedOffsetY = flowWrappedOffset(flowState.offset.y, spacing: configuration.dotSpacing)
+                    let cellOffsetX = flowIntegralCellOffset(flowState.offset.x, spacing: configuration.dotSpacing)
+                    let cellOffsetY = flowIntegralCellOffset(flowState.offset.y, spacing: configuration.dotSpacing)
 
-                    for x in stride(from: startX, through: canvasSize.width + configuration.dotSpacing, by: configuration.dotSpacing) {
-                        for y in stride(from: startY, through: canvasSize.height + configuration.dotSpacing, by: configuration.dotSpacing) {
-                            let point = CGPoint(x: x, y: y)
-                            if roundedRectContains(
-                                point: point,
-                                rect: coreSafeRect,
-                                cornerRadius: safeZoneCornerRadius
-                            ) {
-                                continue
-                            }
-
-                            let gridX = Int(round((x - renderState.offset.x) / configuration.dotSpacing))
-                            let gridY = Int(round((y - renderState.offset.y) / configuration.dotSpacing))
-                            let hash = flowPseudoRandom(gridX: gridX, gridY: gridY)
-                            let edgeWeight = edgeDistanceWeight(
-                                point: point,
-                                canvasSize: canvasSize,
-                                safeRect: coreSafeRect
-                            )
-
-                            guard var appearance = flowDotAppearance(
-                                hash: hash,
-                                normA: normA,
-                                configuration: configuration
-                            ) else {
-                                continue
-                            }
-
-                            appearance.radius += pow(edgeWeight, configuration.edgeRadiusCurve) * configuration.edgeRadiusBoost
-                            let softWeight = safeZoneSoftWeight(
-                                point: point,
-                                coreSafeRect: coreSafeRect,
-                                cornerRadius: safeZoneCornerRadius,
-                                featherWidth: configuration.safeZoneFeatherWidth
-                            )
-                            appearance.alpha *= Double(softWeight)
-                            appearance.radius *= 1.0 - (safeZoneSoftRadiusAttenuation * (1.0 - softWeight))
-
-                            guard appearance.alpha > configuration.minimumVisibleAlpha else {
-                                continue
-                            }
-
-                            let rect = CGRect(
-                                x: x - appearance.radius,
-                                y: y - appearance.radius,
-                                width: appearance.radius * 2.0,
-                                height: appearance.radius * 2.0
-                            )
-
-                            context.fill(
-                                Path(ellipseIn: rect),
-                                with: .color(dotColor.opacity(appearance.alpha))
-                            )
+                    for staticPoint in layout.points {
+                        let point = CGPoint(
+                            x: staticPoint.basePosition.x + wrappedOffsetX,
+                            y: staticPoint.basePosition.y + wrappedOffsetY
+                        )
+                        if flowRoundedRectContains(
+                            point: point,
+                            rect: layout.safeRect,
+                            cornerRadius: layout.safeZoneCornerRadius
+                        ) {
+                            continue
                         }
+
+                        let hash = flowPseudoRandom(
+                            gridX: staticPoint.gridX - cellOffsetX,
+                            gridY: staticPoint.gridY - cellOffsetY
+                        )
+                        let edgeWeight = flowEdgeDistanceWeight(
+                            point: point,
+                            canvasSize: canvasSize,
+                            safeRect: layout.safeRect
+                        )
+
+                        guard var appearance = flowDotAppearance(
+                            hash: hash,
+                            normA: normA,
+                            configuration: configuration
+                        ) else {
+                            continue
+                        }
+
+                        appearance.radius += pow(edgeWeight, configuration.edgeRadiusCurve) * configuration.edgeRadiusBoost
+                        let softWeight = safeZoneSoftWeight(
+                            point: point,
+                            coreSafeRect: layout.safeRect,
+                            cornerRadius: layout.safeZoneCornerRadius,
+                            featherWidth: configuration.safeZoneFeatherWidth
+                        )
+                        appearance.alpha *= Double(softWeight)
+                        appearance.radius *= 1.0 - (safeZoneSoftRadiusAttenuation * (1.0 - softWeight))
+
+                        guard appearance.alpha > configuration.minimumVisibleAlpha else {
+                            continue
+                        }
+
+                        let rect = CGRect(
+                            x: point.x - appearance.radius,
+                            y: point.y - appearance.radius,
+                            width: appearance.radius * 2.0,
+                            height: appearance.radius * 2.0
+                        )
+
+                        context.fill(
+                            Path(ellipseIn: rect),
+                            with: .color(dotColor.opacity(appearance.alpha))
+                        )
                     }
                 }
                 .onAppear {
@@ -689,39 +717,13 @@ private struct LiveViewEdgeFlowOverlay: View {
         .allowsHitTesting(false)
     }
 
-    private func makeSafeRect(
-        in size: CGSize,
-        horizontalMarginRatio: CGFloat,
-        verticalMarginRatio: CGFloat,
-        orientation: InterfaceRenderOrientation
-    ) -> CGRect {
-        let effectiveHorizontalMarginRatio: CGFloat
-        let effectiveVerticalMarginRatio: CGFloat
-
-        switch orientation {
-        case .portrait:
-            effectiveHorizontalMarginRatio = horizontalMarginRatio
-            effectiveVerticalMarginRatio = verticalMarginRatio
-        case .landscapeLeft, .landscapeRight:
-            effectiveHorizontalMarginRatio = verticalMarginRatio
-            effectiveVerticalMarginRatio = horizontalMarginRatio
-        }
-
-        return CGRect(
-            x: size.width * effectiveHorizontalMarginRatio,
-            y: size.height * effectiveVerticalMarginRatio,
-            width: size.width * (1.0 - (effectiveHorizontalMarginRatio * 2.0)),
-            height: size.height * (1.0 - (effectiveVerticalMarginRatio * 2.0))
-        )
-    }
-
     private func safeZoneSoftWeight(
         point: CGPoint,
         coreSafeRect: CGRect,
         cornerRadius: CGFloat,
         featherWidth: CGFloat
     ) -> CGFloat {
-        let distance = distanceToRoundedRect(
+        let distance = flowDistanceToRoundedRect(
             point: point,
             rect: coreSafeRect,
             cornerRadius: cornerRadius
@@ -731,50 +733,7 @@ private struct LiveViewEdgeFlowOverlay: View {
         }
 
         let normalized = min(max(distance / max(featherWidth, 1.0), 0.0), 1.0)
-        return smootherstep(normalized)
-    }
-
-    private func roundedRectContains(point: CGPoint, rect: CGRect, cornerRadius: CGFloat) -> Bool {
-        distanceToRoundedRect(point: point, rect: rect, cornerRadius: cornerRadius) <= 0.0
-    }
-
-    private func distanceToRoundedRect(
-        point: CGPoint,
-        rect: CGRect,
-        cornerRadius: CGFloat
-    ) -> CGFloat {
-        let radius = min(cornerRadius, min(rect.width, rect.height) * 0.5)
-        let center = CGPoint(x: rect.midX, y: rect.midY)
-        let localX = abs(point.x - center.x)
-        let localY = abs(point.y - center.y)
-        let halfWidth = (rect.width * 0.5) - radius
-        let halfHeight = (rect.height * 0.5) - radius
-        let deltaX = localX - max(halfWidth, 0.0)
-        let deltaY = localY - max(halfHeight, 0.0)
-        let outsideDistance = hypot(max(deltaX, 0.0), max(deltaY, 0.0))
-        let insideDistance = min(max(deltaX, deltaY), 0.0)
-        return outsideDistance + insideDistance - radius
-    }
-
-    private func smootherstep(_ value: CGFloat) -> CGFloat {
-        let clamped = min(max(value, 0.0), 1.0)
-        return clamped * clamped * clamped * (clamped * ((6.0 * clamped) - 15.0) + 10.0)
-    }
-
-    private func edgeDistanceWeight(point: CGPoint, canvasSize: CGSize, safeRect: CGRect) -> CGFloat {
-        let safeDistanceX = max(safeRect.minX - point.x, 0.0, point.x - safeRect.maxX)
-        let safeDistanceY = max(safeRect.minY - point.y, 0.0, point.y - safeRect.maxY)
-        let distanceFromSafeZone = sqrt((safeDistanceX * safeDistanceX) + (safeDistanceY * safeDistanceY))
-
-        let cornerDistances = [
-            hypot(safeRect.minX, safeRect.minY),
-            hypot(canvasSize.width - safeRect.maxX, safeRect.minY),
-            hypot(safeRect.minX, canvasSize.height - safeRect.maxY),
-            hypot(canvasSize.width - safeRect.maxX, canvasSize.height - safeRect.maxY)
-        ]
-        let maxDistance = max(cornerDistances.max() ?? 1.0, 1.0)
-        let normalized = min(max(distanceFromSafeZone / maxDistance, 0.0), 1.0)
-        return normalized
+        return flowSmootherstep(normalized)
     }
 }
 
