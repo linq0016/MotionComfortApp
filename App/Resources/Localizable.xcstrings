@@ -338,39 +338,136 @@
         }
       }
     },
-    "settings.express_startup" : {
+    "settings.about.1" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Express Startup"
+            "value" : "1. Stellar is designed primarily for motion sickness during car travel, and may also be helpful in other situations that commonly provoke motion sickness, such as air or sea travel. Use it while seated comfortably, holding your phone steadily, with the volume set to a comfortable level. Do not use Stellar while operating a vehicle."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "快速启动"
+            "value" : "1. Stellar主要用于缓解乘车时的晕动不适，也可能适用于其他同样容易诱发晕动症的场景，例如乘坐飞机或船只时。使用时请以舒适姿势坐稳，稳定握持手机，并将音量调节到舒适范围。请勿在驾驶时使用。"
           }
         }
       }
     },
-    "settings.express_startup.supporting_copy" : {
+    "settings.about.2" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Save the current configuration and launch straight into it next time."
+            "value" : "2. Motion sickness is thought to arise from sensory conflict between visual input, the vestibular system, and other bodily motion cues. Stable, predictable visual guidance may help reduce this mismatch. Research also suggests that low-frequency sound at 100 Hz may help modulate the inner ear system of some users, though effects vary by individual."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-          "value" : "记忆上次使用的模式，下次启动直接进入。"
+            "value" : "2. 晕动症通常被认为与视觉输入、前庭系统及其他身体运动感知之间的感觉冲突有关。稳定、可预测的视觉引导有助于减轻这种不一致，从而缓解晕动不适。另有研究表明，100Hz的低频声音刺激可能对部分用户的内耳系统产生调节作用，效果因人而异。"
+          }
+        }
+      }
+    },
+    "settings.about.3" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. Stellar aims to relieve motion sickness through a range of rich particle-based visual guidance effects, along with multiple forms of audio stimulation based on 100 Hz sound. The interface copy has been intentionally kept lightweight and restrained to avoid reinforcing associations with discomfort. For best results, use Stellar for at least one minute. Results may vary from person to person. If you experience discomfort, headache, tinnitus, or any other adverse symptoms, stop using it immediately, remove your headphones, look out the window at moving scenery, and ensure adequate ventilation."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. Stellar通过多种粒子化视觉引导效果，以及基于100Hz设计的多种音频模式，帮助缓解晕动不适。界面文案尽量保持简洁、克制，以减少对不适感的强化联想。建议持续使用至少一分钟，以获得更稳定的体验，实际效果因人而异。若出现不适加重、头痛、耳鸣或其他异常，请立即停止使用，摘下耳机，并尽量看向窗外远处移动的景物、保持空气流通。"
+          }
+        }
+      }
+    },
+    "settings.about.4" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4. This product is not a medical product and has not been approved by regulatory authorities or validated through clinical trials. Nothing described here should be considered medical advice."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4. Stellar不是医疗产品，未经相关监管机构批准，也未经临床验证。以上内容不构成医疗建议。"
+          }
+        }
+      }
+    },
+    "settings.about.5" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5. Stellar is a fully local experience. It does not require an internet connection and does not collect any health data, location data, audio, or usage history. Other than camera access required for the Live View mode, no additional system permissions are needed."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5. Stellar是完全本地化的体验，不需要联网，也不会收集健康数据、位置数据、音频内容或使用记录。除“实况视窗”模式需要相机权限外，不需要其他系统权限。"
+          }
+        }
+      }
+    },
+    "settings.about.6" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "6. Stellar currently supports only iOS 26 (reaching about 80% adoption as of late March 2026). Support for iOS 18 and earlier versions is still under evaluation."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "6. 由于Stellar的视觉体验大量依赖Liquid Glass设计系统，目前仅支持iOS26（截止2026年3月底已覆盖约80%）。对iOS18及更早版本的支持仍在评估中。"
+          }
+        }
+      }
+    },
+    "settings.about.link_label" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More details on PubMed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "详细信息请见 PubMed"
+          }
+        }
+      }
+    },
+    "settings.about.title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About the App"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App说明"
           }
         }
       }
     },
     "settings.background_audio" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -387,6 +484,7 @@
       }
     },
     "settings.background_audio.supporting_copy" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -398,6 +496,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "应用进入后台时继续播放音频。"
+          }
+        }
+      }
+    },
+    "settings.express_startup" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Express Startup"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速启动"
+          }
+        }
+      }
+    },
+    "settings.express_startup.supporting_copy" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save the current configuration and launch straight into it next time."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "记忆上次使用的模式，下次启动直接进入。"
           }
         }
       }

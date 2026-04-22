@@ -437,76 +437,127 @@ private struct SettingsPanel: View {
     var body: some View {
         GlassEffectContainer(spacing: 18.0) {
             VStack(alignment: .leading, spacing: 22.0) {
-                HStack {
-                    Text("settings.title")
-                        .font(.system(size: 24.0, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                header
 
-                    Spacer()
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 18.0) {
+                        settingsToggleSection(
+                            titleKey: "settings.express_startup",
+                            supportingCopyKey: "settings.express_startup.supporting_copy",
+                            isOn: $quickStartEnabled
+                        )
 
-                    ReliableGlassButton(
-                        action: {
-                            dismiss()
-                        },
-                        shape: .circle,
-                        tintOpacity: 0.24,
-                        strokeOpacity: 0.16
-                    ) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14.0, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 38.0, height: 38.0)
-                    }
-                }
-                .offset(y: 1.0)
+                        settingsToggleSection(
+                            titleKey: "settings.background_audio",
+                            supportingCopyKey: "settings.background_audio.supporting_copy",
+                            isOn: $backgroundAudioEnabled
+                        )
 
-                VStack(alignment: .leading, spacing: 18.0) {
-                    VStack(alignment: .leading, spacing: 8.0) {
-                        Toggle(isOn: $quickStartEnabled) {
-                            Text("settings.express_startup")
+                        ReliableGlassButton(
+                            action: resetWelcomeAndReturnToIntro,
+                            shape: .rounded(27.0),
+                            tintOpacity: 0.24,
+                            strokeOpacity: 0.15
+                        ) {
+                            Text("settings.reset_stellar")
                                 .font(.system(size: 17.0, weight: .semibold, design: .rounded))
                                 .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 54.0)
                         }
 
-                        Text("settings.express_startup.supporting_copy")
-                            .font(.system(size: 13.0, weight: .regular, design: .rounded))
-                            .foregroundStyle(Color.white.opacity(0.62))
-                            .fixedSize(horizontal: false, vertical: true)
+                        settingsAboutSection
+                            .padding(.top, 8.0)
                     }
-
-                    VStack(alignment: .leading, spacing: 8.0) {
-                        Toggle(isOn: $backgroundAudioEnabled) {
-                            Text("settings.background_audio")
-                                .font(.system(size: 17.0, weight: .semibold, design: .rounded))
-                                .foregroundStyle(.white)
-                        }
-
-                        Text("settings.background_audio.supporting_copy")
-                            .font(.system(size: 13.0, weight: .regular, design: .rounded))
-                            .foregroundStyle(Color.white.opacity(0.62))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-
-                    ReliableGlassButton(
-                        action: resetWelcomeAndReturnToIntro,
-                        shape: .rounded(27.0),
-                        tintOpacity: 0.24,
-                        strokeOpacity: 0.15
-                    ) {
-                        Text("settings.reset_stellar")
-                            .font(.system(size: 17.0, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54.0)
-                    }
+                    .padding(.bottom, 12.0)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-
-                Spacer(minLength: 0.0)
             }
             .padding(24.0)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .preferredColorScheme(.dark)
+    }
+
+    private var header: some View {
+        HStack {
+            Text("settings.title")
+                .font(.system(size: 24.0, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+
+            Spacer()
+
+            ReliableGlassButton(
+                action: {
+                    dismiss()
+                },
+                shape: .circle,
+                tintOpacity: 0.24,
+                strokeOpacity: 0.16
+            ) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14.0, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 38.0, height: 38.0)
+            }
+        }
+        .offset(y: 1.0)
+    }
+
+    private func settingsToggleSection(
+        titleKey: LocalizedStringKey,
+        supportingCopyKey: LocalizedStringKey,
+        isOn: Binding<Bool>
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8.0) {
+            Toggle(isOn: isOn) {
+                Text(titleKey)
+                    .font(.system(size: 17.0, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(supportingCopyKey)
+                .font(.system(size: 13.0, weight: .regular, design: .rounded))
+                .foregroundStyle(Color.white.opacity(0.62))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.trailing, 4.0)
+    }
+
+    private var settingsAboutSection: some View {
+        VStack(alignment: .leading, spacing: 10.0) {
+            Text("settings.about.title")
+                .font(.system(size: 13.0, weight: .semibold, design: .rounded))
+                .foregroundStyle(Color.white.opacity(0.50))
+
+            VStack(alignment: .leading, spacing: 8.0) {
+                Text("settings.about.1")
+                VStack(alignment: .leading, spacing: 4.0) {
+                    Text("settings.about.2")
+
+                    Link(destination: aboutDetailsURL) {
+                        Text("settings.about.link_label")
+                            .underline()
+                    }
+                }
+                Text("settings.about.3")
+                Text("settings.about.4")
+                Text("settings.about.5")
+                Text("settings.about.6")
+            }
+            .font(.system(size: 12.0, weight: .regular, design: .rounded))
+            .foregroundStyle(Color.white.opacity(0.44))
+            .fixedSize(horizontal: false, vertical: true)
+            .multilineTextAlignment(.leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.bottom, 8.0)
+    }
+
+    private var aboutDetailsURL: URL {
+        URL(string: "https://pubmed.ncbi.nlm.nih.gov/40128952/")!
     }
 }
 
@@ -844,48 +895,48 @@ struct SharedChromeBackground: View {
                             color: Color(red: 0.00, green: 0.94, blue: 0.84).opacity(0.22),
                             size: shortSide * 0.82,
                             blur: shortSide * 0.16,
-                            x: (-shortSide * 0.17) + (sin(time * 2.0 + 0.8) * shortSide * 0.11),
-                            y: (-longSide * 0.10) + (cos(time * 2.0 + 1.9) * longSide * 0.09)
+                            x: (-shortSide * 0.17) + (sin(time * 1.0 + 0.8) * shortSide * 0.11),
+                            y: (-longSide * 0.10) + (cos(time * 1.0 + 1.9) * longSide * 0.09)
                         )
 
                         blob(
                             color: Color(red: 0.10, green: 0.42, blue: 1.00).opacity(0.22),
                             size: shortSide * 0.86,
                             blur: shortSide * 0.17,
-                            x: (shortSide * 0.22) + (cos(time * 2.0 + 2.4) * shortSide * 0.11),
-                            y: (longSide * 0.00) + (sin(time * 2.0 + 0.5) * longSide * 0.09)
+                            x: (shortSide * 0.22) + (cos(time * 1.0 + 2.4) * shortSide * 0.11),
+                            y: (longSide * 0.00) + (sin(time * 1.0 + 0.5) * longSide * 0.09)
                         )
 
                         blob(
                             color: Color(red: 1.00, green: 0.18, blue: 0.24).opacity(0.18),
                             size: shortSide * 0.72,
                             blur: shortSide * 0.15,
-                            x: (-shortSide * 0.03) + (sin(time * 2.0 + 1.4) * shortSide * 0.10),
-                            y: (longSide * 0.18) + (cos(time * 2.0 + 2.7) * longSide * 0.09)
+                            x: (-shortSide * 0.03) + (sin(time * 1.0 + 1.4) * shortSide * 0.10),
+                            y: (longSide * 0.18) + (cos(time * 1.0 + 2.7) * longSide * 0.09)
                         )
 
                         blob(
                             color: Color(red: 1.00, green: 0.98, blue: 0.94).opacity(0.12),
                             size: shortSide * 0.60,
                             blur: shortSide * 0.13,
-                            x: (shortSide * 0.08) + (cos(time * 2.0 + 3.1) * shortSide * 0.09),
-                            y: (-longSide * 0.18) + (sin(time * 2.0 + 2.2) * longSide * 0.07)
+                            x: (shortSide * 0.08) + (cos(time * 1.0 + 3.1) * shortSide * 0.09),
+                            y: (-longSide * 0.18) + (sin(time * 1.0 + 2.2) * longSide * 0.07)
                         )
 
                         blob(
                             color: Color(red: 1.00, green: 0.84, blue: 0.18).opacity(0.17),
                             size: shortSide * 0.64,
                             blur: shortSide * 0.13,
-                            x: (shortSide * 0.06) + (sin(time * 2.0 + 0.2) * shortSide * 0.09),
-                            y: (longSide * 0.30) + (cos(time * 2.0 + 1.1) * longSide * 0.08)
+                            x: (shortSide * 0.06) + (sin(time * 1.0 + 0.2) * shortSide * 0.09),
+                            y: (longSide * 0.30) + (cos(time * 1.0 + 1.1) * longSide * 0.08)
                         )
 
                         blob(
                             color: Color(red: 0.34, green: 1.00, blue: 0.40).opacity(0.12),
                             size: shortSide * 0.52,
                             blur: shortSide * 0.12,
-                            x: (-shortSide * 0.24) + (cos(time * 2.0 + 1.7) * shortSide * 0.08),
-                            y: (longSide * 0.20) + (sin(time * 2.0 + 3.0) * longSide * 0.09)
+                            x: (-shortSide * 0.24) + (cos(time * 1.0 + 1.7) * shortSide * 0.08),
+                            y: (longSide * 0.20) + (sin(time * 1.0 + 3.0) * longSide * 0.09)
                         )
                     }
                     .frame(width: shortSide, height: longSide)

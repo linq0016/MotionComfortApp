@@ -212,9 +212,9 @@ struct FullscreenSessionView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .padding(.top, 5.0)
             }
-            .padding(.horizontal, 8.0)
+            .padding(.horizontal, 4.0)
             .padding(.vertical, 4.0)
-            .frame(height: 74.0)
+            .frame(height: 70.0)
             .frame(width: 210.0)
             .glassEffect(
                 .clear.tint(Color.black.opacity(0.36)).interactive(),

@@ -31,13 +31,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Camera access is used to show the live-view comfort mode with real-world scene guidance and adaptive edge overlays."
+            "value" : "Camera access is needed for the Live View mode to show the real-world."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "需要访问相机，以显示带有真实场景引导和自适应边缘提示的 Live View 舒适模式。"
+            "value" : "“实况视窗”模式需要访问相机，以显示真实世界场景。"
           }
         }
       }
