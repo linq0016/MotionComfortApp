@@ -22,7 +22,7 @@ struct DashboardView: View {
 
     var body: some View {
         ZStack {
-            SharedChromeBackground()
+            SharedChromeBackground(orientation: orientationObserver.orientation)
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24.0) {
@@ -187,20 +187,19 @@ struct DashboardView: View {
     }
 
     private var settingsSection: some View {
-        Button(action: {
-            isSettingsPresented = true
-        }) {
+        ReliableGlassButton(
+            action: {
+                isSettingsPresented = true
+            },
+            shape: .rounded(28.0),
+            tintOpacity: 0.36
+        ) {
             Text("dashboard.more_settings")
                 .font(.system(size: 17.0, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56.0)
-                .glassEffect(
-                    .clear.tint(Color.black.opacity(0.36)).interactive(),
-                    in: .rect(cornerRadius: 28.0)
-                )
         }
-        .buttonStyle(.plain)
     }
 
     private func launchSession(style: VisualGuideStyle) {
@@ -327,6 +326,66 @@ private struct SessionLaunchToast: View {
     }
 }
 
+private enum ReliableGlassButtonShape: Shape {
+    case rounded(CGFloat)
+    case circle
+
+    func path(in rect: CGRect) -> Path {
+        switch self {
+        case .rounded(let cornerRadius):
+            return RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).path(in: rect)
+        case .circle:
+            return Circle().path(in: rect)
+        }
+    }
+}
+
+private struct ReliableGlassButtonStyle: ButtonStyle {
+    let shape: ReliableGlassButtonShape
+    let tintOpacity: Double
+    let strokeOpacity: Double?
+    let strokeLineWidth: CGFloat
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .contentShape(shape)
+            .glassEffect(
+                .clear.tint(Color.black.opacity(tintOpacity)).interactive(),
+                in: shape
+            )
+            .overlay {
+                if let strokeOpacity {
+                    shape
+                        .stroke(Color.white.opacity(strokeOpacity), lineWidth: strokeLineWidth)
+                        .blendMode(.screen)
+                }
+            }
+    }
+}
+
+private struct ReliableGlassButton<Label: View>: View {
+    let action: () -> Void
+    let shape: ReliableGlassButtonShape
+    let tintOpacity: Double
+    var strokeOpacity: Double? = nil
+    var strokeLineWidth: CGFloat = 0.8
+    @ViewBuilder let label: () -> Label
+
+    var body: some View {
+        Button(action: action) {
+            label()
+        }
+        .buttonStyle(
+            ReliableGlassButtonStyle(
+                shape: shape,
+                tintOpacity: tintOpacity,
+                strokeOpacity: strokeOpacity,
+                strokeLineWidth: strokeLineWidth
+            )
+        )
+    }
+}
+
 private struct ModeLaunchCard: View {
     let title: String
     let subtitle: String
@@ -348,12 +407,24 @@ private struct ModeLaunchCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 22.0)
             .padding(.vertical, 24.0)
+        }
+        .buttonStyle(ModeLaunchCardButtonStyle())
+    }
+}
+
+private struct ModeLaunchCardButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .contentShape(RoundedRectangle(cornerRadius: 38.0, style: .continuous))
             .glassEffect(
                 .clear.tint(Color.black.opacity(0.36)).interactive(),
                 in: .rect(cornerRadius: 38.0)
             )
-        }
-        .buttonStyle(.plain)
+            .scaleEffect(configuration.isPressed ? 1.012 : 1.0)
+            .animation(
+                .spring(response: 0.24, dampingFraction: 0.82),
+                value: configuration.isPressed
+            )
     }
 }
 
@@ -373,24 +444,19 @@ private struct SettingsPanel: View {
 
                     Spacer()
 
-                    Button(action: {
-                        dismiss()
-                    }) {
+                    ReliableGlassButton(
+                        action: {
+                            dismiss()
+                        },
+                        shape: .circle,
+                        tintOpacity: 0.24,
+                        strokeOpacity: 0.16
+                    ) {
                         Image(systemName: "xmark")
                             .font(.system(size: 14.0, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(width: 38.0, height: 38.0)
-                            .glassEffect(
-                                .clear.tint(Color.black.opacity(0.24)).interactive(),
-                                in: .circle
-                            )
-                            .overlay {
-                                Circle()
-                                    .stroke(Color.white.opacity(0.16), lineWidth: 0.8)
-                                    .blendMode(.screen)
-                            }
                     }
-                    .buttonStyle(.plain)
                 }
                 .offset(y: 1.0)
 
@@ -421,23 +487,18 @@ private struct SettingsPanel: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    Button(action: resetWelcomeAndReturnToIntro) {
+                    ReliableGlassButton(
+                        action: resetWelcomeAndReturnToIntro,
+                        shape: .rounded(27.0),
+                        tintOpacity: 0.24,
+                        strokeOpacity: 0.15
+                    ) {
                         Text("settings.reset_stellar")
                             .font(.system(size: 17.0, weight: .semibold, design: .rounded))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 54.0)
-                            .glassEffect(
-                                .clear.tint(Color.black.opacity(0.24)).interactive(),
-                                in: .rect(cornerRadius: 27.0)
-                            )
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 27.0, style: .continuous)
-                                    .stroke(Color.white.opacity(0.15), lineWidth: 0.8)
-                                    .blendMode(.screen)
-                            }
                     }
-                    .buttonStyle(.plain)
                 }
 
                 Spacer(minLength: 0.0)
@@ -462,6 +523,7 @@ private struct SettingsSheetBackground: View {
 }
 
 struct WelcomeIntroView: View {
+    @ObservedObject var orientationObserver: InterfaceOrientationObserver
     let enterApp: () -> Void
 
     private enum OnboardingStep {
@@ -482,7 +544,7 @@ struct WelcomeIntroView: View {
             let isLandscape = proxy.size.width > proxy.size.height
 
             ZStack {
-                SharedChromeBackground()
+                SharedChromeBackground(orientation: orientationObserver.orientation)
 
                 if step == .intro {
                     introPage(isLandscape: isLandscape, size: proxy.size)
@@ -703,18 +765,17 @@ struct WelcomeIntroView: View {
         width: CGFloat? = nil,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
+        ReliableGlassButton(
+            action: action,
+            shape: .rounded(29.0),
+            tintOpacity: 0.36
+        ) {
             Text(titleKey)
                 .font(.system(size: 18.0, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 58.0)
-                .glassEffect(
-                    .clear.tint(Color.black.opacity(0.36)).interactive(),
-                    in: .rect(cornerRadius: 29.0)
-                )
         }
-        .buttonStyle(.plain)
         .disabled(isTransitioning)
         .frame(width: width)
     }
@@ -765,64 +826,90 @@ struct MotionComfortLogoImage: View {
 }
 
 struct SharedChromeBackground: View {
+    var orientation: InterfaceRenderOrientation = .portrait
+
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
             GeometryReader { proxy in
                 let time = timeline.date.timeIntervalSinceReferenceDate
-                let width = proxy.size.width
-                let height = proxy.size.height
+                let shortSide = min(proxy.size.width, proxy.size.height)
+                let longSide = max(proxy.size.width, proxy.size.height)
 
                 ZStack {
                     Color(red: 0.012, green: 0.012, blue: 0.020)
                         .ignoresSafeArea()
 
-                    blob(
-                        color: Color(red: 0.00, green: 0.92, blue: 0.84).opacity(0.18),
-                        size: width * 0.78,
-                        blur: width * 0.17,
-                        x: (-width * 0.12) + (sin(time * 0.17) * width * 0.06),
-                        y: (-height * 0.05) + (cos(time * 0.13) * height * 0.05)
-                    )
+                    ZStack {
+                        blob(
+                            color: Color(red: 0.00, green: 0.94, blue: 0.84).opacity(0.22),
+                            size: shortSide * 0.82,
+                            blur: shortSide * 0.16,
+                            x: (-shortSide * 0.17) + (sin(time * 2.0 + 0.8) * shortSide * 0.11),
+                            y: (-longSide * 0.10) + (cos(time * 2.0 + 1.9) * longSide * 0.09)
+                        )
 
-                    blob(
-                        color: Color(red: 0.08, green: 0.28, blue: 1.00).opacity(0.18),
-                        size: width * 0.82,
-                        blur: width * 0.18,
-                        x: (width * 0.14) + (cos(time * 0.14) * width * 0.06),
-                        y: (height * 0.01) + (sin(time * 0.11) * height * 0.05)
-                    )
+                        blob(
+                            color: Color(red: 0.10, green: 0.42, blue: 1.00).opacity(0.22),
+                            size: shortSide * 0.86,
+                            blur: shortSide * 0.17,
+                            x: (shortSide * 0.22) + (cos(time * 2.0 + 2.4) * shortSide * 0.11),
+                            y: (longSide * 0.00) + (sin(time * 2.0 + 0.5) * longSide * 0.09)
+                        )
 
-                    blob(
-                        color: Color(red: 1.00, green: 0.16, blue: 0.24).opacity(0.13),
-                        size: width * 0.70,
-                        blur: width * 0.16,
-                        x: (-width * 0.02) + (sin(time * 0.16) * width * 0.05),
-                        y: (height * 0.14) + (cos(time * 0.18) * height * 0.05)
-                    )
+                        blob(
+                            color: Color(red: 1.00, green: 0.18, blue: 0.24).opacity(0.18),
+                            size: shortSide * 0.72,
+                            blur: shortSide * 0.15,
+                            x: (-shortSide * 0.03) + (sin(time * 2.0 + 1.4) * shortSide * 0.10),
+                            y: (longSide * 0.18) + (cos(time * 2.0 + 2.7) * longSide * 0.09)
+                        )
 
-                    blob(
-                        color: Color.white.opacity(0.10),
-                        size: width * 0.64,
-                        blur: width * 0.14,
-                        x: (width * 0.04) + (cos(time * 0.20) * width * 0.05),
-                        y: (-height * 0.12) + (sin(time * 0.15) * height * 0.04)
-                    )
+                        blob(
+                            color: Color(red: 1.00, green: 0.98, blue: 0.94).opacity(0.12),
+                            size: shortSide * 0.60,
+                            blur: shortSide * 0.13,
+                            x: (shortSide * 0.08) + (cos(time * 2.0 + 3.1) * shortSide * 0.09),
+                            y: (-longSide * 0.18) + (sin(time * 2.0 + 2.2) * longSide * 0.07)
+                        )
 
-                    blob(
-                        color: Color(red: 1.00, green: 0.86, blue: 0.22).opacity(0.12),
-                        size: width * 0.62,
-                        blur: width * 0.14,
-                        x: (width * 0.02) + (sin(time * 0.12) * width * 0.04),
-                        y: (height * 0.26) + (cos(time * 0.14) * height * 0.04)
-                    )
+                        blob(
+                            color: Color(red: 1.00, green: 0.84, blue: 0.18).opacity(0.17),
+                            size: shortSide * 0.64,
+                            blur: shortSide * 0.13,
+                            x: (shortSide * 0.06) + (sin(time * 2.0 + 0.2) * shortSide * 0.09),
+                            y: (longSide * 0.30) + (cos(time * 2.0 + 1.1) * longSide * 0.08)
+                        )
+
+                        blob(
+                            color: Color(red: 0.34, green: 1.00, blue: 0.40).opacity(0.12),
+                            size: shortSide * 0.52,
+                            blur: shortSide * 0.12,
+                            x: (-shortSide * 0.24) + (cos(time * 2.0 + 1.7) * shortSide * 0.08),
+                            y: (longSide * 0.20) + (sin(time * 2.0 + 3.0) * longSide * 0.09)
+                        )
+                    }
+                    .frame(width: shortSide, height: longSide)
+                    .position(x: proxy.size.width * 0.5, y: proxy.size.height * 0.5)
+                    .rotationEffect(counterRotationAngle)
 
                     Rectangle()
-                        .fill(Color.black.opacity(0.34))
+                        .fill(Color.black.opacity(0.30))
                         .ignoresSafeArea()
                 }
             }
         }
         .allowsHitTesting(false)
+    }
+
+    private var counterRotationAngle: Angle {
+        switch orientation {
+        case .portrait:
+            return .zero
+        case .landscapeLeft:
+            return .degrees(90.0)
+        case .landscapeRight:
+            return .degrees(-90.0)
+        }
     }
 
     private func blob(

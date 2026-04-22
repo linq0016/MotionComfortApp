@@ -93,7 +93,7 @@ private struct AppRootView: View {
                     shouldAutoStartRememberedSession: quickStartEnabled
                 )
             } else {
-                WelcomeIntroView {
+                WelcomeIntroView(orientationObserver: orientationObserver) {
                     hasCompletedWelcome = true
                 }
             }
