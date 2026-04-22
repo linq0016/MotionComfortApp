@@ -63,7 +63,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "听觉模式"
+            "value" : "音频模式"
           }
         }
       }
@@ -124,13 +124,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Research shows that exposure to sound at 100Hz can help alleviate vehicle motion sickness."
+            "value" : "Research shows that sound at 100Hz can help alleviate vehicle motion sickness."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "研究表明音高100Hz的声音可以缓解晕动症。"
+            "value" : "研究表明频率为100Hz的声音可以缓解晕车不适。"
           }
         }
       }
@@ -141,13 +141,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cruise through the vast galaxy with customizable speed"
+            "value" : "Traverse the cosmos, with stars pulsing to the rhythm of your ride, echoing your senses."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "穿梭于浩瀚的星空 速度可自定义"
+            "value" : "穿梭宇宙，星点随旅程起伏而跃动，\n呼应你的每一次体感波动。"
           }
         }
       }
@@ -158,13 +158,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "See the real world through the view-finder and peripheral visual guidance"
+            "value" : "See the real world through the view-finder with calming effects around the edge."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通过相机取景器辅助放松观察世界"
+            "value" : "通过相机取景器观察世界，\n景随意动，安享行程。"
           }
         }
       }
@@ -175,13 +175,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Simple peripheral guidance with a clean and lightweight design"
+            "value" : "Simple peripheral guidance with a clean and lightweight design, visualizing motions."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "简约轻量的视觉引导"
+            "value" : "简约轻量的视觉引导，\n体感波动具像化。"
           }
         }
       }
@@ -207,13 +207,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alleviate vehicle motion sickness with dynamic particle effects that visualize acceleration."
+            "value" : "Real-time dynamic particles visualize driving acceleration, ease visual-sensory conflicts, and make every ride more comfortable."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通过随加速度动态变化的丰富粒子效果，可视化乘车时承受的加速度，以缓解眩晕恶心感。"
+            "value" : "通过实时响应的动态粒子，捕捉行车加速度变化，匹配体感节奏并消解视觉感官冲突，赋予每段行程更舒适的乘坐体验。"
           }
         }
       }
@@ -263,23 +263,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "相机访问已被拒绝"
-          }
-        }
-      }
-    },
-    "liveview.status.loading.title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在加载"
           }
         }
       }
@@ -375,13 +358,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "3. Stellar aims to relieve motion sickness through a range of rich particle-based visual guidance effects, along with multiple forms of audio stimulation based on 100 Hz sound. The interface copy has been intentionally kept lightweight and restrained to avoid reinforcing associations with discomfort. For best results, use Stellar for at least one minute. Results may vary from person to person. If you experience discomfort, headache, tinnitus, or any other adverse symptoms, stop using it immediately, remove your headphones, look out the window at moving scenery, and ensure adequate ventilation."
+            "value" : "3. Stellar aims to relieve motion sickness through a range of rich particle-based visual guidance effects, along with multiple forms of audio stimulation based on 100 Hz sound. The interface copy has been intentionally kept lightweight and restrained to avoid reinforcing associations with discomfort. For a consistent experience, continuously use Stellar for at least one minute. Results may vary from person to person. If you experience discomfort, headache, tinnitus, or any other adverse symptoms, stop using it immediately, remove your headphones, look out the window at moving scenery, and ensure adequate ventilation."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "3. Stellar通过多种粒子化视觉引导效果，以及基于100Hz设计的多种音频模式，帮助缓解晕动不适。界面文案尽量保持简洁、克制，以减少对不适感的强化联想。建议持续使用至少一分钟，以获得更稳定的体验，实际效果因人而异。若出现不适加重、头痛、耳鸣或其他异常，请立即停止使用，摘下耳机，并尽量看向窗外远处移动的景物、保持空气流通。"
+            "value" : "3. Stellar通过多种粒子化视觉引导效果，以及基于100Hz设计的多种音频模式，帮助缓解晕动不适。界面文案尽量保持简洁、克制，以减少对晕车感的负担及强化联想。建议持续使用至少一分钟，以获得更稳定的体验，实际效果因人而异。若出现不适加重、头痛、耳鸣或其他异常，请立即停止使用，摘下耳机，并尽量看向窗外远处移动的景物、保持空气流通。"
           }
         }
       }
@@ -523,7 +506,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Save the current configuration and launch straight into it next time."
+            "value" : "Save the last used configuration and launch straight into it next time."
           }
         },
         "zh-Hans" : {
@@ -616,17 +599,18 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "极简"
+            "value" : "极简模式"
           }
         }
       }
     },
     "welcome.audio_tip.headphones" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Use your headphones\nfor the bext experience"
+            "value" : "Use your headphones\nfor the best experience"
           }
         },
         "zh-Hans" : {
@@ -638,11 +622,12 @@
       }
     },
     "welcome.audio_tip.transparency" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Please turn on\nTransparency Mode if available"
+            "value" : "Please turn on Transparency\nMode if available"
           }
         },
         "zh-Hans" : {
@@ -708,13 +693,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This is a visual and audio experience\n designed to alleviate motion sickness"
+            "value" : "A visual-audio motion comfort experience"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通过视听引导与刺激\n缓解乘车时的恶心眩晕感"
+            "value" : "让你舒适出行的视听体验"
           }
         }
       }

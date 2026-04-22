@@ -138,7 +138,9 @@ struct DashboardView: View {
         VStack(spacing: 16.0) {
             ModeLaunchCard(
                 title: String(localized: "visual_mode.minimal"),
-                subtitle: String(localized: "dashboard.mode.minimal.subtitle"),
+                subtitle: localizedModeCardSubtitle(
+                    key: "dashboard.mode.minimal.subtitle"
+                ),
                 action: {
                     launchSession(style: .minimal)
                 }
@@ -146,7 +148,9 @@ struct DashboardView: View {
 
             ModeLaunchCard(
                 title: String(localized: "visual_mode.dynamic"),
-                subtitle: String(localized: "dashboard.mode.dynamic.subtitle"),
+                subtitle: localizedModeCardSubtitle(
+                    key: "dashboard.mode.dynamic.subtitle"
+                ),
                 action: {
                     launchSession(style: .dynamic)
                 }
@@ -154,7 +158,9 @@ struct DashboardView: View {
 
             ModeLaunchCard(
                 title: String(localized: "visual_mode.live_view"),
-                subtitle: String(localized: "dashboard.mode.live_view.subtitle"),
+                subtitle: localizedModeCardSubtitle(
+                    key: "dashboard.mode.live_view.subtitle"
+                ),
                 action: {
                     launchSession(style: .liveView)
                 }
@@ -222,6 +228,29 @@ struct DashboardView: View {
 
     private var isEnglishInterface: Bool {
         locale.language.languageCode?.identifier == "en"
+    }
+
+    private var isChineseInterface: Bool {
+        locale.language.languageCode?.identifier == "zh"
+    }
+
+    private var isLandscapeInterface: Bool {
+        switch orientationObserver.orientation {
+        case .portrait:
+            false
+        case .landscapeLeft, .landscapeRight:
+            true
+        }
+    }
+
+    private func localizedModeCardSubtitle(key: String) -> String {
+        let subtitle = String(localized: String.LocalizationValue(key))
+
+        guard isChineseInterface, isLandscapeInterface else {
+            return subtitle
+        }
+
+        return subtitle.replacingOccurrences(of: "\n", with: "")
     }
 
     private func playDashboardEntranceAnimation() {
@@ -399,7 +428,7 @@ private struct ModeLaunchCard: View {
                     .foregroundStyle(.white)
 
                 Text(subtitle)
-                    .font(.system(size: 15.0, weight: .regular, design: .rounded))
+                    .font(.system(size: 14.0, weight: .regular, design: .rounded))
                     .foregroundStyle(Color.white.opacity(0.72))
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
@@ -625,190 +654,232 @@ struct WelcomeIntroView: View {
 
     @ViewBuilder
     private func introPage(isLandscape: Bool, size: CGSize) -> some View {
+        let horizontalPadding = isLandscape ? 62.0 : 24.0
+        let bottomPadding = isLandscape ? 24.0 : 62.0
+        let logoSize = isLandscape ? 144.0 : 160.0
+        let logoCenterY = isLandscape ? size.height * 0.25 : size.height / 3.0
+        let introCopyTopOffset = (logoSize / 2.0) + 18.0
+        let textWidth = max(160.0, size.width - (horizontalPadding * 2.0))
+
         if isLandscape {
-            VStack(spacing: 0.0) {
-                VStack(spacing: 14.0) {
-                    logoBlock(size: 144.0)
+            ZStack {
+                centeredWelcomeStack(
+                    iconCenterY: logoCenterY,
+                    iconVisualHeight: logoSize,
+                    contentTopOffset: introCopyTopOffset
+                ) {
+                    logoBlock(size: logoSize)
                         .opacity(showLogo ? 1.0 : 0.0)
                         .offset(y: showLogo ? 0.0 : 14.0)
-
-                    Text("welcome.headline")
-                        .font(.system(size: 34.0, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .opacity(showLineOne ? 1.0 : 0.0)
-                        .offset(y: showLineOne ? 0.0 : 14.0)
-
-                    Text("welcome.supporting_copy")
-                        .font(.system(size: 17.0, weight: .regular, design: .rounded))
-                        .foregroundStyle(Color.white.opacity(0.70))
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .opacity(showLineTwo ? 1.0 : 0.0)
-                        .offset(y: showLineTwo ? 0.0 : 14.0)
+                } content: {
+                    introCopyBlock(maxWidth: textWidth)
+                        .padding(.horizontal, horizontalPadding)
                 }
-                .frame(maxWidth: .infinity)
-
-                Spacer(minLength: 0.0)
 
                 welcomeActionButton(
                     titleKey: "welcome.cta",
                     width: landscapeWelcomeButtonWidth(for: size),
                     action: advanceToAudioTips
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .padding(.bottom, bottomPadding)
                 .opacity(showButton ? 1.0 : 0.0)
                 .offset(y: showButton ? 0.0 : 14.0)
             }
-            .padding(.horizontal, 40.0)
-            .padding(.top, 24.0)
-            .padding(.bottom, 24.0)
+            .padding(.horizontal, horizontalPadding)
         } else {
-            VStack(spacing: 18.0) {
-                Spacer()
-
-                logoBlock(size: 160.0)
-                    .opacity(showLogo ? 1.0 : 0.0)
-                    .offset(y: showLogo ? 0.0 : 14.0)
-
-                Text("welcome.headline")
-                    .font(.system(size: 34.0, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .opacity(showLineOne ? 1.0 : 0.0)
-                    .offset(y: showLineOne ? 0.0 : 14.0)
-
-                Text("welcome.supporting_copy")
-                    .font(.system(size: 17.0, weight: .regular, design: .rounded))
-                    .foregroundStyle(Color.white.opacity(0.70))
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .opacity(showLineTwo ? 1.0 : 0.0)
-                    .offset(y: showLineTwo ? 0.0 : 14.0)
-
-                Spacer()
+            ZStack {
+                centeredWelcomeStack(
+                    iconCenterY: logoCenterY,
+                    iconVisualHeight: logoSize,
+                    contentTopOffset: introCopyTopOffset
+                ) {
+                    logoBlock(size: logoSize)
+                        .opacity(showLogo ? 1.0 : 0.0)
+                        .offset(y: showLogo ? 0.0 : 14.0)
+                } content: {
+                    introCopyBlock(maxWidth: textWidth)
+                        .padding(.horizontal, horizontalPadding)
+                }
 
                 welcomeActionButton(titleKey: "welcome.cta", action: advanceToAudioTips)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .padding(.bottom, bottomPadding)
                     .opacity(showButton ? 1.0 : 0.0)
                     .offset(y: showButton ? 0.0 : 14.0)
-                    .padding(.bottom, 56.0)
             }
-            .padding(.horizontal, 24.0)
+            .padding(.horizontal, horizontalPadding)
         }
     }
 
     @ViewBuilder
     private func audioTipsPage(isLandscape: Bool, size: CGSize) -> some View {
+        let horizontalPadding = isLandscape ? 62.0 : 24.0
+        let bottomPadding = isLandscape ? 24.0 : 62.0
+        let topQuarterCenterY = size.height * 0.25
+        let upperThirdCenterY = size.height / 3.0
+        let middleCenterY = size.height * 0.5
+        let tipCopyTopOffset = 67.0
+
         if isLandscape {
-            VStack(spacing: 0.0) {
-                Spacer(minLength: 0.0)
-
-                HStack(alignment: .top, spacing: 0.0) {
-                    Spacer(minLength: 0.0)
-
-                    welcomeTipColumn(
-                        icon: AnyView(
-                            Image(systemName: "airpodspro")
-                                .font(.system(size: 60.0, weight: .regular))
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(.white.opacity(0.75))
-                        ),
-                        textKey: "welcome.audio_tip.headphones"
-                    )
-                    .frame(maxWidth: .infinity, alignment: .center)
-
-                    Spacer(minLength: 0.0)
-
-                    welcomeTipColumn(
-                        icon: AnyView(
-                            Image("TransparencyModeIcon")
-                                .resizable()
-                                .interpolation(.high)
-                                .antialiased(true)
-                                .scaledToFit()
-                                .frame(width: 74.25, height: 85.8)
-                                .opacity(0.75)
-                        ),
-                        textKey: "welcome.audio_tip.transparency"
-                    )
-                    .frame(maxWidth: .infinity, alignment: .center)
-
-                    Spacer(minLength: 0.0)
+            ZStack {
+                centeredWelcomeStack(
+                    centerX: size.width / 3.0,
+                    screenWidth: size.width,
+                    iconCenterY: upperThirdCenterY,
+                    iconVisualHeight: 98.0,
+                    contentTopOffset: tipCopyTopOffset
+                ) {
+                    headphonesTipIcon()
+                } content: {
+                    welcomeTipText("welcome.audio_tip.headphones")
                 }
 
-                Spacer(minLength: 0.0)
+                centeredWelcomeStack(
+                    centerX: size.width * (2.0 / 3.0),
+                    screenWidth: size.width,
+                    iconCenterY: upperThirdCenterY,
+                    iconVisualHeight: 86.0,
+                    contentTopOffset: tipCopyTopOffset
+                ) {
+                    transparencyTipIcon()
+                } content: {
+                    welcomeTipText("welcome.audio_tip.transparency")
+                }
 
                 welcomeActionButton(
                     titleKey: "welcome.cta.experience",
                     width: landscapeWelcomeButtonWidth(for: size),
                     action: enterApp
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .padding(.horizontal, horizontalPadding)
+                .padding(.bottom, bottomPadding)
             }
-            .padding(.horizontal, 24.0)
-            .padding(.top, 32.0)
-            .padding(.bottom, 24.0)
             .opacity(showSecondPage ? 1.0 : 0.0)
             .offset(y: showSecondPage ? 0.0 : 14.0)
         } else {
-            VStack(spacing: 0.0) {
-                Spacer()
-
-                VStack(spacing: 18.0) {
-                    Image(systemName: "airpodspro")
-                        .font(.system(size: 60.0, weight: .regular))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.white.opacity(0.75))
-
-                    Text("welcome.audio_tip.headphones")
-                        .font(.system(size: 18.0, weight: .medium, design: .rounded))
-                        .foregroundStyle(Color.white.opacity(0.78))
-                        .multilineTextAlignment(.center)
-
-                    Spacer()
-                        .frame(height: 24.0)
-
-                    Image("TransparencyModeIcon")
-                        .resizable()
-                        .interpolation(.high)
-                        .antialiased(true)
-                        .scaledToFit()
-                        .frame(width: 74.25, height: 85.8)
-                        .opacity(0.75)
-
-                    Text("welcome.audio_tip.transparency")
-                        .font(.system(size: 18.0, weight: .medium, design: .rounded))
-                        .foregroundStyle(Color.white.opacity(0.78))
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
+            ZStack {
+                centeredWelcomeStack(
+                    iconCenterY: topQuarterCenterY,
+                    iconVisualHeight: 98.0,
+                    contentTopOffset: tipCopyTopOffset
+                ) {
+                    headphonesTipIcon()
+                } content: {
+                    welcomeTipText("welcome.audio_tip.headphones")
+                        .padding(.horizontal, 24.0)
                 }
 
-                Spacer()
+                centeredWelcomeStack(
+                    iconCenterY: middleCenterY,
+                    iconVisualHeight: 86.0,
+                    contentTopOffset: tipCopyTopOffset
+                ) {
+                    transparencyTipIcon()
+                } content: {
+                    welcomeTipText("welcome.audio_tip.transparency")
+                        .padding(.horizontal, 24.0)
+                }
 
                 welcomeActionButton(titleKey: "welcome.cta.experience", action: enterApp)
-                    .padding(.bottom, 56.0)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .padding(.bottom, bottomPadding)
             }
-            .padding(.horizontal, 24.0)
+            .padding(.horizontal, horizontalPadding)
             .opacity(showSecondPage ? 1.0 : 0.0)
             .offset(y: showSecondPage ? 0.0 : 14.0)
         }
     }
 
-    private func welcomeTipColumn(icon: AnyView, textKey: LocalizedStringKey) -> some View {
-        VStack(spacing: 18.0) {
-            icon
-                .frame(height: 86.0, alignment: .center)
+    private func centeredWelcomeStack<Icon: View, Content: View>(
+        centerX: CGFloat? = nil,
+        screenWidth: CGFloat? = nil,
+        iconCenterY: CGFloat,
+        iconVisualHeight: CGFloat,
+        contentTopOffset: CGFloat,
+        @ViewBuilder icon: () -> Icon,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        ZStack {
+            icon()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .offset(y: iconCenterY - (iconVisualHeight / 2.0))
 
-            Text(textKey)
-                .font(.system(size: 18.0, weight: .medium, design: .rounded))
-                .foregroundStyle(Color.white.opacity(0.78))
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+            content()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .offset(y: iconCenterY + contentTopOffset)
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .offset(x: horizontalOffset(centerX: centerX, screenWidth: screenWidth))
+    }
+
+    private func introCopyBlock(maxWidth: CGFloat) -> some View {
+        VStack(spacing: 14.0) {
+            Text("welcome.headline")
+                .font(.system(size: 34.0, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                .allowsTightening(true)
+                .opacity(showLineOne ? 1.0 : 0.0)
+                .offset(y: showLineOne ? 0.0 : 14.0)
+
+            Text("welcome.supporting_copy")
+                .font(.system(size: 17.0, weight: .regular, design: .rounded))
+                .foregroundStyle(Color.white.opacity(0.70))
+                .multilineTextAlignment(.center)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+                .allowsTightening(true)
+                .opacity(showLineTwo ? 1.0 : 0.0)
+                .offset(y: showLineTwo ? 0.0 : 14.0)
+        }
+        .frame(maxWidth: maxWidth)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func welcomeTipText(_ textKey: LocalizedStringKey) -> some View {
+        Text(textKey)
+            .font(.system(size: 18.0, weight: .medium, design: .rounded))
+            .foregroundStyle(Color.white.opacity(0.78))
+            .multilineTextAlignment(.center)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func horizontalOffset(centerX: CGFloat?, screenWidth: CGFloat?) -> CGFloat {
+        guard let centerX, let screenWidth else {
+            return 0.0
+        }
+
+        return centerX - (screenWidth / 2.0)
+    }
+
+    private func headphonesTipIcon() -> some View {
+        Image("HeadphonesIcon")
+            .resizable()
+            .interpolation(.high)
+            .antialiased(true)
+            .scaledToFit()
+            .opacity(0.75)
+            .frame(width: 126.0, height: 98.0)
+    }
+
+    private func transparencyTipIcon() -> some View {
+        Image("TransparencyModeIcon")
+            .resizable()
+            .interpolation(.high)
+            .antialiased(true)
+            .scaledToFit()
+            .frame(width: 74.25, height: 85.8)
+            .opacity(0.75)
+            .frame(width: 110.0, height: 86.0)
     }
 
     private func landscapeWelcomeButtonWidth(for size: CGSize) -> CGFloat {
-        min(size.width - 80.0, 360.0)
+        min(size.width - 124.0, 360.0)
     }
 
     private func welcomeActionButton(
