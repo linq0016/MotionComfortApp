@@ -19,11 +19,13 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.7.2</string>
+	<string>0.7.3</string>
 	<key>CFBundleVersion</key>
-	<string>0.7.2</string>
+	<string>0.7.3</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.healthcare-fitness</string>
+	<key>UIUserInterfaceStyle</key>
+	<string>Dark</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Camera access is used to show the live-view comfort mode with real-world scene guidance and adaptive edge overlays.</string>
 	<key>NSMotionUsageDescription</key>

@@ -65,10 +65,6 @@ struct DashboardView: View {
         .allowsHitTesting(!model.isSessionPresented)
         .animation(.easeInOut(duration: 0.18), value: model.sessionLaunchOverlayState)
         .animation(.easeInOut(duration: 0.18), value: isLaunchDimVisible)
-        .background {
-            InterfaceOrientationReader(observer: orientationObserver)
-                .frame(width: 0.0, height: 0.0)
-        }
         .sheet(isPresented: $isSettingsPresented) {
             SettingsPanel(
                 quickStartEnabled: $quickStartEnabled,
@@ -686,6 +682,10 @@ private struct JustifiedParagraphText: UIViewRepresentable {
     let color: UIColor
     var fallbackToNaturalForManualBreaks: Bool = false
 
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
     func makeUIView(context: Context) -> UILabel {
         let label = UILabel()
         label.numberOfLines = 0
@@ -697,20 +697,11 @@ private struct JustifiedParagraphText: UIViewRepresentable {
     }
 
     func updateUIView(_ label: UILabel, context: Context) {
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.lineBreakMode = .byWordWrapping
-        paragraphStyle.alignment = shouldUseNaturalAlignment ? .natural : .justified
-
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: roundedFont,
-            .foregroundColor: color,
-            .paragraphStyle: paragraphStyle
-        ]
-
-        label.attributedText = NSAttributedString(string: text, attributes: attributes)
+        applyTextIfNeeded(to: label, coordinator: context.coordinator)
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UILabel, context: Context) -> CGSize? {
+        applyTextIfNeeded(to: uiView, coordinator: context.coordinator)
         let targetWidth = proposal.width ?? uiView.bounds.width.nonZeroOrFallback(320.0)
         uiView.preferredMaxLayoutWidth = targetWidth
         let fittingSize = uiView.sizeThatFits(
@@ -719,8 +710,38 @@ private struct JustifiedParagraphText: UIViewRepresentable {
         return CGSize(width: targetWidth, height: ceil(fittingSize.height))
     }
 
-    private var shouldUseNaturalAlignment: Bool {
-        fallbackToNaturalForManualBreaks && text.contains("\n")
+    private func applyTextIfNeeded(to label: UILabel, coordinator: Coordinator) {
+        let signature = TextRenderSignature(
+            text: text,
+            fontSize: fontSize,
+            weightRawValue: weight.rawValue,
+            color: color,
+            alignment: paragraphAlignment
+        )
+
+        guard coordinator.lastSignature != signature || label.attributedText == nil else {
+            return
+        }
+
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineBreakMode = .byWordWrapping
+        paragraphStyle.alignment = signature.alignment
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: roundedFont,
+            .foregroundColor: color,
+            .paragraphStyle: paragraphStyle
+        ]
+
+        label.attributedText = NSAttributedString(string: text, attributes: attributes)
+        coordinator.lastSignature = signature
+    }
+
+    private var paragraphAlignment: NSTextAlignment {
+        if fallbackToNaturalForManualBreaks && text.contains("\n") {
+            return .natural
+        }
+        return .justified
     }
 
     private var roundedFont: UIFont {
@@ -729,6 +750,26 @@ private struct JustifiedParagraphText: UIViewRepresentable {
             return baseFont
         }
         return UIFont(descriptor: roundedDescriptor, size: fontSize)
+    }
+
+    final class Coordinator {
+        var lastSignature: TextRenderSignature?
+    }
+
+    struct TextRenderSignature: Equatable {
+        let text: String
+        let fontSize: CGFloat
+        let weightRawValue: CGFloat
+        let color: UIColor
+        let alignment: NSTextAlignment
+
+        static func == (lhs: TextRenderSignature, rhs: TextRenderSignature) -> Bool {
+            lhs.text == rhs.text
+                && lhs.fontSize == rhs.fontSize
+                && lhs.weightRawValue == rhs.weightRawValue
+                && lhs.color.isEqual(rhs.color)
+                && lhs.alignment == rhs.alignment
+        }
     }
 }
 

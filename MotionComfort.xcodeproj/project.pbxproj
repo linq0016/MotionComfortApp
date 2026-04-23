@@ -11,9 +11,11 @@
 		1C2C0BE5BF2EF5A6CD323C54 /* InterfaceOrientationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B14CE6A0852EC363843A281 /* InterfaceOrientationSupport.swift */; };
 		1EBF733DABC6E2D0D5D8BD82 /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
 		1F33F113962A0342CCBF30E3 /* AudioComfortEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE25798B7BC90E5CC0225B1F /* AudioComfortEngine.swift */; };
+		22874969A31D9FEE20B2C566 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E5E297BD8D8BADEC501785BD /* Localizable.xcstrings */; };
 		2585CEBFA3787B05A1BE569F /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
 		2834FAE56C1E4516FDF49EAD /* MotionComfortCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		2DB556654C0D422A23D34F23 /* AudioMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = E596DD7A7552BBD911094E82 /* AudioMode.swift */; };
+		32A4C651F207B5B6F75CDAA7 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E5B9F249E0FAFD31AB6E0B16 /* InfoPlist.xcstrings */; };
 		4047511AAA69076A6644324C /* MotionComfortApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C0C127A85D1D9E3A3250555 /* MotionComfortApp.swift */; };
 		4B2BB8C22DABFCAF9B7C95E4 /* MotionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D0523F47FAFF246C331DA0E /* MotionManager.swift */; };
 		68AC87E5E852D245DF0A0528 /* MathSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6E9DD2657BEDEECD3072A3F /* MathSupport.swift */; };
@@ -34,8 +36,6 @@
 		C11B8352EF683FB2C3FA4E89 /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
 		D0E7EFEB74D3B209F29C9445 /* MotionComfortAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */; };
 		D757F3C0A9F91877AD012744 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 92E6C0019BB1ED3F04118408 /* Assets.xcassets */; };
-		D81C4F0E5A9B4C5E8F2A1021 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = D81C4F0C5A9B4C5E8F2A1021 /* Localizable.xcstrings */; };
-		D81C4F0F5A9B4C5E8F2A1021 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = D81C4F0D5A9B4C5E8F2A1021 /* InfoPlist.xcstrings */; };
 		D89298D90E2D8999CE56A5E1 /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
 		E2AE1751622914086F5DAD61 /* MotionSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77CC77D34BEE923AF3B0B2A5 /* MotionSample.swift */; };
 		EA82D86667A905D7779E5BEA /* MotionComfortVisual.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E9D576541804142D51D06E41 /* MotionComfortVisual.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -134,11 +134,11 @@
 		C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MotionComfortCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C87D5E483454F259BE3E6B98 /* FlowFieldSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowFieldSupport.swift; sourceTree = "<group>"; };
 		CDCB31666F87871FA693F243 /* DynamicSpaceShaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = DynamicSpaceShaders.metal; sourceTree = "<group>"; };
-		D81C4F0C5A9B4C5E8F2A1021 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
-		D81C4F0D5A9B4C5E8F2A1021 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		DE25798B7BC90E5CC0225B1F /* AudioComfortEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioComfortEngine.swift; sourceTree = "<group>"; };
 		E4A21DC17180624BDB45D2E7 /* PeripheralCueOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeripheralCueOverlay.swift; sourceTree = "<group>"; };
 		E596DD7A7552BBD911094E82 /* AudioMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMode.swift; sourceTree = "<group>"; };
+		E5B9F249E0FAFD31AB6E0B16 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		E5E297BD8D8BADEC501785BD /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		E9D576541804142D51D06E41 /* MotionComfortVisual.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MotionComfortVisual.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MotionComfortAudio.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6E9DD2657BEDEECD3072A3F /* MathSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathSupport.swift; sourceTree = "<group>"; };
@@ -220,6 +220,7 @@
 			children = (
 				AD5738EEE3897E6B0DBBEE1A /* App */,
 				75B8DA8081C929A3CB0FA7C4 /* MotionComfortCoreTests */,
+				EA9C45C78992DC3FE78EF776 /* Resources */,
 				B089A1907D5C9576FE823964 /* Sources */,
 				4F8C8B7B0D65DBA136CC436E /* Sources */,
 				13C572B481556EB25489E1E2 /* Sources */,
@@ -241,7 +242,6 @@
 			isa = PBXGroup;
 			children = (
 				92E6C0019BB1ED3F04118408 /* Assets.xcassets */,
-				D81C4F0B5A9B4C5E8F2A1021 /* Resources */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -277,13 +277,14 @@
 			path = Visual/Sources;
 			sourceTree = "<group>";
 		};
-		D81C4F0B5A9B4C5E8F2A1021 /* Resources */ = {
+		EA9C45C78992DC3FE78EF776 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				D81C4F0D5A9B4C5E8F2A1021 /* InfoPlist.xcstrings */,
-				D81C4F0C5A9B4C5E8F2A1021 /* Localizable.xcstrings */,
+				E5B9F249E0FAFD31AB6E0B16 /* InfoPlist.xcstrings */,
+				E5E297BD8D8BADEC501785BD /* Localizable.xcstrings */,
 			);
-			path = Resources;
+			name = Resources;
+			path = App/Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -408,7 +409,6 @@
 			knownRegions = (
 				Base,
 				en,
-				"zh-Hans",
 			);
 			mainGroup = 5F7CF635C4D8AAD7FA7BBB6A;
 			minimizedProjectReferenceProxies = 1;
@@ -432,8 +432,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				D757F3C0A9F91877AD012744 /* Assets.xcassets in Resources */,
-				D81C4F0F5A9B4C5E8F2A1021 /* InfoPlist.xcstrings in Resources */,
-				D81C4F0E5A9B4C5E8F2A1021 /* Localizable.xcstrings in Resources */,
+				32A4C651F207B5B6F75CDAA7 /* InfoPlist.xcstrings in Resources */,
+				22874969A31D9FEE20B2C566 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -583,7 +583,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 0.7.2;
+				CURRENT_PROJECT_VERSION = 0.7.3;
 				DEVELOPMENT_TEAM = 9NWVQ7RFAT;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
@@ -593,7 +593,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.7.2;
+				MARKETING_VERSION = 0.7.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.linq.StellarMotionComfort;
 				PRODUCT_NAME = Stellar;
 				SDKROOT = iphoneos;
@@ -610,7 +610,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 0.7.2;
+				CURRENT_PROJECT_VERSION = 0.7.3;
 				DEVELOPMENT_TEAM = 9NWVQ7RFAT;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
@@ -620,7 +620,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.7.2;
+				MARKETING_VERSION = 0.7.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.linq.StellarMotionComfort;
 				PRODUCT_NAME = Stellar;
 				SDKROOT = iphoneos;
@@ -796,7 +796,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 0.7.2;
+				CURRENT_PROJECT_VERSION = 0.7.3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -809,7 +809,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.7.2;
+				MARKETING_VERSION = 0.7.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -878,7 +878,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 0.7.2;
+				CURRENT_PROJECT_VERSION = 0.7.3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -897,7 +897,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.7.2;
+				MARKETING_VERSION = 0.7.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

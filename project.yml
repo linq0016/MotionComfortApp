@@ -2,12 +2,16 @@ name: MotionComfort
 options:
   bundleIdPrefix: com.example
   developmentLanguage: en
+  knownRegions:
+    - Base
+    - en
+    - zh-Hans
 settings:
   base:
     SWIFT_VERSION: 6.0
     IPHONEOS_DEPLOYMENT_TARGET: 26.0
-    MARKETING_VERSION: 0.7.2
-    CURRENT_PROJECT_VERSION: 0.7.2
+    MARKETING_VERSION: 0.7.3
+    CURRENT_PROJECT_VERSION: 0.7.3
 targets:
   MotionComfortApp:
     type: application
@@ -18,8 +22,8 @@ targets:
         DEVELOPMENT_TEAM: 9NWVQ7RFAT
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: App/Info.plist
-        MARKETING_VERSION: 0.7.2
-        CURRENT_PROJECT_VERSION: 0.7.2
+        MARKETING_VERSION: 0.7.3
+        CURRENT_PROJECT_VERSION: 0.7.3
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: com.linq.StellarMotionComfort
         PRODUCT_NAME: Stellar
@@ -32,6 +36,10 @@ targets:
     sources:
       - App/Sources
       - path: App/Assets.xcassets
+        buildPhase: resources
+      - path: App/Resources/Localizable.xcstrings
+        buildPhase: resources
+      - path: App/Resources/InfoPlist.xcstrings
         buildPhase: resources
     resources:
       - path: Audio/Resources/GStringsFinal.wav
@@ -50,9 +58,10 @@ targets:
         CFBundleDisplayName: Stellar
         CFBundleIconName: AppIcon
         CFBundleName: Stellar
-        CFBundleShortVersionString: 0.7.2
-        CFBundleVersion: 0.7.2
+        CFBundleShortVersionString: 0.7.3
+        CFBundleVersion: 0.7.3
         LSApplicationCategoryType: public.app-category.healthcare-fitness
+        UIUserInterfaceStyle: Dark
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false

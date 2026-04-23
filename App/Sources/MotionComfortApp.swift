@@ -17,7 +17,7 @@ struct MotionComfortApp: App {
 
 private struct AppRootView: View {
     @ObservedObject var model: ComfortSessionViewModel
-    @ObservedObject var orientationObserver: InterfaceOrientationObserver
+    let orientationObserver: InterfaceOrientationObserver
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("hasCompletedWelcome") private var hasCompletedWelcome = false
     @AppStorage("quickStartEnabled") private var quickStartEnabled = false
@@ -52,6 +52,10 @@ private struct AppRootView: View {
                 .opacity(hasTransitionedFromLaunchPlaceholder ? 0.0 : 1.0)
                 .allowsHitTesting(!hasTransitionedFromLaunchPlaceholder)
                 .zIndex(2.0)
+        }
+        .background {
+            InterfaceOrientationReader(observer: orientationObserver)
+                .frame(width: 0.0, height: 0.0)
         }
         .task {
             await prepareLaunchState()
