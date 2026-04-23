@@ -26,6 +26,10 @@ final class ComfortSessionViewModel: ObservableObject {
     @Published var dynamicSpeedMultiplier = 1.0
     @Published var audioMode: AudioMode = .melodic {
         didSet {
+            if audioMode != .off {
+                audioEngine.prewarmResourcesIfNeeded()
+            }
+
             guard isRunning else {
                 return
             }
@@ -119,6 +123,7 @@ final class ComfortSessionViewModel: ObservableObject {
             return
         }
 
+        audioEngine.prewarmResourcesIfNeeded()
         audioEngine.setMode(audioMode)
     }
 

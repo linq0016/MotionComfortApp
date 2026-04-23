@@ -8,6 +8,15 @@ public final class AudioComfortEngine: ObservableObject {
     @Published public private(set) var isPlaying: Bool
     @Published public private(set) var activeMode: AudioMode
 
+    private struct PreparedAudioBuffer: @unchecked Sendable {
+        let buffer: AVAudioPCMBuffer
+    }
+
+    private struct PreparedAudioResources: @unchecked Sendable {
+        let buffers: [AudioMode: PreparedAudioBuffer]
+        let monotoneAssetURL: URL?
+    }
+
     private let sampleRate: Double
     private let engine: AVAudioEngine
     private let player: AVAudioPlayerNode
@@ -15,6 +24,9 @@ public final class AudioComfortEngine: ObservableObject {
     private var buffers: [AudioMode: AVAudioPCMBuffer]
     private var monotoneAssetURL: URL?
     private let melodicAssetURL: URL?
+    private var prewarmTask: Task<Void, Never>?
+    private var didFinishPrewarm = false
+    private var pendingPlaybackMode: AudioMode?
 
     public init(sampleRate: Double = 44_100.0) {
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)
@@ -27,6 +39,7 @@ public final class AudioComfortEngine: ObservableObject {
         self.buffers = [:]
         self.monotoneAssetURL = nil
         self.melodicAssetURL = Self.findMelodicAsset()
+        self.prewarmTask = nil
 
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: format)
@@ -37,9 +50,30 @@ public final class AudioComfortEngine: ObservableObject {
         }
     }
 
+    public func prewarmResourcesIfNeeded() {
+        guard format != nil, prewarmTask == nil, !didFinishPrewarm else {
+            return
+        }
+
+        let sampleRate = sampleRate
+        let melodicAssetURL = melodicAssetURL
+        prewarmTask = Task.detached(priority: .utility) { [weak self, sampleRate, melodicAssetURL] in
+            let resources = Self.prepareAudioResources(
+                sampleRate: sampleRate,
+                melodicAssetURL: melodicAssetURL
+            )
+            guard !Task.isCancelled else {
+                return
+            }
+
+            await self?.installPreparedResources(resources)
+        }
+    }
+
     // 切换到指定音频模式，并开始循环播放。
     public func setMode(_ mode: AudioMode) {
         guard mode != .off else {
+            pendingPlaybackMode = nil
             stopPlayback()
             return
         }
@@ -57,19 +91,21 @@ public final class AudioComfortEngine: ObservableObject {
             return
         }
 
+        prewarmResourcesIfNeeded()
+
+        guard !(isPlaying && activeMode == mode && buffers[mode] != nil) else {
+            return
+        }
+
+        guard let buffer = buffers[mode] else {
+            waitForPreparedBuffer(for: mode)
+            return
+        }
+
         do {
             try configureAudioSession()
             try startEngineIfNeeded()
         } catch {
-            return
-        }
-
-        guard let buffer = buffer(for: mode) else {
-            player.stop()
-            player.reset()
-            engine.pause()
-            activeMode = mode
-            isPlaying = false
             return
         }
 
@@ -128,33 +164,92 @@ public final class AudioComfortEngine: ObservableObject {
         }
     }
 
-    private func buffer(for mode: AudioMode) -> AVAudioPCMBuffer? {
-        if let existing = buffers[mode] {
-            return existing
+    private func installPreparedResources(_ resources: PreparedAudioResources) {
+        for (mode, preparedBuffer) in resources.buffers {
+            buffers[mode] = preparedBuffer.buffer
+        }
+        monotoneAssetURL = resources.monotoneAssetURL ?? monotoneAssetURL
+        didFinishPrewarm = true
+        prewarmTask = nil
+
+        guard let pendingPlaybackMode else {
+            return
         }
 
-        guard let created = makeBuffer(for: mode) else {
-            return nil
-        }
-
-        buffers[mode] = created
-        return created
+        self.pendingPlaybackMode = nil
+        setMode(pendingPlaybackMode)
     }
 
-    private func makeBuffer(for mode: AudioMode) -> AVAudioPCMBuffer? {
+    private func waitForPreparedBuffer(for mode: AudioMode) {
+        pendingPlaybackMode = mode
+        player.stop()
+        player.reset()
+        engine.pause()
+        activeMode = mode
+        isPlaying = false
+
+        if didFinishPrewarm {
+            pendingPlaybackMode = nil
+        }
+    }
+
+    nonisolated private static func prepareAudioResources(
+        sampleRate: Double,
+        melodicAssetURL: URL?
+    ) -> PreparedAudioResources {
+        var preparedBuffers: [AudioMode: PreparedAudioBuffer] = [:]
+        var monotoneAssetURL: URL?
+
+        if let melodicBuffer = makeBuffer(
+            for: .melodic,
+            sampleRate: sampleRate,
+            melodicAssetURL: melodicAssetURL
+        ) {
+            preparedBuffers[.melodic] = PreparedAudioBuffer(buffer: melodicBuffer)
+        }
+
+        if let monotoneBuffer = makeBuffer(
+            for: .monotone,
+            sampleRate: sampleRate,
+            melodicAssetURL: melodicAssetURL,
+            monotoneAssetURL: &monotoneAssetURL
+        ) {
+            preparedBuffers[.monotone] = PreparedAudioBuffer(buffer: monotoneBuffer)
+        }
+
+        return PreparedAudioResources(
+            buffers: preparedBuffers,
+            monotoneAssetURL: monotoneAssetURL
+        )
+    }
+
+    nonisolated private static func makeBuffer(
+        for mode: AudioMode,
+        sampleRate: Double,
+        melodicAssetURL: URL?,
+        monotoneAssetURL: inout URL?
+    ) -> AVAudioPCMBuffer? {
         switch mode {
         case .off:
-            return makeLoopBuffer(duration: 1.0, layers: [(220.0, 0.0)], modulationFrequency: 0.0)
+            return makeLoopBuffer(
+                sampleRate: sampleRate,
+                duration: 1.0,
+                layers: [(220.0, 0.0)],
+                modulationFrequency: 0.0
+            )
         case .monotone:
-            if monotoneAssetURL == nil {
-                monotoneAssetURL = Self.prepareMonotoneAsset(sampleRate: sampleRate)
-            }
+            monotoneAssetURL = prepareMonotoneAsset(sampleRate: sampleRate)
 
             if let url = monotoneAssetURL, let loaded = loadBuffer(from: url) {
                 return loaded
             }
 
-            return makeLoopBuffer(duration: 1.0, layers: [(100.0, 0.18)], modulationFrequency: 0.0)
+            return makeLoopBuffer(
+                sampleRate: sampleRate,
+                duration: 1.0,
+                layers: [(100.0, 0.18)],
+                modulationFrequency: 0.0
+            )
         case .melodic:
             guard let url = melodicAssetURL else {
                 return nil
@@ -164,11 +259,27 @@ public final class AudioComfortEngine: ObservableObject {
         }
     }
 
-    private func makeLoopBuffer(
+    nonisolated private static func makeBuffer(
+        for mode: AudioMode,
+        sampleRate: Double,
+        melodicAssetURL: URL?
+    ) -> AVAudioPCMBuffer? {
+        var monotoneAssetURL: URL?
+        return makeBuffer(
+            for: mode,
+            sampleRate: sampleRate,
+            melodicAssetURL: melodicAssetURL,
+            monotoneAssetURL: &monotoneAssetURL
+        )
+    }
+
+    nonisolated private static func makeLoopBuffer(
+        sampleRate: Double,
         duration: Double,
         layers: [(frequency: Double, amplitude: Double)],
         modulationFrequency: Double
     ) -> AVAudioPCMBuffer? {
+        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)
         guard let format else {
             assertionFailure("Unable to create loop buffer without a valid audio format.")
             return nil
@@ -202,7 +313,7 @@ public final class AudioComfortEngine: ObservableObject {
         return buffer
     }
 
-    private func loadBuffer(from url: URL) -> AVAudioPCMBuffer? {
+    nonisolated private static func loadBuffer(from url: URL) -> AVAudioPCMBuffer? {
         do {
             let file = try AVAudioFile(forReading: url)
             guard let buffer = AVAudioPCMBuffer(
@@ -219,7 +330,7 @@ public final class AudioComfortEngine: ObservableObject {
         }
     }
 
-    private static func prepareMonotoneAsset(sampleRate: Double) -> URL? {
+    nonisolated private static func prepareMonotoneAsset(sampleRate: Double) -> URL? {
         let fileManager = FileManager.default
         let directory = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)
             .first?
@@ -269,7 +380,7 @@ public final class AudioComfortEngine: ObservableObject {
         }
     }
 
-    private static func findMelodicAsset() -> URL? {
+    nonisolated private static func findMelodicAsset() -> URL? {
         if let url = Bundle.main.url(forResource: "GStringsFinal", withExtension: "wav") {
             return url
         }
