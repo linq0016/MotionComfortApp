@@ -17,7 +17,7 @@ struct FullscreenSessionView: View {
 
     var body: some View {
         ZStack {
-            sessionBackground
+            SessionBackground(visualStyle: model.visualGuideStyle)
                 .contentShape(Rectangle())
                 .onTapGesture {
                     toggleHUDVisibility()
@@ -32,57 +32,25 @@ struct FullscreenSessionView: View {
             )
                 .ignoresSafeArea()
 
-            VStack {
-                HStack {
-                    closeButton
-                    Spacer()
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 18.0)
-            .padding(.top, 12.0)
-            .opacity(areHUDControlsVisible ? 1.0 : 0.0)
-            .allowsHitTesting(areHUDControlsVisible)
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0.0)
-                    .onChanged { _ in
-                        registerFullscreenInteraction()
-                    }
+            SessionHUDLayer(
+                isVisible: areHUDControlsVisible,
+                onClose: onClose,
+                onInteraction: registerFullscreenInteraction
             )
 
-            GeometryReader { proxy in
-                fullscreenAudioModeControl
-                    .position(
-                        x: proxy.size.width * 0.5,
-                        y: proxy.size.height * audioControlVerticalPositionRatio
-                    )
-            }
-            .ignoresSafeArea()
-            .opacity(areHUDControlsVisible ? 1.0 : 0.0)
-            .allowsHitTesting(areHUDControlsVisible)
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0.0)
-                    .onChanged { _ in
-                        registerFullscreenInteraction()
-                    }
+            SessionAudioControlLayer(
+                isVisible: areHUDControlsVisible,
+                orientation: orientationObserver.orientation,
+                selection: $model.audioMode,
+                onInteraction: registerFullscreenInteraction
             )
 
             if model.visualGuideStyle == .dynamic {
-                GeometryReader { proxy in
-                    dynamicSpeedControl
-                        .position(
-                            x: proxy.size.width * 0.5,
-                            y: proxy.size.height * dynamicSpeedControlVerticalPositionRatio
-                        )
-                }
-                .ignoresSafeArea()
-                .opacity(areHUDControlsVisible ? 1.0 : 0.0)
-                .allowsHitTesting(areHUDControlsVisible)
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 0.0)
-                        .onChanged { _ in
-                            registerFullscreenInteraction()
-                    }
+                DynamicSpeedControlLayer(
+                    isVisible: areHUDControlsVisible,
+                    orientation: orientationObserver.orientation,
+                    speedMultiplier: $model.dynamicSpeedMultiplier,
+                    onInteraction: registerFullscreenInteraction
                 )
             }
 
@@ -125,46 +93,6 @@ struct FullscreenSessionView: View {
         }
     }
 
-    private var sessionBackground: some View {
-        Group {
-            switch model.visualGuideStyle {
-            case .minimal:
-                Color.black
-            case .dynamic:
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.06, green: 0.07, blue: 0.10),
-                        Color(red: 0.09, green: 0.11, blue: 0.15)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            case .liveView:
-                Color(red: 0.05, green: 0.06, blue: 0.08)
-            }
-        }
-        .ignoresSafeArea()
-    }
-
-    private var closeButton: some View {
-        Image(systemName: "xmark")
-            .font(.system(size: 16.0, weight: .bold))
-            .foregroundStyle(Color.white.opacity(0.92))
-            .frame(width: 42.0, height: 42.0)
-            .contentShape(Circle())
-            .glassEffect(
-                .clear.tint(Color.black.opacity(0.36)).interactive(),
-                in: .circle
-            )
-            .onTapGesture {
-                onClose()
-            }
-    }
-
-    private var fullscreenAudioModeControl: some View {
-        AudioModeGlassControl(selection: $model.audioMode)
-    }
-
     private var liveViewGuidanceToast: some View {
         GlassEffectContainer(spacing: 0.0) {
             VStack(spacing: 8.0) {
@@ -188,72 +116,6 @@ struct FullscreenSessionView: View {
                 in: .rect(cornerRadius: 26.0)
             )
         }
-    }
-
-    private var audioControlVerticalPositionRatio: CGFloat {
-        switch orientationObserver.orientation {
-        case .portrait:
-            return 0.25
-        case .landscapeLeft, .landscapeRight:
-            return 0.20
-        }
-    }
-    private var dynamicSpeedControl: some View {
-        GlassEffectContainer(spacing: 10.0) {
-            ZStack {
-                Slider(value: dynamicSpeedSliderPosition, in: 0.0...1.0)
-                    .tint(Color(red: 0.25, green: 0.72, blue: 1.0))
-                    .frame(width: dynamicSpeedSliderWidth)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .padding(.bottom, 7.0)
-
-                Text("fullscreen.cruise_speed")
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                    .foregroundStyle(Color.white.opacity(0.86))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .padding(.top, 5.0)
-            }
-            .padding(.horizontal, 4.0)
-            .padding(.vertical, 4.0)
-            .frame(height: 70.0)
-            .frame(width: 210.0)
-            .glassEffect(
-                .clear.tint(Color.black.opacity(0.36)).interactive(),
-                in: .rect(cornerRadius: 26.0)
-            )
-        }
-    }
-
-    private var dynamicSpeedControlVerticalPositionRatio: CGFloat {
-        switch orientationObserver.orientation {
-        case .portrait:
-            return 0.75
-        case .landscapeLeft, .landscapeRight:
-            return 0.80
-        }
-    }
-
-    private var dynamicSpeedSliderWidth: CGFloat { 178.0 }
-
-    private var dynamicSpeedSliderPosition: Binding<Double> {
-        Binding(
-            get: {
-                sliderPosition(for: model.dynamicSpeedMultiplier)
-            },
-            set: { sliderPosition in
-                model.dynamicSpeedMultiplier = speedMultiplier(for: sliderPosition)
-            }
-        )
-    }
-
-    private func sliderPosition(for speedMultiplier: Double) -> Double {
-        let clampedSpeed = min(max(speedMultiplier, 0.0), 6.0)
-        return clampedSpeed / 6.0
-    }
-
-    private func speedMultiplier(for sliderPosition: Double) -> Double {
-        let clampedPosition = min(max(sliderPosition, 0.0), 1.0)
-        return clampedPosition * 6.0
     }
 
     private func registerFullscreenInteraction() {
@@ -311,6 +173,191 @@ struct FullscreenSessionView: View {
                 liveViewGuidanceToastTask = nil
             }
         }
+    }
+}
+
+private struct SessionBackground: View {
+    let visualStyle: VisualGuideStyle
+
+    var body: some View {
+        Group {
+            switch visualStyle {
+            case .minimal:
+                Color.black
+            case .dynamic:
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.06, green: 0.07, blue: 0.10),
+                        Color(red: 0.09, green: 0.11, blue: 0.15)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            case .liveView:
+                Color(red: 0.05, green: 0.06, blue: 0.08)
+            }
+        }
+        .ignoresSafeArea()
+    }
+}
+
+private struct SessionHUDLayer: View {
+    let isVisible: Bool
+    let onClose: () -> Void
+    let onInteraction: () -> Void
+
+    var body: some View {
+        VStack {
+            HStack {
+                closeButton
+                Spacer()
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 18.0)
+        .padding(.top, 12.0)
+        .opacity(isVisible ? 1.0 : 0.0)
+        .allowsHitTesting(isVisible)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0.0)
+                .onChanged { _ in
+                    onInteraction()
+                }
+        )
+    }
+
+    private var closeButton: some View {
+        Image(systemName: "xmark")
+            .font(.system(size: 16.0, weight: .bold))
+            .foregroundStyle(Color.white.opacity(0.92))
+            .frame(width: 42.0, height: 42.0)
+            .contentShape(Circle())
+            .glassEffect(
+                .clear.tint(Color.black.opacity(0.36)).interactive(),
+                in: .circle
+            )
+            .onTapGesture {
+                onClose()
+            }
+    }
+}
+
+private struct SessionAudioControlLayer: View {
+    let isVisible: Bool
+    let orientation: InterfaceRenderOrientation
+    @Binding var selection: AudioMode
+    let onInteraction: () -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            AudioModeGlassControl(selection: $selection)
+                .position(
+                    x: proxy.size.width * 0.5,
+                    y: proxy.size.height * audioControlVerticalPositionRatio
+                )
+        }
+        .ignoresSafeArea()
+        .opacity(isVisible ? 1.0 : 0.0)
+        .allowsHitTesting(isVisible)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0.0)
+                .onChanged { _ in
+                    onInteraction()
+                }
+        )
+    }
+
+    private var audioControlVerticalPositionRatio: CGFloat {
+        switch orientation {
+        case .portrait:
+            return 0.25
+        case .landscapeLeft, .landscapeRight:
+            return 0.20
+        }
+    }
+}
+
+private struct DynamicSpeedControlLayer: View {
+    let isVisible: Bool
+    let orientation: InterfaceRenderOrientation
+    @Binding var speedMultiplier: Double
+    let onInteraction: () -> Void
+
+    private var dynamicSpeedSliderWidth: CGFloat { 178.0 }
+
+    var body: some View {
+        GeometryReader { proxy in
+            dynamicSpeedControl
+                .position(
+                    x: proxy.size.width * 0.5,
+                    y: proxy.size.height * dynamicSpeedControlVerticalPositionRatio
+                )
+        }
+        .ignoresSafeArea()
+        .opacity(isVisible ? 1.0 : 0.0)
+        .allowsHitTesting(isVisible)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0.0)
+                .onChanged { _ in
+                    onInteraction()
+                }
+        )
+    }
+
+    private var dynamicSpeedControl: some View {
+        GlassEffectContainer(spacing: 10.0) {
+            ZStack {
+                Slider(value: dynamicSpeedSliderPosition, in: 0.0...1.0)
+                    .tint(Color(red: 0.25, green: 0.72, blue: 1.0))
+                    .frame(width: dynamicSpeedSliderWidth)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .padding(.bottom, 7.0)
+
+                Text("fullscreen.cruise_speed")
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(Color.white.opacity(0.86))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .padding(.top, 5.0)
+            }
+            .padding(.horizontal, 4.0)
+            .padding(.vertical, 4.0)
+            .frame(height: 70.0)
+            .frame(width: 210.0)
+            .glassEffect(
+                .clear.tint(Color.black.opacity(0.36)).interactive(),
+                in: .rect(cornerRadius: 26.0)
+            )
+        }
+    }
+
+    private var dynamicSpeedControlVerticalPositionRatio: CGFloat {
+        switch orientation {
+        case .portrait:
+            return 0.75
+        case .landscapeLeft, .landscapeRight:
+            return 0.80
+        }
+    }
+
+    private var dynamicSpeedSliderPosition: Binding<Double> {
+        Binding(
+            get: {
+                sliderPosition(for: speedMultiplier)
+            },
+            set: { sliderPosition in
+                speedMultiplier = speedMultiplier(for: sliderPosition)
+            }
+        )
+    }
+
+    private func sliderPosition(for speedMultiplier: Double) -> Double {
+        let clampedSpeed = min(max(speedMultiplier, 0.0), 6.0)
+        return clampedSpeed / 6.0
+    }
+
+    private func speedMultiplier(for sliderPosition: Double) -> Double {
+        let clampedPosition = min(max(sliderPosition, 0.0), 1.0)
+        return clampedPosition * 6.0
     }
 }
 
