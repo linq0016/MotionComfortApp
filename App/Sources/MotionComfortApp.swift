@@ -30,6 +30,7 @@ private struct AppRootView: View {
     @State private var hasTransitionedFromLaunchPlaceholder = false
     @State private var isSessionOverlayMounted = false
     @State private var isSessionOverlayVisible = false
+    @State private var isDashboardChromeActive = true
     @State private var sessionFadeTask: Task<Void, Never>?
     @State private var sessionDismissTask: Task<Void, Never>?
 
@@ -86,7 +87,8 @@ private struct AppRootView: View {
                     resetWelcomeAndReturnToIntro: resetAppStartupState,
                     quickStartEnabled: $quickStartEnabled,
                     backgroundAudioEnabled: $backgroundAudioEnabled,
-                    shouldAutoStartRememberedSession: quickStartEnabled
+                    shouldAutoStartRememberedSession: quickStartEnabled,
+                    isChromeActive: isDashboardChromeActive
                 )
             } else {
                 WelcomeIntroView(orientationObserver: orientationObserver) {
@@ -161,6 +163,7 @@ private struct AppRootView: View {
             sessionDismissTask = nil
             sessionFadeTask?.cancel()
 
+            isDashboardChromeActive = true
             isSessionOverlayMounted = true
             withAnimation(.easeInOut(duration: 0.28)) {
                 isSessionOverlayVisible = true
@@ -171,12 +174,14 @@ private struct AppRootView: View {
                 guard !Task.isCancelled else { return }
                 if model.isSessionPresented {
                     model.completeSessionFadeIn()
+                    isDashboardChromeActive = false
                 }
                 sessionFadeTask = nil
             }
         } else if isSessionOverlayMounted {
             sessionFadeTask?.cancel()
             sessionFadeTask = nil
+            isDashboardChromeActive = true
             withAnimation(.easeInOut(duration: 0.28)) {
                 isSessionOverlayVisible = false
             }
@@ -196,6 +201,7 @@ private struct AppRootView: View {
         sessionFadeTask?.cancel()
         sessionFadeTask = nil
         sessionDismissTask?.cancel()
+        isDashboardChromeActive = true
         model.prepareForSessionDismiss()
         withAnimation(.easeInOut(duration: 0.28)) {
             isSessionOverlayVisible = false

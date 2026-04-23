@@ -11,6 +11,7 @@ struct DashboardView: View {
     @Binding var quickStartEnabled: Bool
     @Binding var backgroundAudioEnabled: Bool
     let shouldAutoStartRememberedSession: Bool
+    var isChromeActive: Bool = true
 
     @State private var isSettingsPresented = false
     @State private var showHeaderSection = false
@@ -23,7 +24,10 @@ struct DashboardView: View {
 
     var body: some View {
         ZStack {
-            SharedChromeBackground(orientation: orientationObserver.orientation)
+            SharedChromeBackground(
+                orientation: orientationObserver.orientation,
+                isActive: isChromeActive
+            )
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24.0) {
@@ -1093,78 +1097,88 @@ struct MotionComfortLogoImage: View {
 
 struct SharedChromeBackground: View {
     var orientation: InterfaceRenderOrientation = .portrait
+    var isActive = true
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
-            GeometryReader { proxy in
-                let time = timeline.date.timeIntervalSinceReferenceDate
-                let shortSide = min(proxy.size.width, proxy.size.height)
-                let longSide = max(proxy.size.width, proxy.size.height)
-
-                ZStack {
-                    Color(red: 0.012, green: 0.012, blue: 0.020)
-                        .ignoresSafeArea()
-
-                    ZStack {
-                        blob(
-                            color: Color(red: 0.00, green: 0.94, blue: 0.84).opacity(0.22),
-                            size: shortSide * 0.82,
-                            blur: shortSide * 0.16,
-                            x: (-shortSide * 0.17) + (sin(time * 1.0 + 0.8) * shortSide * 0.11),
-                            y: (-longSide * 0.10) + (cos(time * 1.0 + 1.9) * longSide * 0.09)
-                        )
-
-                        blob(
-                            color: Color(red: 0.10, green: 0.42, blue: 1.00).opacity(0.22),
-                            size: shortSide * 0.86,
-                            blur: shortSide * 0.17,
-                            x: (shortSide * 0.22) + (cos(time * 1.0 + 2.4) * shortSide * 0.11),
-                            y: (longSide * 0.00) + (sin(time * 1.0 + 0.5) * longSide * 0.09)
-                        )
-
-                        blob(
-                            color: Color(red: 1.00, green: 0.18, blue: 0.24).opacity(0.18),
-                            size: shortSide * 0.72,
-                            blur: shortSide * 0.15,
-                            x: (-shortSide * 0.03) + (sin(time * 1.0 + 1.4) * shortSide * 0.10),
-                            y: (longSide * 0.18) + (cos(time * 1.0 + 2.7) * longSide * 0.09)
-                        )
-
-                        blob(
-                            color: Color(red: 1.00, green: 0.98, blue: 0.94).opacity(0.12),
-                            size: shortSide * 0.60,
-                            blur: shortSide * 0.13,
-                            x: (shortSide * 0.08) + (cos(time * 1.0 + 3.1) * shortSide * 0.09),
-                            y: (-longSide * 0.18) + (sin(time * 1.0 + 2.2) * longSide * 0.07)
-                        )
-
-                        blob(
-                            color: Color(red: 1.00, green: 0.84, blue: 0.18).opacity(0.17),
-                            size: shortSide * 0.64,
-                            blur: shortSide * 0.13,
-                            x: (shortSide * 0.06) + (sin(time * 1.0 + 0.2) * shortSide * 0.09),
-                            y: (longSide * 0.30) + (cos(time * 1.0 + 1.1) * longSide * 0.08)
-                        )
-
-                        blob(
-                            color: Color(red: 0.34, green: 1.00, blue: 0.40).opacity(0.12),
-                            size: shortSide * 0.52,
-                            blur: shortSide * 0.12,
-                            x: (-shortSide * 0.24) + (cos(time * 1.0 + 1.7) * shortSide * 0.08),
-                            y: (longSide * 0.20) + (sin(time * 1.0 + 3.0) * longSide * 0.09)
-                        )
-                    }
-                    .frame(width: shortSide, height: longSide)
-                    .position(x: proxy.size.width * 0.5, y: proxy.size.height * 0.5)
-                    .rotationEffect(counterRotationAngle)
-
-                    Rectangle()
-                        .fill(Color.black.opacity(0.30))
-                        .ignoresSafeArea()
+        Group {
+            if isActive {
+                TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+                    chrome(time: timeline.date.timeIntervalSinceReferenceDate)
                 }
+            } else {
+                chrome(time: 0.0)
             }
         }
         .allowsHitTesting(false)
+    }
+
+    private func chrome(time: TimeInterval) -> some View {
+        GeometryReader { proxy in
+            let shortSide = min(proxy.size.width, proxy.size.height)
+            let longSide = max(proxy.size.width, proxy.size.height)
+
+            ZStack {
+                Color(red: 0.012, green: 0.012, blue: 0.020)
+                    .ignoresSafeArea()
+
+                ZStack {
+                    blob(
+                        color: Color(red: 0.00, green: 0.94, blue: 0.84).opacity(0.22),
+                        size: shortSide * 0.82,
+                        blur: shortSide * 0.16,
+                        x: (-shortSide * 0.17) + (sin(time * 1.0 + 0.8) * shortSide * 0.11),
+                        y: (-longSide * 0.10) + (cos(time * 1.0 + 1.9) * longSide * 0.09)
+                    )
+
+                    blob(
+                        color: Color(red: 0.10, green: 0.42, blue: 1.00).opacity(0.22),
+                        size: shortSide * 0.86,
+                        blur: shortSide * 0.17,
+                        x: (shortSide * 0.22) + (cos(time * 1.0 + 2.4) * shortSide * 0.11),
+                        y: (longSide * 0.00) + (sin(time * 1.0 + 0.5) * longSide * 0.09)
+                    )
+
+                    blob(
+                        color: Color(red: 1.00, green: 0.18, blue: 0.24).opacity(0.18),
+                        size: shortSide * 0.72,
+                        blur: shortSide * 0.15,
+                        x: (-shortSide * 0.03) + (sin(time * 1.0 + 1.4) * shortSide * 0.10),
+                        y: (longSide * 0.18) + (cos(time * 1.0 + 2.7) * longSide * 0.09)
+                    )
+
+                    blob(
+                        color: Color(red: 1.00, green: 0.98, blue: 0.94).opacity(0.12),
+                        size: shortSide * 0.60,
+                        blur: shortSide * 0.13,
+                        x: (shortSide * 0.08) + (cos(time * 1.0 + 3.1) * shortSide * 0.09),
+                        y: (-longSide * 0.18) + (sin(time * 1.0 + 2.2) * longSide * 0.07)
+                    )
+
+                    blob(
+                        color: Color(red: 1.00, green: 0.84, blue: 0.18).opacity(0.17),
+                        size: shortSide * 0.64,
+                        blur: shortSide * 0.13,
+                        x: (shortSide * 0.06) + (sin(time * 1.0 + 0.2) * shortSide * 0.09),
+                        y: (longSide * 0.30) + (cos(time * 1.0 + 1.1) * longSide * 0.08)
+                    )
+
+                    blob(
+                        color: Color(red: 0.34, green: 1.00, blue: 0.40).opacity(0.12),
+                        size: shortSide * 0.52,
+                        blur: shortSide * 0.12,
+                        x: (-shortSide * 0.24) + (cos(time * 1.0 + 1.7) * shortSide * 0.08),
+                        y: (longSide * 0.20) + (sin(time * 1.0 + 3.0) * longSide * 0.09)
+                    )
+                }
+                .frame(width: shortSide, height: longSide)
+                .position(x: proxy.size.width * 0.5, y: proxy.size.height * 0.5)
+                .rotationEffect(counterRotationAngle)
+
+                Rectangle()
+                    .fill(Color.black.opacity(0.30))
+                    .ignoresSafeArea()
+            }
+        }
     }
 
     private var counterRotationAngle: Angle {
