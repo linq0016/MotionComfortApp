@@ -120,6 +120,7 @@
       }
     },
     "dashboard.audio_mode.supporting_copy" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -203,11 +204,12 @@
       }
     },
     "dashboard.subtitle" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Real-time dynamic particles visualize driving acceleration, ease visual-sensory conflicts, and make every ride more comfortable."
+            "value" : "Real-time dynamic particles visualize acceleration, ease visual-sensory conflicts, and make every ride more comfortable."
           }
         },
         "zh-Hans" : {
@@ -322,6 +324,7 @@
       }
     },
     "settings.about.1" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -338,6 +341,7 @@
       }
     },
     "settings.about.2" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -354,22 +358,24 @@
       }
     },
     "settings.about.3" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "3. Stellar aims to relieve motion sickness through a range of rich particle-based visual guidance effects, along with multiple forms of audio stimulation based on 100 Hz sound. The interface copy has been intentionally kept lightweight and restrained to avoid reinforcing associations with discomfort. For a consistent experience, continuously use Stellar for at least one minute. Results may vary from person to person. If you experience discomfort, headache, tinnitus, or any other adverse symptoms, stop using it immediately, remove your headphones, look out the window at moving scenery, and ensure adequate ventilation."
+            "value" : "3. Stellar aims to relieve motion sickness through a range of rich particle-based visual guidance effects, along with multiple forms of audio stimulation based on 100 Hz sound. The interface and texts have been intentionally kept lightweight and restrained to avoid reinforcing associations with motion sickness. For a consistent experience, continuously use Stellar for at least one minute. Results may vary from person to person. If you experience discomfort, headache, tinnitus, or any other adverse symptoms, stop using it immediately, remove your headphones, look out the window at moving scenery, and ensure adequate ventilation."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "3. Stellar通过多种粒子化视觉引导效果，以及基于100Hz设计的多种音频模式，帮助缓解晕动不适。界面文案尽量保持简洁、克制，以减少对晕车感的负担及强化联想。建议持续使用至少一分钟，以获得更稳定的体验，实际效果因人而异。若出现不适加重、头痛、耳鸣或其他异常，请立即停止使用，摘下耳机，并尽量看向窗外远处移动的景物、保持空气流通。"
+            "value" : "3. Stellar通过多种粒子化视觉引导效果，以及基于100Hz设计的多种音频模式，帮助缓解晕动不适。界面和文案已保持简洁、克制，以减少对晕车感的负担及强化联想。建议持续使用至少一分钟，以获得更稳定的体验，实际效果因人而异。若出现不适加重、头痛、耳鸣或其他异常，请立即停止使用，摘下耳机，并尽量看向窗外远处移动的景物、保持空气流通。"
           }
         }
       }
     },
     "settings.about.4" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -386,6 +392,7 @@
       }
     },
     "settings.about.5" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -402,6 +409,7 @@
       }
     },
     "settings.about.6" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -627,7 +635,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Please turn on Transparency\nMode if available"
+            "value" : "Turn on transparency\nmode if available"
           }
         },
         "zh-Hans" : {

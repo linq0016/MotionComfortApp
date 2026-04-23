@@ -1,6 +1,7 @@
 import MotionComfortAudio
 import MotionComfortVisual
 import SwiftUI
+import UIKit
 
 struct DashboardView: View {
     @Environment(\.locale) private var locale
@@ -42,9 +43,9 @@ struct DashboardView: View {
                         .opacity(showSettingsSection ? 1.0 : 0.0)
                         .offset(y: showSettingsSection ? 0.0 : 14.0)
                 }
-                .padding(.horizontal, 22.0)
-                .padding(.top, 34.0)
-                .padding(.bottom, 34.0)
+                .padding(.horizontal, 24.0)
+                .padding(.top, 48.0)
+                .padding(.bottom, 62.0)
             }
             .allowsHitTesting(!model.isLaunchInteractionLocked)
 
@@ -127,16 +128,20 @@ struct DashboardView: View {
                 }
             }
 
-            Text("dashboard.subtitle")
-                .font(.system(size: 16.0, weight: .regular, design: .rounded))
-                .foregroundStyle(Color.white.opacity(0.72))
-                .fixedSize(horizontal: false, vertical: true)
+            JustifiedParagraphText(
+                text: String(localized: "dashboard.subtitle"),
+                fontSize: 16.0,
+                weight: .regular,
+                color: UIColor.white.withAlphaComponent(0.72)
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
     private var modeCardsSection: some View {
         VStack(spacing: 16.0) {
             ModeLaunchCard(
+                iconName: "MinimalModeIcon",
                 title: String(localized: "visual_mode.minimal"),
                 subtitle: localizedModeCardSubtitle(
                     key: "dashboard.mode.minimal.subtitle"
@@ -147,6 +152,7 @@ struct DashboardView: View {
             )
 
             ModeLaunchCard(
+                iconName: "InterstellarModeIcon",
                 title: String(localized: "visual_mode.dynamic"),
                 subtitle: localizedModeCardSubtitle(
                     key: "dashboard.mode.dynamic.subtitle"
@@ -157,6 +163,7 @@ struct DashboardView: View {
             )
 
             ModeLaunchCard(
+                iconName: "LiveViewModeIcon",
                 title: String(localized: "visual_mode.live_view"),
                 subtitle: localizedModeCardSubtitle(
                     key: "dashboard.mode.live_view.subtitle"
@@ -175,20 +182,26 @@ struct DashboardView: View {
                     .font(.system(size: 24.0, weight: .semibold, design: .rounded))
                     .foregroundStyle(Color.white.opacity(0.82))
 
-                Text("dashboard.audio_mode.supporting_copy")
-                    .font(.system(size: 14.0, weight: .regular, design: .rounded))
-                    .foregroundStyle(Color.white.opacity(0.64))
-                    .fixedSize(horizontal: false, vertical: true)
+                JustifiedParagraphText(
+                    text: String(localized: "dashboard.audio_mode.supporting_copy"),
+                    fontSize: 14.0,
+                    weight: .regular,
+                    color: UIColor.white.withAlphaComponent(0.64)
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             AudioModeGlassControl(selection: $model.audioMode, controlWidth: nil, controlHeight: 60.0)
                 .frame(maxWidth: .infinity)
                 .frame(height: 60.0)
 
-            Text(audioModeDetailText)
-                .font(.system(size: 15.0, weight: .regular, design: .rounded))
-                .foregroundStyle(Color.white.opacity(0.72))
-                .fixedSize(horizontal: false, vertical: true)
+            JustifiedParagraphText(
+                text: String(localized: audioModeDetailLocalizationValue),
+                fontSize: 15.0,
+                weight: .regular,
+                color: UIColor.white.withAlphaComponent(0.72)
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -216,6 +229,17 @@ struct DashboardView: View {
     }
 
     private var audioModeDetailText: LocalizedStringKey {
+        switch model.audioMode {
+        case .melodic:
+            return "dashboard.audio_mode.detail.melodic"
+        case .monotone:
+            return "dashboard.audio_mode.detail.mono"
+        case .off:
+            return "dashboard.audio_mode.detail.off"
+        }
+    }
+
+    private var audioModeDetailLocalizationValue: String.LocalizationValue {
         switch model.audioMode {
         case .melodic:
             return "dashboard.audio_mode.detail.melodic"
@@ -416,6 +440,7 @@ private struct ReliableGlassButton<Label: View>: View {
 }
 
 private struct ModeLaunchCard: View {
+    let iconName: String
     let title: String
     let subtitle: String
     let action: () -> Void
@@ -423,15 +448,27 @@ private struct ModeLaunchCard: View {
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 10.0) {
-                Text(title)
-                    .font(.system(size: 26.0, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                HStack(alignment: .center, spacing: 10.0) {
+                    Image(iconName)
+                        .resizable()
+                        .renderingMode(.original)
+                        .scaledToFit()
+                        .frame(width: 36.0, height: 36.0)
+                        .opacity(0.75)
 
-                Text(subtitle)
-                    .font(.system(size: 14.0, weight: .regular, design: .rounded))
-                    .foregroundStyle(Color.white.opacity(0.72))
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text(title)
+                        .font(.system(size: 26.0, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                }
+
+                JustifiedParagraphText(
+                    text: subtitle,
+                    fontSize: 14.0,
+                    weight: .regular,
+                    color: UIColor.white.withAlphaComponent(0.72),
+                    fallbackToNaturalForManualBreaks: true
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 22.0)
@@ -546,10 +583,13 @@ private struct SettingsPanel: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Text(supportingCopyKey)
-                .font(.system(size: 13.0, weight: .regular, design: .rounded))
-                .foregroundStyle(Color.white.opacity(0.62))
-                .fixedSize(horizontal: false, vertical: true)
+            JustifiedParagraphText(
+                text: String(localized: supportingCopyLocalizationValue(for: supportingCopyKey)),
+                fontSize: 13.0,
+                weight: .regular,
+                color: UIColor.white.withAlphaComponent(0.62)
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.trailing, 4.0)
@@ -562,31 +602,135 @@ private struct SettingsPanel: View {
                 .foregroundStyle(Color.white.opacity(0.50))
 
             VStack(alignment: .leading, spacing: 8.0) {
-                Text("settings.about.1")
+                JustifiedParagraphText(
+                    text: String(localized: "settings.about.1"),
+                    fontSize: 12.0,
+                    weight: .regular,
+                    color: UIColor.white.withAlphaComponent(0.44)
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
                 VStack(alignment: .leading, spacing: 4.0) {
-                    Text("settings.about.2")
+                    JustifiedParagraphText(
+                        text: String(localized: "settings.about.2"),
+                        fontSize: 12.0,
+                        weight: .regular,
+                        color: UIColor.white.withAlphaComponent(0.44)
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                     Link(destination: aboutDetailsURL) {
                         Text("settings.about.link_label")
                             .underline()
+                            .font(.system(size: 12.0, weight: .regular, design: .rounded))
+                            .foregroundStyle(Color.white.opacity(0.44))
                     }
                 }
-                Text("settings.about.3")
-                Text("settings.about.4")
-                Text("settings.about.5")
-                Text("settings.about.6")
+                JustifiedParagraphText(
+                    text: String(localized: "settings.about.3"),
+                    fontSize: 12.0,
+                    weight: .regular,
+                    color: UIColor.white.withAlphaComponent(0.44)
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+                JustifiedParagraphText(
+                    text: String(localized: "settings.about.4"),
+                    fontSize: 12.0,
+                    weight: .regular,
+                    color: UIColor.white.withAlphaComponent(0.44)
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+                JustifiedParagraphText(
+                    text: String(localized: "settings.about.5"),
+                    fontSize: 12.0,
+                    weight: .regular,
+                    color: UIColor.white.withAlphaComponent(0.44)
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+                JustifiedParagraphText(
+                    text: String(localized: "settings.about.6"),
+                    fontSize: 12.0,
+                    weight: .regular,
+                    color: UIColor.white.withAlphaComponent(0.44)
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .font(.system(size: 12.0, weight: .regular, design: .rounded))
-            .foregroundStyle(Color.white.opacity(0.44))
-            .fixedSize(horizontal: false, vertical: true)
-            .multilineTextAlignment(.leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.bottom, 8.0)
     }
 
+    private func supportingCopyLocalizationValue(for key: LocalizedStringKey) -> String.LocalizationValue {
+        switch key {
+        case "settings.express_startup.supporting_copy":
+            return "settings.express_startup.supporting_copy"
+        case "settings.background_audio.supporting_copy":
+            return "settings.background_audio.supporting_copy"
+        default:
+            return ""
+        }
+    }
+
     private var aboutDetailsURL: URL {
         URL(string: "https://pubmed.ncbi.nlm.nih.gov/40128952/")!
+    }
+}
+
+private struct JustifiedParagraphText: UIViewRepresentable {
+    let text: String
+    let fontSize: CGFloat
+    let weight: UIFont.Weight
+    let color: UIColor
+    var fallbackToNaturalForManualBreaks: Bool = false
+
+    func makeUIView(context: Context) -> UILabel {
+        let label = UILabel()
+        label.numberOfLines = 0
+        label.backgroundColor = .clear
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        label.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        label.lineBreakMode = .byWordWrapping
+        return label
+    }
+
+    func updateUIView(_ label: UILabel, context: Context) {
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineBreakMode = .byWordWrapping
+        paragraphStyle.alignment = shouldUseNaturalAlignment ? .natural : .justified
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: roundedFont,
+            .foregroundColor: color,
+            .paragraphStyle: paragraphStyle
+        ]
+
+        label.attributedText = NSAttributedString(string: text, attributes: attributes)
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UILabel, context: Context) -> CGSize? {
+        let targetWidth = proposal.width ?? uiView.bounds.width.nonZeroOrFallback(320.0)
+        uiView.preferredMaxLayoutWidth = targetWidth
+        let fittingSize = uiView.sizeThatFits(
+            CGSize(width: targetWidth, height: .greatestFiniteMagnitude)
+        )
+        return CGSize(width: targetWidth, height: ceil(fittingSize.height))
+    }
+
+    private var shouldUseNaturalAlignment: Bool {
+        fallbackToNaturalForManualBreaks && text.contains("\n")
+    }
+
+    private var roundedFont: UIFont {
+        let baseFont = UIFont.systemFont(ofSize: fontSize, weight: weight)
+        guard let roundedDescriptor = baseFont.fontDescriptor.withDesign(.rounded) else {
+            return baseFont
+        }
+        return UIFont(descriptor: roundedDescriptor, size: fontSize)
+    }
+}
+
+private extension CGFloat {
+    func nonZeroOrFallback(_ fallback: CGFloat) -> CGFloat {
+        self > 0.0 ? self : fallback
     }
 }
 

@@ -8,10 +8,6 @@ struct MotionComfortApp: App {
     @StateObject private var model = ComfortSessionViewModel()
     @StateObject private var orientationObserver = InterfaceOrientationObserver()
 
-    init() {
-        NetworkAccessPolicy.install()
-    }
-
     var body: some Scene {
         WindowGroup {
             AppRootView(model: model, orientationObserver: orientationObserver)
@@ -228,34 +224,5 @@ private struct LaunchPlaceholderView: View {
                 .scaledToFit()
                 .frame(width: 160.0, height: 160.0)
         }
-    }
-}
-
-enum NetworkAccessPolicy {
-    static func install() {
-        URLProtocol.registerClass(BlockAllNetworkRequestsProtocol.self)
-    }
-}
-
-private final class BlockAllNetworkRequestsProtocol: URLProtocol {
-    override class func canInit(with request: URLRequest) -> Bool {
-        guard let scheme = request.url?.scheme?.lowercased() else {
-            return false
-        }
-
-        return scheme == "http" || scheme == "https"
-    }
-
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
-        request
-    }
-
-    override func startLoading() {
-        let error = URLError(.appTransportSecurityRequiresSecureConnection)
-        client?.urlProtocol(self, didFailWithError: error)
-    }
-
-    override func stopLoading() {
-        // No-op: requests are rejected immediately.
     }
 }
