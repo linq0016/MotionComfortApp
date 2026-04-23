@@ -57,6 +57,8 @@ final class ComfortSessionViewModel: ObservableObject {
     private let audioEngine = AudioComfortEngine()
     let liveViewCamera = LiveViewCameraModel()
     private var cancellables: Set<AnyCancellable> = []
+    private var launchPreparationTask: Task<Void, Never>?
+    private var launchPreparationToken = UUID()
     private var loadingFeedbackTask: Task<Void, Never>?
     private var presentationTask: Task<Void, Never>?
     private var deniedDismissTask: Task<Void, Never>?
@@ -200,14 +202,18 @@ final class ComfortSessionViewModel: ObservableObject {
     }
 
     private func beginLiveViewLaunch() {
-        Task { [weak self] in
+        startLaunchPreparationTask(for: .liveView) { [weak self] token in
             guard let self else {
                 return
             }
 
             let status = await LiveViewCameraPreflight.ensureAuthorized()
+            guard !Task.isCancelled else {
+                return
+            }
+
             await MainActor.run {
-                guard case .preparing(let style) = self.sessionLaunchState, style == .liveView else {
+                guard self.isCurrentLaunchPreparation(token, style: .liveView) else {
                     return
                 }
 
@@ -227,14 +233,18 @@ final class ComfortSessionViewModel: ObservableObject {
     }
 
     private func beginDynamicLaunch() {
-        Task { [weak self] in
+        startLaunchPreparationTask(for: .dynamic) { [weak self] token in
             guard let self else {
                 return
             }
 
             await DynamicRenderPreheater.ensureReady()
+            guard !Task.isCancelled else {
+                return
+            }
+
             await MainActor.run {
-                guard case .preparing(let style) = self.sessionLaunchState, style == .dynamic else {
+                guard self.isCurrentLaunchPreparation(token, style: .dynamic) else {
                     return
                 }
 
@@ -393,6 +403,10 @@ final class ComfortSessionViewModel: ObservableObject {
     }
 
     private func cancelTransientLaunchTasks() {
+        launchPreparationToken = UUID()
+        launchPreparationTask?.cancel()
+        launchPreparationTask = nil
+
         loadingFeedbackTask?.cancel()
         loadingFeedbackTask = nil
 
@@ -401,5 +415,36 @@ final class ComfortSessionViewModel: ObservableObject {
 
         deniedDismissTask?.cancel()
         deniedDismissTask = nil
+    }
+
+    private func startLaunchPreparationTask(
+        for style: VisualGuideStyle,
+        operation: @escaping @Sendable (UUID) async -> Void
+    ) {
+        let token = UUID()
+        launchPreparationTask?.cancel()
+        launchPreparationToken = token
+        launchPreparationTask = Task {
+            await operation(token)
+            await MainActor.run { [weak self] in
+                guard let self, self.isCurrentLaunchPreparation(token, style: style) else {
+                    return
+                }
+
+                self.launchPreparationTask = nil
+            }
+        }
+    }
+
+    private func isCurrentLaunchPreparation(_ token: UUID, style: VisualGuideStyle) -> Bool {
+        guard launchPreparationToken == token else {
+            return false
+        }
+
+        guard case .preparing(let currentStyle) = sessionLaunchState, currentStyle == style else {
+            return false
+        }
+
+        return true
     }
 }

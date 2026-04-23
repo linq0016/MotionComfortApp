@@ -10,8 +10,8 @@ settings:
   base:
     SWIFT_VERSION: 6.0
     IPHONEOS_DEPLOYMENT_TARGET: 26.0
-    MARKETING_VERSION: 0.7.6
-    CURRENT_PROJECT_VERSION: 0.7.6
+    MARKETING_VERSION: 0.7.7
+    CURRENT_PROJECT_VERSION: 0.7.7
 targets:
   MotionComfortApp:
     type: application
@@ -22,8 +22,8 @@ targets:
         DEVELOPMENT_TEAM: 9NWVQ7RFAT
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: App/Info.plist
-        MARKETING_VERSION: 0.7.6
-        CURRENT_PROJECT_VERSION: 0.7.6
+        MARKETING_VERSION: 0.7.7
+        CURRENT_PROJECT_VERSION: 0.7.7
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: com.linq.StellarMotionComfort
         PRODUCT_NAME: Stellar
@@ -58,14 +58,14 @@ targets:
         CFBundleDisplayName: Stellar
         CFBundleIconName: AppIcon
         CFBundleName: Stellar
-        CFBundleShortVersionString: 0.7.6
-        CFBundleVersion: 0.7.6
+        CFBundleShortVersionString: 0.7.7
+        CFBundleVersion: 0.7.7
         LSApplicationCategoryType: public.app-category.healthcare-fitness
         UIUserInterfaceStyle: Dark
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
-        NSCameraUsageDescription: Camera access is used to show the live-view comfort mode with real-world scene guidance and adaptive edge overlays.
+        NSCameraUsageDescription: Camera access is needed for Live View mode to overlay the motion comfort effects onto the real world.
         NSMotionUsageDescription: Motion data is used to draw peripheral comfort guides that help reduce passenger discomfort in vehicles.
         UIBackgroundModes:
           - audio

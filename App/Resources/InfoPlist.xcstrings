@@ -31,13 +31,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Camera access is needed for the Live View mode to show the real-world."
+            "value" : "Camera access is needed for Live View mode to overlay the motion comfort effects onto the real world."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“实况视窗”模式需要访问相机，以显示真实世界场景。"
+            "value" : "“实况视窗”模式需要访问相机，以将晕动缓解效果与真实世界场景结合。"
           }
         }
       }

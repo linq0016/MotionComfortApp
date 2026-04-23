@@ -32,7 +32,9 @@ private struct AppRootView: View {
     @State private var isSessionOverlayVisible = false
     @State private var isDashboardChromeActive = true
     @State private var sessionFadeTask: Task<Void, Never>?
+    @State private var sessionFadeTaskToken = UUID()
     @State private var sessionDismissTask: Task<Void, Never>?
+    @State private var sessionDismissTaskToken = UUID()
 
     var body: some View {
         ZStack {
@@ -82,6 +84,10 @@ private struct AppRootView: View {
         }
         .onChange(of: model.isSessionPresented) { _, isPresented in
             handleSessionPresentationChanged(isPresented)
+        }
+        .onDisappear {
+            cancelSessionFadeTask()
+            cancelSessionDismissTask()
         }
     }
 
@@ -167,9 +173,8 @@ private struct AppRootView: View {
 
     private func handleSessionPresentationChanged(_ isPresented: Bool) {
         if isPresented {
-            sessionDismissTask?.cancel()
-            sessionDismissTask = nil
-            sessionFadeTask?.cancel()
+            cancelSessionDismissTask()
+            cancelSessionFadeTask()
 
             isDashboardChromeActive = true
             isSessionOverlayMounted = true
@@ -177,49 +182,88 @@ private struct AppRootView: View {
                 isSessionOverlayVisible = true
             }
 
-            sessionFadeTask = Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(280))
-                guard !Task.isCancelled else { return }
-                if model.isSessionPresented {
-                    model.completeSessionFadeIn()
-                    isDashboardChromeActive = false
-                }
-                sessionFadeTask = nil
-            }
+            scheduleSessionFadeCompletion()
         } else if isSessionOverlayMounted {
-            sessionFadeTask?.cancel()
-            sessionFadeTask = nil
+            cancelSessionFadeTask()
             isDashboardChromeActive = true
             withAnimation(.easeInOut(duration: 0.28)) {
                 isSessionOverlayVisible = false
             }
 
-            sessionDismissTask = Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(280))
-                guard !Task.isCancelled else { return }
-                if !model.isSessionPresented {
-                    isSessionOverlayMounted = false
-                }
-                sessionDismissTask = nil
-            }
+            scheduleSessionDismissCompletion(finishesSession: false)
         }
     }
 
     private func dismissSessionOverlay() {
-        sessionFadeTask?.cancel()
-        sessionFadeTask = nil
-        sessionDismissTask?.cancel()
+        cancelSessionFadeTask()
+        cancelSessionDismissTask()
         isDashboardChromeActive = true
         model.prepareForSessionDismiss()
         withAnimation(.easeInOut(duration: 0.28)) {
             isSessionOverlayVisible = false
         }
 
+        scheduleSessionDismissCompletion(finishesSession: true)
+    }
+
+    private func cancelSessionFadeTask() {
+        sessionFadeTaskToken = UUID()
+        sessionFadeTask?.cancel()
+        sessionFadeTask = nil
+    }
+
+    private func cancelSessionDismissTask() {
+        sessionDismissTaskToken = UUID()
+        sessionDismissTask?.cancel()
+        sessionDismissTask = nil
+    }
+
+    private func scheduleSessionFadeCompletion() {
+        let token = UUID()
+        cancelSessionFadeTask()
+        sessionFadeTaskToken = token
+        sessionFadeTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(280))
+            guard !Task.isCancelled else { return }
+            guard sessionFadeTaskToken == token else { return }
+            guard model.isSessionPresented, isSessionOverlayMounted, isSessionOverlayVisible else {
+                return
+            }
+
+            model.completeSessionFadeIn()
+            isDashboardChromeActive = false
+
+            guard sessionFadeTaskToken == token else { return }
+            sessionFadeTask = nil
+        }
+    }
+
+    private func scheduleSessionDismissCompletion(finishesSession: Bool) {
+        let token = UUID()
+        cancelSessionDismissTask()
+        sessionDismissTaskToken = token
         sessionDismissTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(280))
             guard !Task.isCancelled else { return }
-            await model.finishSessionDismiss()
+            guard sessionDismissTaskToken == token else { return }
+            guard isSessionOverlayMounted, !isSessionOverlayVisible else {
+                return
+            }
+
+            if finishesSession {
+                await model.finishSessionDismiss()
+                guard !Task.isCancelled else { return }
+                guard sessionDismissTaskToken == token else { return }
+                guard isSessionOverlayMounted, !isSessionOverlayVisible else {
+                    return
+                }
+            } else if model.isSessionPresented {
+                return
+            }
+
             isSessionOverlayMounted = false
+
+            guard sessionDismissTaskToken == token else { return }
             sessionDismissTask = nil
         }
     }

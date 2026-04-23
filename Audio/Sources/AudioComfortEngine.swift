@@ -143,7 +143,7 @@ public final class AudioComfortEngine: ObservableObject {
 
     private func configureAudioSession() throws {
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+        try session.setCategory(.playback, mode: .default)
         try session.setActive(true)
     }
 
