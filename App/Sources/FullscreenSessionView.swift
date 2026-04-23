@@ -5,6 +5,7 @@ import SwiftUI
 // 全屏会话页：真正承载运行中的视觉引导效果。
 struct FullscreenSessionView: View {
     @ObservedObject var model: ComfortSessionViewModel
+    @ObservedObject var renderState: SessionRenderState
     @ObservedObject var orientationObserver: InterfaceOrientationObserver
     var onClose: () -> Void
 
@@ -22,8 +23,8 @@ struct FullscreenSessionView: View {
                     toggleHUDVisibility()
                 }
 
-            PeripheralCueOverlay(
-                sample: model.sample,
+            SessionCueOverlay(
+                renderState: renderState,
                 visualStyle: model.visualGuideStyle,
                 orientation: orientationObserver.orientation,
                 dynamicSpeedMultiplier: model.dynamicSpeedMultiplier,
@@ -310,6 +311,24 @@ struct FullscreenSessionView: View {
                 liveViewGuidanceToastTask = nil
             }
         }
+    }
+}
+
+private struct SessionCueOverlay: View {
+    @ObservedObject var renderState: SessionRenderState
+    let visualStyle: VisualGuideStyle
+    let orientation: InterfaceRenderOrientation
+    let dynamicSpeedMultiplier: Double
+    let liveViewCamera: LiveViewCameraModel
+
+    var body: some View {
+        PeripheralCueOverlay(
+            sample: renderState.sample,
+            visualStyle: visualStyle,
+            orientation: orientation,
+            dynamicSpeedMultiplier: dynamicSpeedMultiplier,
+            liveViewCamera: liveViewCamera
+        )
     }
 }
 

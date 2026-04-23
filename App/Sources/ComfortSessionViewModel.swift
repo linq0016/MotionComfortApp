@@ -18,6 +18,15 @@ enum SessionLaunchOverlayState: Equatable {
     case denied
 }
 
+@MainActor
+final class SessionRenderState: ObservableObject {
+    @Published private(set) var sample: MotionSample = .neutral
+
+    func update(sample: MotionSample) {
+        self.sample = sample
+    }
+}
+
 // 会话中控：把界面、运动输入、视觉状态和音频状态串起来。
 @MainActor
 final class ComfortSessionViewModel: ObservableObject {
@@ -38,11 +47,12 @@ final class ComfortSessionViewModel: ObservableObject {
         }
     }
 
-    @Published private(set) var sample: MotionSample = .neutral
+    private(set) var sample: MotionSample = .neutral
     @Published private(set) var isRunning = false
     @Published private(set) var sessionLaunchState: SessionLaunchState = .idle
     @Published private(set) var sessionLaunchOverlayState: SessionLaunchOverlayState = .none
 
+    let renderState = SessionRenderState()
     private let motionManager = MotionManager()
     private let audioEngine = AudioComfortEngine()
     let liveViewCamera = LiveViewCameraModel()
@@ -182,6 +192,7 @@ final class ComfortSessionViewModel: ObservableObject {
     // 把最新运动快照同步到页面和音频层。
     private func ingest(_ sample: MotionSample) {
         self.sample = sample
+        renderState.update(sample: sample)
 
         if isRunning {
             audioEngine.update(with: sample)

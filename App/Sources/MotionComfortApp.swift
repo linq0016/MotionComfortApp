@@ -40,7 +40,11 @@ private struct AppRootView: View {
                 .opacity(hasTransitionedFromLaunchPlaceholder ? 1.0 : 0.0)
 
             if hasLoadedLaunchPreferences && hasCompletedMinimumLaunchDisplay && isSessionOverlayMounted {
-                FullscreenSessionView(model: model, orientationObserver: orientationObserver) {
+                FullscreenSessionView(
+                    model: model,
+                    renderState: model.renderState,
+                    orientationObserver: orientationObserver
+                ) {
                     dismissSessionOverlay()
                 }
                 .opacity(isSessionOverlayVisible ? 1.0 : 0.0)

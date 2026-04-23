@@ -114,6 +114,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
     private let luminanceEmaAlpha = 0.18
     private let polarityHoldDuration: TimeInterval = 0.45
+    private let targetFrameDuration = CMTime(value: 1, timescale: 60)
 
     public override init() {
         self.status = AVCaptureDevice.authorizationStatus(for: .video)
@@ -242,7 +243,9 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
         session.automaticallyConfiguresCaptureDeviceForWideColor = true
 
-        if session.canSetSessionPreset(.hd1280x720) {
+        if session.canSetSessionPreset(.inputPriority) {
+            session.sessionPreset = .inputPriority
+        } else if session.canSetSessionPreset(.hd1280x720) {
             session.sessionPreset = .hd1280x720
         } else if session.canSetSessionPreset(.high) {
             session.sessionPreset = .high
@@ -265,6 +268,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
             session.addInput(input)
 
             configureVideoOutput()
+            try applyTargetFrameDuration(on: device)
 
             isConfigured = true
             return true
@@ -287,12 +291,23 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
         defer { device.unlockForConfiguration() }
 
         device.activeFormat = selectedFormat
+        applyTargetFrameDurationOnLockedDevice(device)
+    }
 
-        let desiredDuration = CMTime(value: 1, timescale: 60)
-        if selectedFormat.videoSupportedFrameRateRanges.contains(where: { $0.maxFrameRate >= 60.0 }) {
-            device.activeVideoMinFrameDuration = desiredDuration
-            device.activeVideoMaxFrameDuration = desiredDuration
+    private func applyTargetFrameDuration(on device: AVCaptureDevice) throws {
+        guard device.activeFormat.videoSupportedFrameRateRanges.contains(where: { $0.maxFrameRate >= 60.0 }) else {
+            return
         }
+
+        try device.lockForConfiguration()
+        defer { device.unlockForConfiguration() }
+
+        applyTargetFrameDurationOnLockedDevice(device)
+    }
+
+    private func applyTargetFrameDurationOnLockedDevice(_ device: AVCaptureDevice) {
+        device.activeVideoMinFrameDuration = targetFrameDuration
+        device.activeVideoMaxFrameDuration = targetFrameDuration
     }
 
     private func bestFormat(for device: AVCaptureDevice) -> AVCaptureDevice.Format? {
@@ -527,6 +542,7 @@ extension LiveViewCameraModel: AVCaptureVideoDataOutputSampleBufferDelegate {
         }
 
         let nextAnalysis = analyze(pixelBuffer: pixelBuffer)
+
         latestSceneAnalysis = nextAnalysis
         let nextRenderState = LiveViewOverlayRenderState(
             dominantDotPolarity: nextAnalysis.dominantDotPolarity
