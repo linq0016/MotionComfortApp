@@ -10,8 +10,8 @@ settings:
   base:
     SWIFT_VERSION: 6.0
     IPHONEOS_DEPLOYMENT_TARGET: 26.0
-    MARKETING_VERSION: 0.7.7
-    CURRENT_PROJECT_VERSION: 0.7.7
+    MARKETING_VERSION: 0.8.0
+    CURRENT_PROJECT_VERSION: 0.8.0
 targets:
   MotionComfortApp:
     type: application
@@ -22,8 +22,8 @@ targets:
         DEVELOPMENT_TEAM: 9NWVQ7RFAT
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: App/Info.plist
-        MARKETING_VERSION: 0.7.7
-        CURRENT_PROJECT_VERSION: 0.7.7
+        MARKETING_VERSION: 0.8.0
+        CURRENT_PROJECT_VERSION: 0.8.0
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: com.linq.StellarMotionComfort
         PRODUCT_NAME: Stellar
@@ -36,6 +36,8 @@ targets:
     sources:
       - App/Sources
       - path: App/Assets.xcassets
+        buildPhase: resources
+      - path: App/PrivacyInfo.xcprivacy
         buildPhase: resources
       - path: App/Resources/Localizable.xcstrings
         buildPhase: resources
@@ -58,8 +60,8 @@ targets:
         CFBundleDisplayName: Stellar
         CFBundleIconName: AppIcon
         CFBundleName: Stellar
-        CFBundleShortVersionString: 0.7.7
-        CFBundleVersion: 0.7.7
+        CFBundleShortVersionString: 0.8.0
+        CFBundleVersion: 0.8.0
         LSApplicationCategoryType: public.app-category.healthcare-fitness
         UIUserInterfaceStyle: Dark
         UILaunchScreen: {}
@@ -95,6 +97,8 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
     sources:
       - Visual/Sources
+      - path: Visual/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - target: MotionComfortCore
   MotionComfortAudio:
