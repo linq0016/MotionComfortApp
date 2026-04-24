@@ -34,6 +34,7 @@ struct FullscreenSessionView: View {
 
             SessionHUDLayer(
                 isVisible: areHUDControlsVisible,
+                orientation: orientationObserver.orientation,
                 onClose: onClose,
                 onInteraction: registerFullscreenInteraction
             )
@@ -203,19 +204,25 @@ private struct SessionBackground: View {
 
 private struct SessionHUDLayer: View {
     let isVisible: Bool
+    let orientation: InterfaceRenderOrientation
     let onClose: () -> Void
     let onInteraction: () -> Void
 
+    private let edgePadding: CGFloat = 18.0
+    private let closeButtonSize: CGFloat = 42.0
+
     var body: some View {
-        VStack {
-            HStack {
-                closeButton
+        GeometryReader { proxy in
+            VStack {
+                HStack {
+                    closeButton
+                    Spacer()
+                }
                 Spacer()
             }
-            Spacer()
+            .padding(.horizontal, edgePadding)
+            .padding(.top, closeButtonTopPadding(for: proxy.size))
         }
-        .padding(.horizontal, 18.0)
-        .padding(.top, 12.0)
         .opacity(isVisible ? 1.0 : 0.0)
         .allowsHitTesting(isVisible)
         .simultaneousGesture(
@@ -230,7 +237,7 @@ private struct SessionHUDLayer: View {
         Image(systemName: "xmark")
             .font(.system(size: 16.0, weight: .bold))
             .foregroundStyle(Color.white.opacity(0.92))
-            .frame(width: 42.0, height: 42.0)
+            .frame(width: closeButtonSize, height: closeButtonSize)
             .contentShape(Circle())
             .glassEffect(
                 .clear.tint(Color.black.opacity(0.36)).interactive(),
@@ -239,6 +246,15 @@ private struct SessionHUDLayer: View {
             .onTapGesture {
                 onClose()
             }
+    }
+
+    private func closeButtonTopPadding(for size: CGSize) -> CGFloat {
+        switch orientation {
+        case .portrait:
+            return edgePadding
+        case .landscapeLeft, .landscapeRight:
+            return max(edgePadding, (size.height * 0.20) - (closeButtonSize * 0.5))
+        }
     }
 }
 

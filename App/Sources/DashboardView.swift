@@ -21,6 +21,7 @@ struct DashboardView: View {
     @State private var didAttemptAutoStart = false
     @State private var isLaunchDimVisible = false
     @State private var launchDimDismissTask: Task<Void, Never>?
+    @State private var settingsSheetDetent: PresentationDetent = .fraction(0.42)
 
     var body: some View {
         ZStack {
@@ -69,12 +70,13 @@ struct DashboardView: View {
             SettingsPanel(
                 quickStartEnabled: $quickStartEnabled,
                 backgroundAudioEnabled: $backgroundAudioEnabled,
+                shouldRenderAboutSection: isLandscapeInterface || settingsSheetDetent == .large,
                 resetWelcomeAndReturnToIntro: {
                     isSettingsPresented = false
                     resetWelcomeAndReturnToIntro()
                 }
             )
-            .presentationDetents([.fraction(0.42), .large])
+            .presentationDetents([.fraction(0.42), .large], selection: $settingsSheetDetent)
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(54.0)
             .presentationBackground {
@@ -208,6 +210,7 @@ struct DashboardView: View {
     private var settingsSection: some View {
         ReliableGlassButton(
             action: {
+                settingsSheetDetent = .fraction(0.42)
                 isSettingsPresented = true
             },
             shape: .rounded(28.0),
@@ -497,6 +500,7 @@ private struct ModeLaunchCardButtonStyle: ButtonStyle {
 private struct SettingsPanel: View {
     @Binding var quickStartEnabled: Bool
     @Binding var backgroundAudioEnabled: Bool
+    let shouldRenderAboutSection: Bool
     let resetWelcomeAndReturnToIntro: () -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -521,7 +525,7 @@ private struct SettingsPanel: View {
 
                         ReliableGlassButton(
                             action: resetWelcomeAndReturnToIntro,
-                            shape: .rounded(27.0),
+                            shape: .rounded(26.0),
                             tintOpacity: 0.24,
                             strokeOpacity: 0.15
                         ) {
@@ -529,11 +533,14 @@ private struct SettingsPanel: View {
                                 .font(.system(size: 17.0, weight: .semibold, design: .rounded))
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 54.0)
+                                .frame(height: 52.0)
                         }
+                        .padding(.horizontal, 2.0)
 
-                        settingsAboutSection
-                            .padding(.top, 8.0)
+                        if shouldRenderAboutSection {
+                            settingsAboutSection
+                                .padding(.top, 8.0)
+                        }
                     }
                     .padding(.bottom, 12.0)
                     .frame(maxWidth: .infinity, alignment: .leading)
