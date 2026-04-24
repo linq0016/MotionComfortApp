@@ -217,11 +217,10 @@ private struct DynamicSpaceSceneState {
     var currentWarpSpeed: Float
     var universeSpreadX: Float = 0.0
     var universeSpreadY: Float = 0.0
-    var timeOffset: Float
+    var elapsedTime: Float = 0.0
 
     init(config: DynamicSpaceConfiguration) {
         currentWarpSpeed = config.idleSpeed
-        timeOffset = Float.random(in: 0.0...1000.0)
     }
 }
 
@@ -522,7 +521,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         }
         lastUpdateTime = now
 
-        updateScene(deltaTime: deltaTime, timeMs: Float(now * 1000.0) + state.timeOffset)
+        updateScene(deltaTime: deltaTime)
 
         var uniforms = DynamicViewportUniforms(
             viewportSize: SIMD2(Float(drawableSize.width), Float(drawableSize.height)),
@@ -580,6 +579,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         state.currentWarpSpeed = config.idleSpeed
         state.universeSpreadX = config.maxZ * 2.8
         state.universeSpreadY = state.universeSpreadX * max(1.0, Float(size.height / size.width))
+        state.elapsedTime = 0.0
 
         state.particles.removeAll(keepingCapacity: true)
         state.dusts.removeAll(keepingCapacity: true)
@@ -643,8 +643,9 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         }
     }
 
-    private func updateScene(deltaTime: Float, timeMs: Float) {
+    private func updateScene(deltaTime: Float) {
         let frameScale = deltaTime * 60.0
+        state.elapsedTime += deltaTime
         let accel = SIMD2<Float>(
             Float(sample.lateralAcceleration),
             Float(sample.longitudinalAcceleration)
@@ -676,7 +677,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         let targetWarpSpeed = config.idleSpeed * clampedMultiplier
         state.currentWarpSpeed += (targetWarpSpeed - state.currentWarpSpeed) * 0.05 * frameScale
 
-        buildNebulas(timeMs: timeMs)
+        buildNebulas(timeMs: state.elapsedTime * 1000.0)
         buildDust(activeBrightness: activeBrightness, frameScale: frameScale)
         buildParticles(
             activeBrightness: activeBrightness,
