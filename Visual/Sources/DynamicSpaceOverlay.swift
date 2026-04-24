@@ -157,7 +157,15 @@ private struct DynamicSpaceConfiguration {
     let nebulaCloudCount = 12
     let nebulaAtlasColumns = 4
     let nebulaAtlasRows = 3
-    let nebulaBaseAlpha: Float = 0.54
+    let nebulaBaseAlpha: Float = 0.60
+    let nebulaBaseScreenScale: Float = 0.25
+    let nebulaDepthBoost: Float = 3.00
+    let nebulaDepthBase: Float = 1.50
+    let nebulaSizeVariance: Float = 0.20
+    let nebulaTileContentScale: CGFloat = 0.25
+    let nebulaTileEdgeFade: CGFloat = 0.20
+    let nebulaAtlasInset: Float = 0.10
+    let nebulaBoundaryFeather: Float = 0.10
     let sensorSmoothing: Float = 0.42
     let velocityFriction: Float = 0.11
     let brightnessDivisor: Float = 1.2
@@ -189,7 +197,7 @@ private struct DynamicDust {
 private struct DynamicNebula {
     var colorIndex: Int32
     var atlasIndex: Int32
-    var baseSize: Float
+    var sizeJitter: Float
     var brightnessScale: Float
     var anchorX: Float
     var anchorY: Float
@@ -199,6 +207,7 @@ private struct DynamicNebula {
     var driftSpeedX: Float
     var driftSpeedY: Float
     var alphaFreq: Float
+    var alphaPhase: Float
     var wanderRadiusX: Float
     var wanderRadiusY: Float
     var rotationPhase: Float
@@ -230,9 +239,17 @@ private struct DynamicSpriteVertex {
     var rotationAndMisc: SIMD4<Float> = .zero
 }
 
+private struct DynamicNebulaQuadVertex {
+    var positionAndUV: SIMD4<Float> = .zero
+    var colorAndAlpha: SIMD4<Float> = .zero
+    var atlasAndMisc: SIMD4<Float> = .zero
+}
+
 private struct DynamicViewportUniforms {
     var viewportSize: SIMD2<Float>
     var atlasGrid: SIMD2<Float>
+    var nebulaAtlasInset: Float
+    var nebulaBoundaryFeather: Float
 }
 
 private enum DynamicRendererSetupError: Error {
@@ -275,12 +292,14 @@ private struct DynamicRenderResources {
     let library: MTLLibrary
     let additivePipeline: MTLRenderPipelineState
     let screenPipeline: MTLRenderPipelineState
+    let nebulaQuadPipeline: MTLRenderPipelineState
     let blurTexture: MTLTexture
     let sharpTexture: MTLTexture
     let cloudAtlasTexture: MTLTexture
     let dustTexture: MTLTexture
 
     static func make(pixelFormat: MTLPixelFormat) throws -> DynamicRenderResources {
+        let config = DynamicSpaceConfiguration()
         guard let device = MTLCreateSystemDefaultDevice() else {
             throw DynamicRendererSetupError.missingDevice
         }
@@ -299,6 +318,15 @@ private struct DynamicRenderResources {
             fragmentBlend: .screen,
             fragmentName: "dynamicNebulaFragment"
         )
+        let nebulaQuadPipeline = try DynamicMetalRenderer.makePipeline(
+            device: device,
+            library: library,
+            pixelFormat: pixelFormat,
+            fragmentBlend: .screen,
+            inputPrimitiveTopology: .triangle,
+            vertexName: "dynamicNebulaQuadVertex",
+            fragmentName: "dynamicNebulaQuadFragment"
+        )
         let blurTexture = try DynamicMetalRenderer.makeTexture(
             device: device,
             bitmap: DynamicTextureFactory.makeBlurBitmap(size: 128)
@@ -310,10 +338,11 @@ private struct DynamicRenderResources {
         let cloudAtlasTexture = try DynamicMetalRenderer.makeTexture(
             device: device,
             bitmap: DynamicTextureFactory.makeCloudAtlasBitmap(
-                tileSize: 640,
-                nominalTileSize: 320,
-                columns: DynamicSpaceConfiguration().nebulaAtlasColumns,
-                rows: DynamicSpaceConfiguration().nebulaAtlasRows
+                tileSize: 320,
+                columns: config.nebulaAtlasColumns,
+                rows: config.nebulaAtlasRows,
+                contentScale: config.nebulaTileContentScale,
+                edgeFade: config.nebulaTileEdgeFade
             )
         )
         let dustTexture = try DynamicMetalRenderer.makeTexture(
@@ -327,6 +356,7 @@ private struct DynamicRenderResources {
             library: library,
             additivePipeline: additivePipeline,
             screenPipeline: screenPipeline,
+            nebulaQuadPipeline: nebulaQuadPipeline,
             blurTexture: blurTexture,
             sharpTexture: sharpTexture,
             cloudAtlasTexture: cloudAtlasTexture,
@@ -424,6 +454,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     private let commandQueue: MTLCommandQueue
     private let additivePipeline: MTLRenderPipelineState
     private let screenPipeline: MTLRenderPipelineState
+    private let nebulaQuadPipeline: MTLRenderPipelineState
 
     private let blurTexture: MTLTexture
     private let sharpTexture: MTLTexture
@@ -434,7 +465,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     private var lastUpdateTime: CFTimeInterval?
     private var drawableSize: CGSize = .zero
 
-    private var nebulaVertices: [DynamicSpriteVertex]
+    private var nebulaVertices: [DynamicNebulaQuadVertex]
     private var dustVertices: [DynamicSpriteVertex]
     private var haloVertices: [DynamicSpriteVertex]
     private var sharpVertices: [DynamicSpriteVertex]
@@ -460,13 +491,14 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         self.commandQueue = commandQueue
         self.additivePipeline = resources.additivePipeline
         self.screenPipeline = resources.screenPipeline
+        self.nebulaQuadPipeline = resources.nebulaQuadPipeline
         self.blurTexture = resources.blurTexture
         self.sharpTexture = resources.sharpTexture
         self.cloudAtlasTexture = resources.cloudAtlasTexture
         self.dustTexture = resources.dustTexture
         self.state = DynamicSpaceSceneState(config: config)
 
-        let nebulaStride = MemoryLayout<DynamicSpriteVertex>.stride * config.nebulaCloudCount
+        let nebulaStride = MemoryLayout<DynamicNebulaQuadVertex>.stride * config.nebulaCloudCount * 6
         let dustStride = MemoryLayout<DynamicSpriteVertex>.stride * config.dustCount
         let particleStride = MemoryLayout<DynamicSpriteVertex>.stride * config.particleCount
 
@@ -484,7 +516,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         self.haloBuffer = haloBuffer
         self.sharpBuffer = sharpBuffer
 
-        self.nebulaVertices = Array(repeating: DynamicSpriteVertex(), count: config.nebulaCloudCount)
+        self.nebulaVertices = Array(repeating: DynamicNebulaQuadVertex(), count: config.nebulaCloudCount * 6)
         self.dustVertices = Array(repeating: DynamicSpriteVertex(), count: config.dustCount)
         self.haloVertices = Array(repeating: DynamicSpriteVertex(), count: config.particleCount)
         self.sharpVertices = Array(repeating: DynamicSpriteVertex(), count: config.particleCount)
@@ -525,12 +557,13 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
 
         var uniforms = DynamicViewportUniforms(
             viewportSize: SIMD2(Float(drawableSize.width), Float(drawableSize.height)),
-            atlasGrid: SIMD2(Float(config.nebulaAtlasColumns), Float(config.nebulaAtlasRows))
+            atlasGrid: SIMD2(Float(config.nebulaAtlasColumns), Float(config.nebulaAtlasRows)),
+            nebulaAtlasInset: config.nebulaAtlasInset,
+            nebulaBoundaryFeather: config.nebulaBoundaryFeather
         )
 
-        drawSprites(
+        drawNebulaQuads(
             encoder: encoder,
-            pipeline: screenPipeline,
             buffer: nebulaBuffer,
             count: nebulaCount,
             texture: cloudAtlasTexture,
@@ -624,8 +657,8 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
                 DynamicNebula(
                     colorIndex: Int32.random(in: 0..<Int32(DynamicPalette.colors.count)),
                     atlasIndex: Int32(uniqueAtlasIndices[index % uniqueAtlasIndices.count]),
-                    baseSize: Float(min(size.width, size.height)) * Float.random(in: 3.10...5.80),
-                    brightnessScale: Float.random(in: 0.66...1.00),
+                    sizeJitter: Float.random(in: -config.nebulaSizeVariance...config.nebulaSizeVariance),
+                    brightnessScale: Float.random(in: 0.60...1.00),
                     anchorX: Float.random(in: -0.14...0.14),
                     anchorY: Float.random(in: -0.14...0.14),
                     anchorZ: Float.random(in: config.minZ + 0.9...config.maxZ - 1.1),
@@ -633,7 +666,8 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
                     driftPhaseY: Float.random(in: 0.0...(Float.pi * 2.0)),
                     driftSpeedX: Float.random(in: 0.00016...0.00046),
                     driftSpeedY: Float.random(in: 0.00016...0.00046),
-                    alphaFreq: Float.random(in: 0.00025...0.00075),
+                    alphaFreq: Float.random(in: 0.002...0.003),
+                    alphaPhase: Float.random(in: 0.0...(Float.pi * 2.0)),
                     wanderRadiusX: Float.random(in: 0.08...0.30),
                     wanderRadiusY: Float.random(in: 0.08...0.30),
                     rotationPhase: Float.random(in: 0.0...(Float.pi * 2.0)),
@@ -698,32 +732,86 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         let centerY = Float(drawableSize.height) * 0.5
         let clusterRadiusX = Float(drawableSize.width) * 0.35
         let clusterRadiusY = Float(drawableSize.height) * 0.30
+        let baseScreenSize = Float(min(drawableSize.width, drawableSize.height)) * config.nebulaBaseScreenScale
         nebulaCount = 0
 
         for nebula in state.nebulas {
             let lissajousX = sin((timeMs * nebula.driftSpeedX) + nebula.driftPhaseX)
             let lissajousY = sin((timeMs * nebula.driftSpeedY * 1.37) + nebula.driftPhaseY)
-            let breathAlpha = sin(timeMs * nebula.alphaFreq) * 0.3 + 0.7
+            let breathAlpha = sin((timeMs * nebula.alphaFreq) + nebula.alphaPhase) * 0.25 + 0.75
             let alpha = min(config.nebulaBaseAlpha * breathAlpha * nebula.brightnessScale, 1.0)
             let color = DynamicPalette.colors[Int(nebula.colorIndex)]
             let relX = (nebula.anchorX + lissajousX * nebula.wanderRadiusX) * clusterRadiusX
             let relY = (nebula.anchorY + lissajousY * nebula.wanderRadiusY) * clusterRadiusY
             let scale = 1.0 / max(nebula.anchorZ, config.minZ)
+            let randomJitter = 1.0 + nebula.sizeJitter
+            let depthFactor = config.nebulaDepthBase + (scale * config.nebulaDepthBoost)
             let screenX = centerX + relX
             let screenY = centerY + relY
-            let renderSize = nebula.baseSize * (1.52 + scale * 1.92)
+            let renderSize = baseScreenSize * randomJitter * depthFactor
             let rotation = nebula.rotationPhase + timeMs * nebula.rotationSpeed
             let isVisible = screenX > -renderSize && screenX < Float(drawableSize.width) + renderSize && screenY > -renderSize && screenY < Float(drawableSize.height) + renderSize
             guard isVisible else {
                 continue
             }
-            nebulaVertices[nebulaCount] = DynamicSpriteVertex(
-                positionAndSize: SIMD4(screenX, screenY, renderSize, alpha),
-                colorAndSoftness: SIMD4(color.x, color.y, color.z, Float(nebula.atlasIndex)),
-                rotationAndMisc: SIMD4(rotation, 0.0, 0.0, 0.0)
+            appendNebulaQuad(
+                center: SIMD2(screenX, screenY),
+                size: renderSize,
+                rotation: rotation,
+                color: color,
+                alpha: alpha,
+                atlasIndex: Float(nebula.atlasIndex)
             )
-            nebulaCount += 1
         }
+    }
+
+    private func appendNebulaQuad(
+        center: SIMD2<Float>,
+        size: Float,
+        rotation: Float,
+        color: SIMD3<Float>,
+        alpha: Float,
+        atlasIndex: Float
+    ) {
+        guard nebulaCount + 6 <= nebulaVertices.count else {
+            return
+        }
+
+        let halfSize = size * 0.5
+        let sine = sin(rotation)
+        let cosine = cos(rotation)
+        let localCorners = [
+            SIMD2<Float>(-halfSize, -halfSize),
+            SIMD2<Float>(halfSize, -halfSize),
+            SIMD2<Float>(-halfSize, halfSize),
+            SIMD2<Float>(halfSize, -halfSize),
+            SIMD2<Float>(halfSize, halfSize),
+            SIMD2<Float>(-halfSize, halfSize)
+        ]
+        let uvs = [
+            SIMD2<Float>(0.0, 0.0),
+            SIMD2<Float>(1.0, 0.0),
+            SIMD2<Float>(0.0, 1.0),
+            SIMD2<Float>(1.0, 0.0),
+            SIMD2<Float>(1.0, 1.0),
+            SIMD2<Float>(0.0, 1.0)
+        ]
+
+        for index in localCorners.indices {
+            let local = localCorners[index]
+            let rotated = SIMD2<Float>(
+                (local.x * cosine) - (local.y * sine),
+                (local.x * sine) + (local.y * cosine)
+            )
+            let position = center + rotated
+            nebulaVertices[nebulaCount + index] = DynamicNebulaQuadVertex(
+                positionAndUV: SIMD4(position.x, position.y, uvs[index].x, uvs[index].y),
+                colorAndAlpha: SIMD4(color.x, color.y, color.z, alpha),
+                atlasAndMisc: SIMD4(atlasIndex, 0.0, 0.0, 0.0)
+            )
+        }
+
+        nebulaCount += 6
     }
 
     private func buildDust(activeBrightness: Float, frameScale: Float) {
@@ -901,15 +989,34 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         return next
     }
 
-    private func upload(_ vertices: [DynamicSpriteVertex], count: Int, to buffer: MTLBuffer) {
+    private func upload<Vertex>(_ vertices: [Vertex], count: Int, to buffer: MTLBuffer) {
         guard count > 0 else { return }
         vertices.withUnsafeBytes { rawBuffer in
             guard let baseAddress = rawBuffer.baseAddress else {
                 return
             }
 
-            memcpy(buffer.contents(), baseAddress, count * MemoryLayout<DynamicSpriteVertex>.stride)
+            memcpy(buffer.contents(), baseAddress, count * MemoryLayout<Vertex>.stride)
         }
+    }
+
+    private func drawNebulaQuads(
+        encoder: MTLRenderCommandEncoder,
+        buffer: MTLBuffer,
+        count: Int,
+        texture: MTLTexture,
+        uniforms: inout DynamicViewportUniforms
+    ) {
+        guard count > 0 else {
+            return
+        }
+
+        encoder.setRenderPipelineState(nebulaQuadPipeline)
+        encoder.setVertexBuffer(buffer, offset: 0, index: 0)
+        encoder.setVertexBytes(&uniforms, length: MemoryLayout<DynamicViewportUniforms>.stride, index: 1)
+        encoder.setFragmentBytes(&uniforms, length: MemoryLayout<DynamicViewportUniforms>.stride, index: 1)
+        encoder.setFragmentTexture(texture, index: 0)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: count)
     }
 
     private func drawSprites(
@@ -940,7 +1047,9 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
                 guard
                     library.makeFunction(name: "dynamicSpriteVertex") != nil,
                     library.makeFunction(name: "dynamicSpriteFragment") != nil,
-                    library.makeFunction(name: "dynamicNebulaFragment") != nil
+                    library.makeFunction(name: "dynamicNebulaFragment") != nil,
+                    library.makeFunction(name: "dynamicNebulaQuadVertex") != nil,
+                    library.makeFunction(name: "dynamicNebulaQuadFragment") != nil
                 else {
                     throw DynamicRendererSetupError.invalidShaderFunctions
                 }
@@ -956,7 +1065,9 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             guard
                 fallback.makeFunction(name: "dynamicSpriteVertex") != nil,
                 fallback.makeFunction(name: "dynamicSpriteFragment") != nil,
-                fallback.makeFunction(name: "dynamicNebulaFragment") != nil
+                fallback.makeFunction(name: "dynamicNebulaFragment") != nil,
+                fallback.makeFunction(name: "dynamicNebulaQuadVertex") != nil,
+                fallback.makeFunction(name: "dynamicNebulaQuadFragment") != nil
             else {
                 throw DynamicRendererSetupError.invalidShaderFunctions
             }
@@ -1001,12 +1112,14 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         library: MTLLibrary,
         pixelFormat: MTLPixelFormat,
         fragmentBlend: DynamicBlendMode,
+        inputPrimitiveTopology: MTLPrimitiveTopologyClass = .point,
+        vertexName: String = "dynamicSpriteVertex",
         fragmentName: String = "dynamicSpriteFragment"
     ) throws -> MTLRenderPipelineState {
         let descriptor = MTLRenderPipelineDescriptor()
-        descriptor.vertexFunction = library.makeFunction(name: "dynamicSpriteVertex")
+        descriptor.vertexFunction = library.makeFunction(name: vertexName)
         descriptor.fragmentFunction = library.makeFunction(name: fragmentName)
-        descriptor.inputPrimitiveTopology = .point
+        descriptor.inputPrimitiveTopology = inputPrimitiveTopology
         descriptor.colorAttachments[0].pixelFormat = pixelFormat
         descriptor.colorAttachments[0].isBlendingEnabled = true
         descriptor.colorAttachments[0].rgbBlendOperation = .add
@@ -1088,9 +1201,10 @@ private enum DynamicTextureFactory {
 
     static func makeCloudAtlasBitmap(
         tileSize: Int,
-        nominalTileSize: Int,
         columns: Int,
-        rows: Int
+        rows: Int,
+        contentScale: CGFloat,
+        edgeFade: CGFloat
     ) -> DynamicTextureBitmap {
         guard columns > 0, rows > 0 else {
             return DynamicTextureBitmap(width: 0, height: 0, bytesPerRow: 0, data: [])
@@ -1103,8 +1217,8 @@ private enum DynamicTextureFactory {
         let tiles = (0..<tileCount).map { index in
             makeCloudTileBitmap(
                 tileSize: tileSize,
-                nominalTileSize: nominalTileSize,
-                safeInsetRatio: 0.18,
+                contentScale: contentScale,
+                edgeFade: edgeFade,
                 tileIndex: index
             )
         }
@@ -1134,8 +1248,8 @@ private enum DynamicTextureFactory {
 
     private static func makeCloudTileBitmap(
         tileSize: Int,
-        nominalTileSize: Int,
-        safeInsetRatio: CGFloat,
+        contentScale: CGFloat,
+        edgeFade: CGFloat,
         tileIndex: Int
     ) -> DynamicTextureBitmap {
         let bitmap = makeBitmap(size: tileSize) { context, size in
@@ -1143,24 +1257,22 @@ private enum DynamicTextureFactory {
             context.setAllowsAntialiasing(true)
             let layout = makeCloudTileLayout(
                 canvasSize: size,
-                nominalTileSize: nominalTileSize,
-                safeInsetRatio: safeInsetRatio
+                contentScale: contentScale
             )
             drawCloudTile(in: context, layout: layout, tileIndex: tileIndex)
         }
-        return applyCloudTileBoundaryFade(bitmap, fadeWidthRatio: 0.14)
+        return applyCloudTileBoundaryFade(bitmap, fadeWidthRatio: edgeFade)
     }
 
     private static func makeCloudTileLayout(
         canvasSize: Int,
-        nominalTileSize: Int,
-        safeInsetRatio: CGFloat
+        contentScale: CGFloat
     ) -> CloudTileLayout {
         let canvasSide = CGFloat(canvasSize)
         let canvasRect = CGRect(x: 0.0, y: 0.0, width: canvasSide, height: canvasSide)
-        let nominalSide = CGFloat(nominalTileSize)
-        let safeInset = nominalSide * max(0.0, min(safeInsetRatio, 0.45))
-        let contentSide = max(nominalSide - safeInset * 2.0, nominalSide * 0.10)
+        let resolvedContentScale = max(0.10, min(contentScale, 1.0))
+        let contentSide = canvasSide * resolvedContentScale
+        let safeInset = max((canvasSide - contentSide) * 0.5, 0.0)
         let contentRect = CGRect(
             x: canvasRect.midX - contentSide * 0.5,
             y: canvasRect.midY - contentSide * 0.5,
@@ -1197,20 +1309,10 @@ private enum DynamicTextureFactory {
             (11, 15), (8, 11), (12, 14), (14, 18),
             (9, 13), (15, 19), (10, 12), (13, 16)
         ]
-        let variantFilamentRanges: [(Int, Int)] = [
-            (5, 7), (6, 9), (7, 10), (4, 6),
-            (8, 10), (5, 8), (6, 8), (7, 10),
-            (4, 7), (8, 11), (5, 7), (6, 9)
-        ]
         let variantFlowFactors: [CGFloat] = [
             1.45, 1.69, 1.93, 1.57,
             1.81, 1.33, 1.72, 2.04,
             1.24, 2.18, 1.52, 1.88
-        ]
-        let variantDarkLaneFlags: [Bool] = [
-            true, false, true, false,
-            true, true, false, true,
-            false, true, false, true
         ]
         let baseAlpha = CGFloat.random(in: 0.32...0.58)
         let coreRadius = contentRect.width * CGFloat.random(in: 0.58...0.98)
@@ -1324,56 +1426,9 @@ private enum DynamicTextureFactory {
             )
         }
 
-        let filamentRange = variantFilamentRanges[variantIndex]
-        let softenedFilamentMin = max(2, filamentRange.0 - 3)
-        let softenedFilamentMax = max(softenedFilamentMin, filamentRange.1 - 3)
-        let filamentCount = Int.random(in: softenedFilamentMin...softenedFilamentMax)
-        for _ in 0..<filamentCount {
-            let filamentAngle = variantAngleBias + CGFloat.random(in: -0.90...0.90)
-            let filamentLength = CGFloat.random(in: contentRect.width * 0.42...contentRect.width * 0.88)
-            let filamentWidth = CGFloat.random(in: 18.0...46.0)
-            let filamentAlpha = CGFloat.random(in: 0.025...0.075)
-            let direction = CGPoint(x: cos(filamentAngle), y: sin(filamentAngle))
-            let perpendicular = CGPoint(x: -direction.y, y: direction.x)
-            let segments = Int.random(in: 16...28)
-
-            for segment in 0..<segments {
-                let t = CGFloat(segment) / CGFloat(max(segments - 1, 1))
-                let along = (t - 0.5) * filamentLength
-                let wobble = sin(t * CGFloat.pi * CGFloat.random(in: 1.1...2.6)) * CGFloat.random(in: -16.0...16.0)
-                let point = CGPoint(
-                    x: innerCenter.x + coreOffset.x + direction.x * along + perpendicular.x * wobble,
-                    y: innerCenter.y + coreOffset.y + direction.y * along + perpendicular.y * wobble
-                )
-                let alpha = filamentAlpha * (1.0 - abs(t - 0.5) * 0.78)
-                cg.setFillColor(UIColor(white: 1.0, alpha: alpha).cgColor)
-                cg.fillEllipse(in: CGRect(
-                    x: point.x - filamentWidth * 0.5,
-                    y: point.y - filamentWidth * 0.5,
-                    width: filamentWidth,
-                    height: filamentWidth
-                ))
-            }
-        }
-
-        let dustCount = Int.random(in: 380...760)
-        for _ in 0..<dustCount {
-            let radius = contentRect.width * CGFloat.random(in: 0.10...0.48) * pow(CGFloat.random(in: 0.0...1.0), 1.45)
-            let angle = CGFloat.random(in: 0.0...(CGFloat.pi * 2.0))
-            let point = CGPoint(
-                x: innerCenter.x + coreOffset.x + cos(angle) * radius + CGFloat.random(in: -18.0...18.0),
-                y: innerCenter.y + coreOffset.y + sin(angle) * radius + CGFloat.random(in: -18.0...18.0)
-            )
-            let edgeFade = 1.0 - min(radius / (contentRect.width * 0.50), 1.0)
-            let alpha = CGFloat.random(in: 0.04...0.18) * edgeFade
-            let starSize = CGFloat.random(in: 0.24...1.12)
-            cg.setFillColor(UIColor(white: 1.0, alpha: alpha).cgColor)
-            cg.fillEllipse(in: CGRect(x: point.x, y: point.y, width: starSize, height: starSize))
-        }
-
         // Erode smooth radial overlap with random soft cutouts to avoid visible circular stacks.
         cg.setBlendMode(.destinationOut)
-        let erosionCount = Int.random(in: 70...136)
+        let erosionCount = Int.random(in: 48...96)
         for _ in 0..<erosionCount {
             let edgeBandStart = contentRect.width * 0.30
             let edgeBandEnd = contentRect.width * 0.48
@@ -1404,68 +1459,6 @@ private enum DynamicTextureFactory {
             )
         }
 
-        let laneCount = Int.random(in: 2...4)
-        for _ in 0..<laneCount {
-            let laneAngle = CGFloat.random(in: 0.0...(CGFloat.pi * 2.0))
-            let laneLength = CGFloat.random(in: contentRect.width * 0.34...contentRect.width * 0.70)
-            let laneWidth = CGFloat.random(in: 12.0...28.0)
-            let laneAlpha = CGFloat.random(in: 0.025...0.07)
-            let direction = CGPoint(x: cos(laneAngle), y: sin(laneAngle))
-            let perpendicular = CGPoint(x: -direction.y, y: direction.x)
-            let segments = Int.random(in: 12...22)
-            for segment in 0..<segments {
-                let t = CGFloat(segment) / CGFloat(max(segments - 1, 1))
-                let along = (t - 0.5) * laneLength
-                let wobble = sin(t * CGFloat.pi * CGFloat.random(in: 1.1...2.1)) * CGFloat.random(in: -8.0...8.0)
-                let point = CGPoint(
-                    x: innerCenter.x + direction.x * along + perpendicular.x * wobble,
-                    y: innerCenter.y + direction.y * along + perpendicular.y * wobble
-                )
-                let alpha = laneAlpha * (1.0 - abs(t - 0.5) * 0.8)
-                cg.setFillColor(UIColor(white: 1.0, alpha: alpha).cgColor)
-                cg.fillEllipse(in: CGRect(
-                    x: point.x - laneWidth * 0.5,
-                    y: point.y - laneWidth * 0.5,
-                    width: laneWidth,
-                    height: laneWidth
-                ))
-            }
-        }
-
-        cg.setBlendMode(.plusLighter)
-        let grainCount = Int.random(in: 900...1600)
-        for _ in 0..<grainCount {
-            let point = CGPoint(
-                x: CGFloat.random(in: contentRect.minX...contentRect.maxX),
-                y: CGFloat.random(in: contentRect.minY...contentRect.maxY)
-            )
-            let alpha = CGFloat.random(in: 0.004...0.022)
-            let dotSize = CGFloat.random(in: 0.12...0.42)
-            cg.setFillColor(UIColor(white: 1.0, alpha: alpha).cgColor)
-            cg.fillEllipse(in: CGRect(x: point.x, y: point.y, width: dotSize, height: dotSize))
-        }
-
-        if variantDarkLaneFlags[variantIndex] {
-            let darkLaneGradient = CGGradient(
-                colorsSpace: colorSpace,
-                colors: [
-                    UIColor(white: 0.0, alpha: 0.30).cgColor,
-                    UIColor(white: 0.0, alpha: 0.12).cgColor,
-                    UIColor(white: 0.0, alpha: 0.0).cgColor
-                ] as CFArray,
-                locations: [0.0, 0.58, 1.0]
-            )!
-            cg.setBlendMode(.normal)
-            cg.drawRadialGradient(
-                darkLaneGradient,
-                startCenter: CGPoint(x: innerCenter.x + coreOffset.x * 0.5, y: innerCenter.y + coreOffset.y * 0.5),
-                startRadius: 0.0,
-                endCenter: CGPoint(x: innerCenter.x + coreOffset.x * 0.5, y: innerCenter.y + coreOffset.y * 0.5),
-                endRadius: contentRect.width * CGFloat.random(in: 0.26...0.44),
-                options: [.drawsAfterEndLocation]
-            )
-            cg.setBlendMode(.plusLighter)
-        }
     }
 
     private static func applyCloudTileBoundaryFade(

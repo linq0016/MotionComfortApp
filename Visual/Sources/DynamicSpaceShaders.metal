@@ -7,9 +7,17 @@ struct DynamicSpriteVertex {
     float4 rotationAndMisc;
 };
 
+struct DynamicNebulaQuadVertex {
+    float4 positionAndUV;
+    float4 colorAndAlpha;
+    float4 atlasAndMisc;
+};
+
 struct DynamicViewportUniforms {
     float2 viewportSize;
     float2 atlasGrid;
+    float nebulaAtlasInset;
+    float nebulaBoundaryFeather;
 };
 
 struct DynamicVertexOut {
@@ -18,6 +26,13 @@ struct DynamicVertexOut {
     float4 color;
     float atlasIndex;
     float rotation;
+};
+
+struct DynamicNebulaVertexOut {
+    float4 position [[position]];
+    float2 uv;
+    float4 color;
+    float atlasIndex;
 };
 
 vertex DynamicVertexOut dynamicSpriteVertex(
@@ -43,6 +58,28 @@ vertex DynamicVertexOut dynamicSpriteVertex(
     );
     outVertex.atlasIndex = inVertex.colorAndSoftness.w;
     outVertex.rotation = inVertex.rotationAndMisc.x;
+    return outVertex;
+}
+
+vertex DynamicNebulaVertexOut dynamicNebulaQuadVertex(
+    const device DynamicNebulaQuadVertex *vertices [[buffer(0)]],
+    constant DynamicViewportUniforms &uniforms [[buffer(1)]],
+    uint vertexID [[vertex_id]]
+) {
+    DynamicNebulaQuadVertex inVertex = vertices[vertexID];
+    float2 viewport = uniforms.viewportSize;
+    float2 pixelPosition = inVertex.positionAndUV.xy;
+
+    float2 ndc = float2(
+        ((pixelPosition.x / viewport.x) * 2.0) - 1.0,
+        1.0 - ((pixelPosition.y / viewport.y) * 2.0)
+    );
+
+    DynamicNebulaVertexOut outVertex;
+    outVertex.position = float4(ndc, 0.0, 1.0);
+    outVertex.uv = inVertex.positionAndUV.zw;
+    outVertex.color = inVertex.colorAndAlpha;
+    outVertex.atlasIndex = inVertex.atlasAndMisc.x;
     return outVertex;
 }
 
@@ -92,12 +129,44 @@ fragment half4 dynamicNebulaFragment(
         centeredPoint.x * sine + centeredPoint.y * cosine
     ) + float2(0.5, 0.5);
     float2 safePoint = clamp(rotatedPoint, float2(0.0), float2(1.0));
-    float2 tileInset = float2(0.08, 0.08);
+    float2 tileInset = float2(uniforms.nebulaAtlasInset, uniforms.nebulaAtlasInset);
     float2 atlasCoord = (float2(atlasColumn, atlasRow) + tileInset + safePoint * (float2(1.0) - tileInset * 2.0)) * tileSize;
     half4 sampled = spriteTexture.sample(textureSampler, atlasCoord);
 
-    half brightness = half(min(inFragment.color.a * 1.42, 1.0));
-    half alphaGuard = half(smoothstep(0.01, 0.06, float(sampled.a)));
+    half brightness = half(inFragment.color.a);
+    half alphaGuard = half(smoothstep(0.01, uniforms.nebulaBoundaryFeather, float(sampled.a)));
+    return half4(
+        half3(inFragment.color.rgb) * sampled.rgb * brightness,
+        sampled.a * brightness * alphaGuard
+    );
+}
+
+fragment half4 dynamicNebulaQuadFragment(
+    DynamicNebulaVertexOut inFragment [[stage_in]],
+    texture2d<half> spriteTexture [[texture(0)]],
+    constant DynamicViewportUniforms &uniforms [[buffer(1)]]
+) {
+    constexpr sampler textureSampler(
+        coord::normalized,
+        address::clamp_to_edge,
+        filter::linear
+    );
+
+    float2 atlasGrid = max(uniforms.atlasGrid, float2(1.0, 1.0));
+    int atlasColumns = max(int(atlasGrid.x), 1);
+    int atlasRows = max(int(atlasGrid.y), 1);
+    int atlasIndex = clamp(int(round(inFragment.atlasIndex)), 0, atlasColumns * atlasRows - 1);
+    int atlasColumn = atlasIndex % atlasColumns;
+    int atlasRow = atlasIndex / atlasColumns;
+
+    float2 tileSize = float2(1.0 / float(atlasColumns), 1.0 / float(atlasRows));
+    float2 safePoint = clamp(inFragment.uv, float2(0.0), float2(1.0));
+    float2 tileInset = float2(uniforms.nebulaAtlasInset, uniforms.nebulaAtlasInset);
+    float2 atlasCoord = (float2(atlasColumn, atlasRow) + tileInset + safePoint * (float2(1.0) - tileInset * 2.0)) * tileSize;
+    half4 sampled = spriteTexture.sample(textureSampler, atlasCoord);
+
+    half brightness = half(inFragment.color.a);
+    half alphaGuard = half(smoothstep(0.01, uniforms.nebulaBoundaryFeather, float(sampled.a)));
     return half4(
         half3(inFragment.color.rgb) * sampled.rgb * brightness,
         sampled.a * brightness * alphaGuard
