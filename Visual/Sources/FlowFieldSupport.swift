@@ -18,6 +18,7 @@ struct FlowGridConfiguration: Sendable {
     var safeZoneCornerRadius: CGFloat
     var safeZoneFeatherWidth: CGFloat
     var sensorSmoothing: Double
+    var verticalSensitivity: Double
     var velocityMultiplier: Double
     var velocityFriction: Double
     var magnitudeSmoothing: Double
@@ -47,11 +48,12 @@ struct FlowGridConfiguration: Sendable {
         safeZoneCornerRadius: 0.0,
         safeZoneFeatherWidth: 0.0,
         sensorSmoothing: 0.08,
-        velocityMultiplier: 25.0 * (2.0 / 3.0),
+        verticalSensitivity: 1.2,
+        velocityMultiplier: 25.0 * 0.50,
         velocityFriction: 0.15,
         magnitudeSmoothing: 0.9,
         magnitudeDecaySmoothing: 0.94,
-        maxAccelThreshold: 0.33,
+        maxAccelThreshold: 0.5,
         motionDeadzone: 0.006,
         baseDensity: 0.20,
         extraDensityRange: 0.60,
@@ -77,11 +79,12 @@ struct FlowGridConfiguration: Sendable {
         safeZoneCornerRadius: 40.0,
         safeZoneFeatherWidth: 88.0,
         sensorSmoothing: 0.08,
-        velocityMultiplier: 25.0 * (2.0 / 3.0),
+        verticalSensitivity: 1.2,
+        velocityMultiplier: 25.0 * 0.50,
         velocityFriction: 0.15,
         magnitudeSmoothing: 0.9,
         magnitudeDecaySmoothing: 0.94,
-        maxAccelThreshold: 0.33,
+        maxAccelThreshold: 0.5,
         motionDeadzone: 0.006,
         baseDensity: 0.20,
         extraDensityRange: 0.64,
@@ -241,11 +244,12 @@ struct FlowGridPhase {
             + ((1.0 - configuration.sensorSmoothing) * filteredAcceleration.dy)
         filteredVerticalAcceleration = (configuration.sensorSmoothing * sample.verticalAcceleration)
             + ((1.0 - configuration.sensorSmoothing) * filteredVerticalAcceleration)
+        let verticalAcceleration = filteredVerticalAcceleration * configuration.verticalSensitivity
 
         let rawMagnitude = sqrt(
             (filteredAcceleration.dx * filteredAcceleration.dx)
                 + (filteredAcceleration.dy * filteredAcceleration.dy)
-                + (filteredVerticalAcceleration * filteredVerticalAcceleration)
+                + (verticalAcceleration * verticalAcceleration)
         )
 
         if rawMagnitude >= smoothedMagnitude {
@@ -262,7 +266,7 @@ struct FlowGridPhase {
             : 0.0
         let verticalDirection = configuration.invertVerticalFlow ? 1.0 : -1.0
         let targetVelocityY = rawMagnitude > configuration.motionDeadzone
-            ? ((filteredAcceleration.dy + filteredVerticalAcceleration) * configuration.velocityMultiplier * verticalDirection)
+            ? ((filteredAcceleration.dy + verticalAcceleration) * configuration.velocityMultiplier * verticalDirection)
             : 0.0
 
         currentVelocity.dx += (targetVelocityX - currentVelocity.dx) * configuration.velocityFriction

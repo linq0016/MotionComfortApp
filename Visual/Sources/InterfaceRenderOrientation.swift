@@ -33,20 +33,14 @@ extension MotionSample {
                 timestamp: timestamp,
                 lateralAcceleration: -longitudinalAcceleration,
                 longitudinalAcceleration: lateralAcceleration,
-                verticalAcceleration: verticalAcceleration,
-                pitch: pitch,
-                roll: roll,
-                yawRate: yawRate
+                verticalAcceleration: verticalAcceleration
             )
         case .landscapeRight:
             return MotionSample(
                 timestamp: timestamp,
                 lateralAcceleration: longitudinalAcceleration,
                 longitudinalAcceleration: -lateralAcceleration,
-                verticalAcceleration: verticalAcceleration,
-                pitch: pitch,
-                roll: roll,
-                yawRate: yawRate
+                verticalAcceleration: verticalAcceleration
             )
         }
     }

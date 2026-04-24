@@ -62,10 +62,7 @@ public final class MotionManager: ObservableObject {
                         timestamp: Date().timeIntervalSince1970,
                         lateralAcceleration: motion.userAcceleration.x,
                         longitudinalAcceleration: -motion.userAcceleration.y,
-                        verticalAcceleration: motion.userAcceleration.z,
-                        pitch: motion.attitude.pitch,
-                        roll: motion.attitude.roll,
-                        yawRate: motion.rotationRate.z
+                        verticalAcceleration: motion.userAcceleration.z
                     )
 
                     self.sample = next
@@ -94,10 +91,7 @@ public final class MotionManager: ObservableObject {
                     timestamp: Date().timeIntervalSince1970,
                     lateralAcceleration: sin(elapsed * 1.35) * 0.34,
                     longitudinalAcceleration: cos(elapsed * 0.92) * 0.22,
-                    verticalAcceleration: sin(elapsed * 2.1) * 0.08,
-                    pitch: sin(elapsed * 0.40) * 0.14,
-                    roll: cos(elapsed * 0.52) * 0.24,
-                    yawRate: sin(elapsed * 1.15) * 1.0
+                    verticalAcceleration: sin(elapsed * 2.1) * 0.08
                 )
 
                 self.sample = next

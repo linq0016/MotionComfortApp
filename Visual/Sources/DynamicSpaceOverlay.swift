@@ -167,8 +167,10 @@ private struct DynamicSpaceConfiguration {
     let nebulaAtlasInset: Float = 0.10
     let nebulaBoundaryFeather: Float = 0.10
     let sensorSmoothing: Float = 0.42
+    let verticalSensitivity: Float = 1.2
     let velocityFriction: Float = 0.11
-    let brightnessDivisor: Float = 1.2
+    let cameraDriftVelocityCap: Float = 3.0
+    let brightnessDivisor: Float = 0.6
 }
 
 private struct DynamicParticle {
@@ -219,6 +221,7 @@ private struct DynamicSpaceSceneState {
     var dusts: [DynamicDust] = []
     var nebulas: [DynamicNebula] = []
     var filteredAccel = SIMD2<Float>(repeating: 0.0)
+    var filteredVerticalAcceleration: Float = 0.0
     var motionEnvelope: Float = 0.0
     var currentVelocity = SIMD2<Float>(repeating: 0.0)
     var camX: Float = 0.0
@@ -685,14 +688,23 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             Float(sample.longitudinalAcceleration)
         )
         state.filteredAccel = (accel * config.sensorSmoothing) + (state.filteredAccel * (1.0 - config.sensorSmoothing))
+        state.filteredVerticalAcceleration = (Float(sample.verticalAcceleration) * config.sensorSmoothing)
+            + (state.filteredVerticalAcceleration * (1.0 - config.sensorSmoothing))
+        let verticalAcceleration = state.filteredVerticalAcceleration * config.verticalSensitivity
 
         state.currentVelocity.x += ((-state.filteredAccel.x * 3.0) - state.currentVelocity.x) * config.velocityFriction
-        state.currentVelocity.y += ((-state.filteredAccel.y * 3.0) - state.currentVelocity.y) * config.velocityFriction
+        state.currentVelocity.y += (((-(state.filteredAccel.y + verticalAcceleration)) * 3.0) - state.currentVelocity.y) * config.velocityFriction
+        state.currentVelocity.x = min(max(state.currentVelocity.x, -config.cameraDriftVelocityCap), config.cameraDriftVelocityCap)
+        state.currentVelocity.y = min(max(state.currentVelocity.y, -config.cameraDriftVelocityCap), config.cameraDriftVelocityCap)
 
         state.camX += state.currentVelocity.x * config.camSensX * frameScale
         state.camY += state.currentVelocity.y * config.camSensY * frameScale
 
-        let accelMagnitude = simd_length(state.filteredAccel)
+        let accelMagnitude = sqrt(
+            (state.filteredAccel.x * state.filteredAccel.x)
+                + (state.filteredAccel.y * state.filteredAccel.y)
+                + (verticalAcceleration * verticalAcceleration)
+        )
         let rawIntensity = min(accelMagnitude / config.brightnessDivisor, 1.0)
         let targetIntensity = pow(rawIntensity, 0.82)
         let attackRate: Float = 0.24
