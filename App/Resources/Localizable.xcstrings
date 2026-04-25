@@ -237,6 +237,7 @@
       }
     },
     "fullscreen.cruise_speed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -248,6 +249,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "巡航速度"
+          }
+        }
+      }
+    },
+    "fullscreen.motion_sensitivity" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motion Sensitivity"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运动灵敏度"
           }
         }
       }

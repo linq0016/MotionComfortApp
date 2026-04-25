@@ -5,12 +5,18 @@ import SwiftUI
 public struct MinimalFlowOverlay: View {
     public var sample: MotionSample
     public var orientation: InterfaceRenderOrientation
+    public var motionSensitivityFactor: Double
 
     @State private var phase = FlowGridPhase()
 
-    public init(sample: MotionSample, orientation: InterfaceRenderOrientation = .portrait) {
+    public init(
+        sample: MotionSample,
+        orientation: InterfaceRenderOrientation = .portrait,
+        motionSensitivityFactor: Double = 1.0
+    ) {
         self.sample = sample
         self.orientation = orientation
+        self.motionSensitivityFactor = motionSensitivityFactor
     }
 
     public var body: some View {
@@ -18,7 +24,8 @@ public struct MinimalFlowOverlay: View {
             sample: sample,
             configuration: .minimal,
             phase: $phase,
-            orientation: orientation
+            orientation: orientation,
+            motionSensitivityFactor: motionSensitivityFactor
         )
     }
 }
@@ -29,6 +36,7 @@ private struct FlowGridOverlay: View {
     var configuration: FlowGridConfiguration
     @Binding var phase: FlowGridPhase
     var orientation: InterfaceRenderOrientation
+    var motionSensitivityFactor: Double
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
@@ -70,8 +78,8 @@ private struct FlowGridOverlay: View {
                         )
                         let edgeWeight = flowEdgeDistanceWeight(
                             point: point,
-                            safeRect: layout.safeRect,
-                            inverseEdgeMaxDistance: layout.inverseEdgeMaxDistance
+                            canvasSize: canvasSize,
+                            safeRect: layout.safeRect
                         )
 
                         guard var appearance = flowDotAppearance(
@@ -107,7 +115,8 @@ private struct FlowGridOverlay: View {
                     phase.advance(
                         sample: orientedSample,
                         timestamp: date.timeIntervalSinceReferenceDate,
-                        configuration: configuration
+                        configuration: configuration,
+                        motionSensitivityFactor: motionSensitivityFactor
                     )
                 }
                 .onChange(of: orientation) { _, _ in

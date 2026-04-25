@@ -13,6 +13,7 @@ public struct LiveViewOverlay: View {
     let sample: MotionSample
     let style: VisualGuideStyle
     let orientation: InterfaceRenderOrientation
+    let motionSensitivityFactor: Double
 
     @ObservedObject private var camera: LiveViewCameraModel
     @State private var phase = FlowGridPhase()
@@ -21,11 +22,13 @@ public struct LiveViewOverlay: View {
         sample: MotionSample,
         style: VisualGuideStyle = .liveView,
         orientation: InterfaceRenderOrientation = .portrait,
+        motionSensitivityFactor: Double = 1.0,
         camera: LiveViewCameraModel = LiveViewCameraModel()
     ) {
         self.sample = sample
         self.style = style
         self.orientation = orientation
+        self.motionSensitivityFactor = motionSensitivityFactor
         self._camera = ObservedObject(wrappedValue: camera)
     }
 
@@ -38,7 +41,8 @@ public struct LiveViewOverlay: View {
                             sample: sample,
                             renderState: camera.overlayRenderState,
                             phase: $phase,
-                            orientation: orientation
+                            orientation: orientation,
+                            motionSensitivityFactor: motionSensitivityFactor
                         )
                     }
             } else {
@@ -602,6 +606,12 @@ private struct LiveViewCameraPreview: UIViewRepresentable {
         func configure(session: AVCaptureSession, orientation: InterfaceRenderOrientation) {
             let rotationAngle = orientation.videoRotationAngle
 
+            if appliedSession === session,
+               previewLayer.videoGravity == .resizeAspectFill,
+               appliedRotationAngle == rotationAngle {
+                return
+            }
+
             CATransaction.begin()
             CATransaction.setDisableActions(true)
 
@@ -632,6 +642,7 @@ private struct LiveViewEdgeFlowOverlay: View {
     let renderState: LiveViewOverlayRenderState
     @Binding var phase: FlowGridPhase
     let orientation: InterfaceRenderOrientation
+    let motionSensitivityFactor: Double
 
     private let configuration = FlowGridConfiguration.liveViewEdge
     private let safeZoneSoftRadiusAttenuation: CGFloat = 0.5
@@ -721,7 +732,8 @@ private struct LiveViewEdgeFlowOverlay: View {
                     phase.advance(
                         sample: orientedSample,
                         timestamp: date.timeIntervalSinceReferenceDate,
-                        configuration: configuration
+                        configuration: configuration,
+                        motionSensitivityFactor: motionSensitivityFactor
                     )
                 }
                 .onChange(of: orientation) { _, _ in

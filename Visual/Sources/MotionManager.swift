@@ -3,7 +3,7 @@ import CoreMotion
 import Foundation
 import MotionComfortCore
 
-// 运动输入层：只负责真机传感器和 demo 两种数据来源。
+// 运动输入层：只负责真机传感器数据来源。
 @MainActor
 public final class MotionManager: ObservableObject {
     @Published public private(set) var sample: MotionSample
@@ -13,7 +13,6 @@ public final class MotionManager: ObservableObject {
 
     private let motionManager: CMMotionManager
     private var samplingTask: Task<Void, Never>?
-    private var demoStartTime: TimeInterval?
 
     public init(motionManager: CMMotionManager = CMMotionManager()) {
         self.motionManager = motionManager
@@ -27,20 +26,13 @@ public final class MotionManager: ObservableObject {
         stop()
         activeMode = mode
         isLiveMotionAvailable = motionManager.isDeviceMotionAvailable
-
-        switch mode {
-        case .realTime:
-            startRealTimeMotion()
-        case .demo:
-            startDemoMode()
-        }
+        startRealTimeMotion()
     }
 
     public func stop() {
         motionManager.stopDeviceMotionUpdates()
         samplingTask?.cancel()
         samplingTask = nil
-        demoStartTime = nil
         activeMode = nil
         isRunning = false
     }
@@ -51,15 +43,16 @@ public final class MotionManager: ObservableObject {
             return
         }
 
-        motionManager.deviceMotionUpdateInterval = 1.0 / 60.0
+        motionManager.deviceMotionUpdateInterval = 1.0 / 120.0
         motionManager.startDeviceMotionUpdates()
         isRunning = true
 
         samplingTask = Task { @MainActor [weak self] in
             while let self, !Task.isCancelled, self.activeMode == .realTime {
                 if let motion = self.motionManager.deviceMotion {
+                    let now = Date().timeIntervalSince1970
                     let next = MotionSample(
-                        timestamp: Date().timeIntervalSince1970,
+                        timestamp: now,
                         lateralAcceleration: motion.userAcceleration.x,
                         longitudinalAcceleration: -motion.userAcceleration.y,
                         verticalAcceleration: motion.userAcceleration.z
@@ -68,34 +61,7 @@ public final class MotionManager: ObservableObject {
                     self.sample = next
                 }
 
-                try? await Task.sleep(for: .seconds(1.0 / 60.0))
-            }
-        }
-    }
-
-    // 生成内置的模拟运动数据，方便演示和调参。
-    private func startDemoMode() {
-        samplingTask?.cancel()
-        samplingTask = nil
-        demoStartTime = Date().timeIntervalSince1970
-        isRunning = true
-
-        samplingTask = Task { @MainActor [weak self] in
-            while let self, !Task.isCancelled, self.activeMode == .demo {
-                guard let start = self.demoStartTime else {
-                    return
-                }
-
-                let elapsed = Date().timeIntervalSince1970 - start
-                let next = MotionSample(
-                    timestamp: Date().timeIntervalSince1970,
-                    lateralAcceleration: sin(elapsed * 1.35) * 0.34,
-                    longitudinalAcceleration: cos(elapsed * 0.92) * 0.22,
-                    verticalAcceleration: sin(elapsed * 2.1) * 0.08
-                )
-
-                self.sample = next
-                try? await Task.sleep(for: .seconds(1.0 / 30.0))
+                try? await Task.sleep(for: .seconds(1.0 / 120.0))
             }
         }
     }

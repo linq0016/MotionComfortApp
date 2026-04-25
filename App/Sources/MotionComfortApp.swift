@@ -21,9 +21,11 @@ private struct AppRootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("hasCompletedWelcome") private var hasCompletedWelcome = false
     @AppStorage("quickStartEnabled") private var quickStartEnabled = false
-    @AppStorage("backgroundAudioEnabled") private var backgroundAudioEnabled = true
+    @AppStorage("backgroundAudioEnabled") private var backgroundAudioEnabled = false
     @AppStorage("lastVisualGuideStyle") private var lastVisualGuideStyle = VisualGuideStyle.dynamic.rawValue
     @AppStorage("lastAudioMode") private var lastAudioMode = AudioMode.melodic.rawValue
+    @AppStorage("lastDynamicSpeedMultiplier") private var lastDynamicSpeedMultiplier = 2.0
+    @AppStorage("lastMotionSensitivityFactor") private var lastMotionSensitivityFactor = 1.0
     @AppStorage("hasShownLiveViewGuidanceToast") private var hasShownLiveViewGuidanceToast = false
     @State private var hasLoadedLaunchPreferences = false
     @State private var hasCompletedMinimumLaunchDisplay = false
@@ -45,7 +47,8 @@ private struct AppRootView: View {
                 FullscreenSessionView(
                     model: model,
                     renderState: model.renderState,
-                    orientationObserver: orientationObserver
+                    orientationObserver: orientationObserver,
+                    onMotionControlEditingEnded: persistMotionControlPreferencesImmediately
                 ) {
                     dismissSessionOverlay()
                 }
@@ -81,6 +84,9 @@ private struct AppRootView: View {
         }
         .onChange(of: scenePhase) { _, nextPhase in
             syncBackgroundAudioPolicy(for: nextPhase)
+            if nextPhase != .active {
+                persistMotionControlPreferencesImmediately()
+            }
         }
         .onChange(of: model.isSessionPresented) { _, isPresented in
             handleSessionPresentationChanged(isPresented)
@@ -88,6 +94,7 @@ private struct AppRootView: View {
         .onDisappear {
             cancelSessionFadeTask()
             cancelSessionDismissTask()
+            persistMotionControlPreferencesImmediately()
         }
     }
 
@@ -131,6 +138,8 @@ private struct AppRootView: View {
     private func restorePersistedSessionSelection() {
         let restoredVisualStyle = VisualGuideStyle(rawValue: lastVisualGuideStyle) ?? .dynamic
         let restoredAudioMode = AudioMode(rawValue: lastAudioMode) ?? .melodic
+        let restoredDynamicSpeedMultiplier = min(max(lastDynamicSpeedMultiplier, 0.0), 6.0)
+        let restoredMotionSensitivityFactor = min(max(lastMotionSensitivityFactor, 2.0 / 3.0), 1.5)
 
         if VisualGuideStyle(rawValue: lastVisualGuideStyle) == nil {
             lastVisualGuideStyle = restoredVisualStyle.rawValue
@@ -140,8 +149,12 @@ private struct AppRootView: View {
             lastAudioMode = restoredAudioMode.rawValue
         }
 
+        lastDynamicSpeedMultiplier = restoredDynamicSpeedMultiplier
+        lastMotionSensitivityFactor = restoredMotionSensitivityFactor
         model.visualGuideStyle = restoredVisualStyle
         model.audioMode = restoredAudioMode
+        model.dynamicSpeedMultiplier = restoredDynamicSpeedMultiplier
+        model.motionSensitivityFactor = restoredMotionSensitivityFactor
     }
 
     private func resetAppStartupState() {
@@ -150,8 +163,18 @@ private struct AppRootView: View {
         hasShownLiveViewGuidanceToast = false
         lastVisualGuideStyle = VisualGuideStyle.dynamic.rawValue
         lastAudioMode = AudioMode.melodic.rawValue
+        lastDynamicSpeedMultiplier = 2.0
+        lastMotionSensitivityFactor = 1.0
         model.visualGuideStyle = .dynamic
         model.audioMode = .melodic
+        model.dynamicSpeedMultiplier = 2.0
+        model.motionSensitivityFactor = 1.0
+    }
+
+    private func persistMotionControlPreferencesImmediately() {
+        guard hasLoadedLaunchPreferences else { return }
+        lastDynamicSpeedMultiplier = model.dynamicSpeedMultiplier
+        lastMotionSensitivityFactor = model.motionSensitivityFactor
     }
 
     private func syncBackgroundAudioPolicy(for phase: ScenePhase) {

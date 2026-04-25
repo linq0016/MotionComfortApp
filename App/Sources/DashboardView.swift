@@ -21,7 +21,8 @@ struct DashboardView: View {
     @State private var didAttemptAutoStart = false
     @State private var isLaunchDimVisible = false
     @State private var launchDimDismissTask: Task<Void, Never>?
-    @State private var settingsSheetDetent: PresentationDetent = .fraction(0.42)
+    @State private var settingsCompactHeight: CGFloat = 360.0
+    @State private var settingsSheetDetent: PresentationDetent = .height(360.0)
 
     var body: some View {
         ZStack {
@@ -71,12 +72,15 @@ struct DashboardView: View {
                 quickStartEnabled: $quickStartEnabled,
                 backgroundAudioEnabled: $backgroundAudioEnabled,
                 shouldRenderAboutSection: isLandscapeInterface || settingsSheetDetent == .large,
+                onCompactHeightChange: { height in
+                    updateSettingsCompactHeight(height)
+                },
                 resetWelcomeAndReturnToIntro: {
                     isSettingsPresented = false
                     resetWelcomeAndReturnToIntro()
                 }
             )
-            .presentationDetents([.fraction(0.42), .large], selection: $settingsSheetDetent)
+            .presentationDetents([settingsCompactDetent, .large], selection: $settingsSheetDetent)
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(54.0)
             .presentationBackground {
@@ -210,7 +214,7 @@ struct DashboardView: View {
     private var settingsSection: some View {
         ReliableGlassButton(
             action: {
-                settingsSheetDetent = .fraction(0.42)
+                settingsSheetDetent = settingsCompactDetent
                 isSettingsPresented = true
             },
             shape: .rounded(28.0),
@@ -221,6 +225,27 @@ struct DashboardView: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56.0)
+        }
+    }
+
+    private var settingsCompactDetent: PresentationDetent {
+        .height(max(settingsCompactHeight, 1.0))
+    }
+
+    private func updateSettingsCompactHeight(_ height: CGFloat) {
+        let roundedHeight = ceil(height)
+        guard abs(settingsCompactHeight - roundedHeight) > 0.5 else {
+            return
+        }
+
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+
+        withTransaction(transaction) {
+            settingsCompactHeight = roundedHeight
+            if settingsSheetDetent != .large {
+                settingsSheetDetent = .height(roundedHeight)
+            }
         }
     }
 
@@ -501,6 +526,7 @@ private struct SettingsPanel: View {
     @Binding var quickStartEnabled: Bool
     @Binding var backgroundAudioEnabled: Bool
     let shouldRenderAboutSection: Bool
+    let onCompactHeightChange: (CGFloat) -> Void
     let resetWelcomeAndReturnToIntro: () -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -511,45 +537,101 @@ private struct SettingsPanel: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 18.0) {
-                        settingsToggleSection(
-                            titleKey: "settings.express_startup",
-                            supportingCopyKey: "settings.express_startup.supporting_copy",
-                            isOn: $quickStartEnabled
-                        )
-
-                        settingsToggleSection(
-                            titleKey: "settings.background_audio",
-                            supportingCopyKey: "settings.background_audio.supporting_copy",
-                            isOn: $backgroundAudioEnabled
-                        )
-
-                        ReliableGlassButton(
-                            action: resetWelcomeAndReturnToIntro,
-                            shape: .rounded(26.0),
-                            tintOpacity: 0.24,
-                            strokeOpacity: 0.15
-                        ) {
-                            Text("settings.reset_stellar")
-                                .font(.system(size: 17.0, weight: .semibold, design: .rounded))
-                                .foregroundStyle(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 52.0)
-                        }
-                        .padding(.horizontal, 2.0)
+                        compactSettingsControls
 
                         if shouldRenderAboutSection {
                             settingsAboutSection
                                 .padding(.top, 8.0)
                         }
                     }
-                    .padding(.bottom, 12.0)
+                    .padding(.bottom, 30.0)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .padding(24.0)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .frame(maxWidth: .infinity, alignment: .top)
+        }
+        .background { compactHeightMeasurement }
+        .onPreferenceChange(SettingsPanelCompactHeightPreferenceKey.self) { height in
+            onCompactHeightChange(height)
         }
         .preferredColorScheme(.dark)
+    }
+
+    @ViewBuilder
+    private var compactSettingsControls: some View {
+        settingsToggleSection(
+            titleKey: "settings.express_startup",
+            supportingCopyKey: "settings.express_startup.supporting_copy",
+            isOn: $quickStartEnabled
+        )
+
+        settingsToggleSection(
+            titleKey: "settings.background_audio",
+            supportingCopyKey: "settings.background_audio.supporting_copy",
+            isOn: $backgroundAudioEnabled
+        )
+
+        resetStellarButton
+    }
+
+    private var resetStellarButton: some View {
+        ReliableGlassButton(
+            action: resetWelcomeAndReturnToIntro,
+            shape: .rounded(26.0),
+            tintOpacity: 0.24,
+            strokeOpacity: 0.15
+        ) {
+            Text("settings.reset_stellar")
+                .font(.system(size: 17.0, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52.0)
+        }
+        .padding(.horizontal, 2.0)
+    }
+
+    private var compactHeightMeasurement: some View {
+        GeometryReader { proxy in
+            VStack(alignment: .leading, spacing: 22.0) {
+                headerMeasurement
+
+                VStack(alignment: .leading, spacing: 18.0) {
+                    compactSettingsMeasurementControls
+                }
+                .padding(.bottom, 30.0)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(24.0)
+            .frame(width: proxy.size.width, alignment: .topLeading)
+            .fixedSize(horizontal: false, vertical: true)
+            .hidden()
+            .accessibilityHidden(true)
+            .allowsHitTesting(false)
+            .background {
+                GeometryReader { measurementProxy in
+                    Color.clear.preference(
+                        key: SettingsPanelCompactHeightPreferenceKey.self,
+                        value: measurementProxy.size.height
+                    )
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var compactSettingsMeasurementControls: some View {
+        settingsToggleMeasurementSection(
+            titleKey: "settings.express_startup",
+            supportingCopyKey: "settings.express_startup.supporting_copy"
+        )
+
+        settingsToggleMeasurementSection(
+            titleKey: "settings.background_audio",
+            supportingCopyKey: "settings.background_audio.supporting_copy"
+        )
+
+        resetStellarButtonMeasurement
     }
 
     private var header: some View {
@@ -577,6 +659,19 @@ private struct SettingsPanel: View {
         .offset(y: 1.0)
     }
 
+    private var headerMeasurement: some View {
+        HStack {
+            Text("settings.title")
+                .font(.system(size: 24.0, weight: .bold, design: .rounded))
+
+            Spacer()
+
+            Color.clear
+                .frame(width: 38.0, height: 38.0)
+        }
+        .offset(y: 1.0)
+    }
+
     private func settingsToggleSection(
         titleKey: LocalizedStringKey,
         supportingCopyKey: LocalizedStringKey,
@@ -600,6 +695,38 @@ private struct SettingsPanel: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.trailing, 4.0)
+    }
+
+    private func settingsToggleMeasurementSection(
+        titleKey: LocalizedStringKey,
+        supportingCopyKey: LocalizedStringKey
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8.0) {
+            HStack {
+                Text(titleKey)
+                    .font(.system(size: 17.0, weight: .semibold, design: .rounded))
+
+                Spacer()
+
+                Color.clear
+                    .frame(width: 51.0, height: 31.0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text(String(localized: supportingCopyLocalizationValue(for: supportingCopyKey)))
+                .font(.system(size: 13.0, weight: .regular, design: .rounded))
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.trailing, 4.0)
+    }
+
+    private var resetStellarButtonMeasurement: some View {
+        Color.clear
+            .frame(maxWidth: .infinity)
+            .frame(height: 52.0)
+            .padding(.horizontal, 2.0)
     }
 
     private var settingsAboutSection: some View {
@@ -679,6 +806,14 @@ private struct SettingsPanel: View {
 
     private var aboutDetailsURL: URL {
         URL(string: "https://pubmed.ncbi.nlm.nih.gov/40128952/")!
+    }
+}
+
+private struct SettingsPanelCompactHeightPreferenceKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0.0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 

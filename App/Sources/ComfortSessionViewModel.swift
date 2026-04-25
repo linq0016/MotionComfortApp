@@ -32,7 +32,8 @@ final class SessionRenderState: ObservableObject {
 final class ComfortSessionViewModel: ObservableObject {
     @Published var visualGuideStyle: VisualGuideStyle = .dynamic
     @Published var motionInputMode: MotionInputMode = .realTime
-    @Published var dynamicSpeedMultiplier = 1.0
+    @Published var dynamicSpeedMultiplier = 2.0
+    @Published var motionSensitivityFactor = 1.0
     @Published var audioMode: AudioMode = .melodic {
         didSet {
             if audioMode != .off {
@@ -98,10 +99,6 @@ final class ComfortSessionViewModel: ObservableObject {
 
     // 启动当前选择的 motion 和 audio 模式。
     func start() {
-        if visualGuideStyle == .dynamic {
-            dynamicSpeedMultiplier = 1.0
-        }
-
         motionManager.start(mode: motionInputMode)
     }
 
@@ -185,7 +182,6 @@ final class ComfortSessionViewModel: ObservableObject {
         motionManager.stop()
         audioEngine.stopPlayback()
         liveViewCamera.stop()
-        dynamicSpeedMultiplier = 1.0
         sessionLaunchOverlayState = .none
         loadingVisibleAt = nil
         sessionLaunchState = .idle
@@ -387,7 +383,6 @@ final class ComfortSessionViewModel: ObservableObject {
         motionManager.stop()
         audioEngine.stopPlayback()
         liveViewCamera.stop()
-        dynamicSpeedMultiplier = 1.0
         loadingVisibleAt = nil
         sessionLaunchState = .idle
         isRunning = false

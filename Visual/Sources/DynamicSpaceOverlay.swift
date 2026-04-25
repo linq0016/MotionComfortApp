@@ -9,22 +9,26 @@ public struct DynamicFlowOverlay: View {
     let sample: MotionSample
     let orientation: InterfaceRenderOrientation
     let speedMultiplier: Double
+    let motionSensitivityFactor: Double
 
     public init(
         sample: MotionSample = .neutral,
         orientation: InterfaceRenderOrientation = .portrait,
-        speedMultiplier: Double = 1.0
+        speedMultiplier: Double = 1.0,
+        motionSensitivityFactor: Double = 1.0
     ) {
         self.sample = sample
         self.orientation = orientation
         self.speedMultiplier = speedMultiplier
+        self.motionSensitivityFactor = motionSensitivityFactor
     }
 
     public var body: some View {
         GeometryReader { proxy in
             DynamicMetalView(
                 sample: sample.rotatedForDisplay(orientation),
-                speedMultiplier: speedMultiplier
+                speedMultiplier: speedMultiplier,
+                motionSensitivityFactor: motionSensitivityFactor
             )
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
@@ -47,6 +51,7 @@ private struct DynamicMetalView: UIViewRepresentable {
 
     let sample: MotionSample
     let speedMultiplier: Double
+    let motionSensitivityFactor: Double
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -75,6 +80,7 @@ private struct DynamicMetalView: UIViewRepresentable {
             let renderer = try DynamicMetalRenderer(mtkView: view, resources: resources)
             renderer.sample = sample
             renderer.speedMultiplier = Float(speedMultiplier)
+            renderer.motionSensitivityFactor = Float(motionSensitivityFactor)
             context.coordinator.renderer = renderer
             view.delegate = renderer
             view.clearFailure()
@@ -89,6 +95,7 @@ private struct DynamicMetalView: UIViewRepresentable {
         uiView.updateDrawableSizeIfNeeded()
         context.coordinator.renderer?.sample = sample
         context.coordinator.renderer?.speedMultiplier = Float(speedMultiplier)
+        context.coordinator.renderer?.motionSensitivityFactor = Float(motionSensitivityFactor)
     }
 
     final class Coordinator {
@@ -168,8 +175,7 @@ private struct DynamicSpaceConfiguration {
     let nebulaBoundaryFeather: Float = 0.10
     let sensorSmoothing: Float = 0.42
     let verticalSensitivity: Float = 1.2
-    let velocityFriction: Float = 0.11
-    let cameraDriftVelocityCap: Float = 3.0
+    let velocityFriction: Float = 0.10
     let brightnessDivisor: Float = 0.6
 }
 
@@ -452,6 +458,7 @@ private final class DynamicRenderResourceCache: @unchecked Sendable {
 private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     var sample: MotionSample = .neutral
     var speedMultiplier: Float = 1.0
+    var motionSensitivityFactor: Float = 1.0
 
     private let config = DynamicSpaceConfiguration()
     private let commandQueue: MTLCommandQueue
@@ -482,6 +489,15 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     private var dustCount = 0
     private var haloCount = 0
     private var sharpCount = 0
+
+    #if DEBUG
+    private var debugMetricsWindowStart: CFTimeInterval?
+    private var debugFrameCount = 0
+    private var debugFrameIntervalTotal: CFTimeInterval = 0.0
+    private var debugFrameIntervalMax: CFTimeInterval = 0.0
+    private var debugCPUEncodeTotal: CFTimeInterval = 0.0
+    private var debugCPUEncodeMax: CFTimeInterval = 0.0
+    #endif
 
     init(mtkView: MTKView, resources: DynamicRenderResources) throws {
         let device = resources.device
@@ -548,10 +564,13 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         }
 
         let now = CACurrentMediaTime()
+        let rawDeltaTime: CFTimeInterval
         let deltaTime: Float
         if let lastUpdateTime {
-            deltaTime = Float(min(max(now - lastUpdateTime, 1.0 / 120.0), 1.0 / 30.0))
+            rawDeltaTime = now - lastUpdateTime
+            deltaTime = Float(min(max(rawDeltaTime, 1.0 / 120.0), 1.0 / 30.0))
         } else {
+            rawDeltaTime = 1.0 / 60.0
             deltaTime = 1.0 / 60.0
         }
         lastUpdateTime = now
@@ -600,7 +619,59 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         encoder.endEncoding()
         commandBuffer.present(drawable)
         commandBuffer.commit()
+
+        #if DEBUG
+        recordDebugFrameMetrics(frameStart: now, frameInterval: rawDeltaTime)
+        #endif
     }
+
+    #if DEBUG
+    private func recordDebugFrameMetrics(frameStart: CFTimeInterval, frameInterval: CFTimeInterval) {
+        let frameEnd = CACurrentMediaTime()
+        let cpuEncodeTime = frameEnd - frameStart
+
+        if debugMetricsWindowStart == nil {
+            debugMetricsWindowStart = frameStart
+        }
+
+        debugFrameCount += 1
+        debugFrameIntervalTotal += frameInterval
+        debugFrameIntervalMax = max(debugFrameIntervalMax, frameInterval)
+        debugCPUEncodeTotal += cpuEncodeTime
+        debugCPUEncodeMax = max(debugCPUEncodeMax, cpuEncodeTime)
+
+        guard let windowStart = debugMetricsWindowStart else {
+            return
+        }
+
+        let windowDuration = frameEnd - windowStart
+        guard windowDuration >= 1.0 else {
+            return
+        }
+
+        let fps = Double(debugFrameCount) / windowDuration
+        let averageFrameMilliseconds = (debugFrameIntervalTotal / Double(debugFrameCount)) * 1000.0
+        let maxFrameMilliseconds = debugFrameIntervalMax * 1000.0
+        let averageCPUEncodeMilliseconds = (debugCPUEncodeTotal / Double(debugFrameCount)) * 1000.0
+        let maxCPUEncodeMilliseconds = debugCPUEncodeMax * 1000.0
+
+        print(String(
+            format: "[DynamicDebug] fps=%.1f frame_ms_avg=%.2f frame_ms_max=%.2f cpu_encode_ms_avg=%.2f cpu_encode_ms_max=%.2f",
+            fps,
+            averageFrameMilliseconds,
+            maxFrameMilliseconds,
+            averageCPUEncodeMilliseconds,
+            maxCPUEncodeMilliseconds
+        ))
+
+        debugMetricsWindowStart = frameEnd
+        debugFrameCount = 0
+        debugFrameIntervalTotal = 0.0
+        debugFrameIntervalMax = 0.0
+        debugCPUEncodeTotal = 0.0
+        debugCPUEncodeMax = 0.0
+    }
+    #endif
 
     private func rebuildScene(for size: CGSize) {
         guard size.width > 0.0, size.height > 0.0 else {
@@ -661,7 +732,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
                     colorIndex: Int32.random(in: 0..<Int32(DynamicPalette.colors.count)),
                     atlasIndex: Int32(uniqueAtlasIndices[index % uniqueAtlasIndices.count]),
                     sizeJitter: Float.random(in: -config.nebulaSizeVariance...config.nebulaSizeVariance),
-                    brightnessScale: Float.random(in: 0.60...1.00),
+                    brightnessScale: Float.random(in: 0.75...1.00),
                     anchorX: Float.random(in: -0.14...0.14),
                     anchorY: Float.random(in: -0.14...0.14),
                     anchorZ: Float.random(in: config.minZ + 0.9...config.maxZ - 1.1),
@@ -669,7 +740,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
                     driftPhaseY: Float.random(in: 0.0...(Float.pi * 2.0)),
                     driftSpeedX: Float.random(in: 0.00016...0.00046),
                     driftSpeedY: Float.random(in: 0.00016...0.00046),
-                    alphaFreq: Float.random(in: 0.002...0.003),
+                    alphaFreq: Float.random(in: 0.001...0.002),
                     alphaPhase: Float.random(in: 0.0...(Float.pi * 2.0)),
                     wanderRadiusX: Float.random(in: 0.08...0.30),
                     wanderRadiusY: Float.random(in: 0.08...0.30),
@@ -690,20 +761,23 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         state.filteredAccel = (accel * config.sensorSmoothing) + (state.filteredAccel * (1.0 - config.sensorSmoothing))
         state.filteredVerticalAcceleration = (Float(sample.verticalAcceleration) * config.sensorSmoothing)
             + (state.filteredVerticalAcceleration * (1.0 - config.sensorSmoothing))
-        let verticalAcceleration = state.filteredVerticalAcceleration * config.verticalSensitivity
+        let sensitivityFactor = min(max(motionSensitivityFactor, 2.0 / 3.0), 1.5)
+        let adjustedLateralAcceleration = state.filteredAccel.x / sensitivityFactor
+        let adjustedLongitudinalAcceleration = state.filteredAccel.y / sensitivityFactor
+        let adjustedVerticalAcceleration = state.filteredVerticalAcceleration
+            * config.verticalSensitivity
+            / sensitivityFactor
 
-        state.currentVelocity.x += ((-state.filteredAccel.x * 3.0) - state.currentVelocity.x) * config.velocityFriction
-        state.currentVelocity.y += (((-(state.filteredAccel.y + verticalAcceleration)) * 3.0) - state.currentVelocity.y) * config.velocityFriction
-        state.currentVelocity.x = min(max(state.currentVelocity.x, -config.cameraDriftVelocityCap), config.cameraDriftVelocityCap)
-        state.currentVelocity.y = min(max(state.currentVelocity.y, -config.cameraDriftVelocityCap), config.cameraDriftVelocityCap)
+        state.currentVelocity.x += ((-adjustedLateralAcceleration * 2.0) - state.currentVelocity.x) * config.velocityFriction
+        state.currentVelocity.y += (((-(adjustedLongitudinalAcceleration + adjustedVerticalAcceleration)) * 2.0) - state.currentVelocity.y) * config.velocityFriction
 
         state.camX += state.currentVelocity.x * config.camSensX * frameScale
         state.camY += state.currentVelocity.y * config.camSensY * frameScale
 
         let accelMagnitude = sqrt(
-            (state.filteredAccel.x * state.filteredAccel.x)
-                + (state.filteredAccel.y * state.filteredAccel.y)
-                + (verticalAcceleration * verticalAcceleration)
+            (adjustedLateralAcceleration * adjustedLateralAcceleration)
+                + (adjustedLongitudinalAcceleration * adjustedLongitudinalAcceleration)
+                + (adjustedVerticalAcceleration * adjustedVerticalAcceleration)
         )
         let rawIntensity = min(accelMagnitude / config.brightnessDivisor, 1.0)
         let targetIntensity = pow(rawIntensity, 0.82)

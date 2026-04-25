@@ -49,19 +49,19 @@ struct FlowGridConfiguration: Sendable {
         safeZoneFeatherWidth: 0.0,
         sensorSmoothing: 0.08,
         verticalSensitivity: 1.2,
-        velocityMultiplier: 25.0 * 0.50,
+        velocityMultiplier: 10.0,
         velocityFriction: 0.15,
         magnitudeSmoothing: 0.9,
         magnitudeDecaySmoothing: 0.94,
-        maxAccelThreshold: 0.5,
+        maxAccelThreshold: 0.6,
         motionDeadzone: 0.006,
         baseDensity: 0.20,
         extraDensityRange: 0.60,
         baseOpacity: 0.12,
         baseRadius: 1.6,
         maxExtraRadius: 3.5,
-        edgeRadiusBoost: 5.0,
-        edgeRadiusCurve: 1.85,
+        edgeRadiusBoost: 4.0,
+        edgeRadiusCurve: 1.75,
         minimumVisibleAlpha: 0.018,
         maxAlpha: 0.76,
         fadeMultiplier: 1.45,
@@ -80,19 +80,19 @@ struct FlowGridConfiguration: Sendable {
         safeZoneFeatherWidth: 88.0,
         sensorSmoothing: 0.08,
         verticalSensitivity: 1.2,
-        velocityMultiplier: 25.0 * 0.50,
+        velocityMultiplier: 10.0,
         velocityFriction: 0.15,
         magnitudeSmoothing: 0.9,
         magnitudeDecaySmoothing: 0.94,
-        maxAccelThreshold: 0.5,
+        maxAccelThreshold: 0.6,
         motionDeadzone: 0.006,
         baseDensity: 0.20,
         extraDensityRange: 0.64,
         baseOpacity: 0.21,
-        baseRadius: 1.8,
+        baseRadius: 1.6,
         maxExtraRadius: 3.5,
-        edgeRadiusBoost: 4.2,
-        edgeRadiusCurve: 1.72,
+        edgeRadiusBoost: 4.0,
+        edgeRadiusCurve: 1.75,
         minimumVisibleAlpha: 0.03,
         maxAlpha: 0.86,
         fadeMultiplier: 1.55,
@@ -112,7 +112,6 @@ struct FlowGridStaticLayout: Sendable {
     let size: CGSize
     let safeRect: CGRect
     let safeZoneCornerRadius: CGFloat
-    let inverseEdgeMaxDistance: CGFloat
     let points: [FlowGridStaticPoint]
 }
 
@@ -162,17 +161,11 @@ final class FlowGridLayoutCache: @unchecked Sendable {
             configuration.safeZoneCornerRadius,
             min(safeRect.width, safeRect.height) * 0.5
         )
-        let inverseEdgeMaxDistance = flowInverseEdgeMaxDistance(
-            canvasSize: size,
-            safeRect: safeRect
-        )
-
         guard size.width > 0.0, size.height > 0.0, configuration.dotSpacing > 0.0 else {
             return FlowGridStaticLayout(
                 size: size,
                 safeRect: safeRect,
                 safeZoneCornerRadius: safeZoneCornerRadius,
-                inverseEdgeMaxDistance: inverseEdgeMaxDistance,
                 points: []
             )
         }
@@ -201,7 +194,6 @@ final class FlowGridLayoutCache: @unchecked Sendable {
             size: size,
             safeRect: safeRect,
             safeZoneCornerRadius: safeZoneCornerRadius,
-            inverseEdgeMaxDistance: inverseEdgeMaxDistance,
             points: points
         )
     }
@@ -230,7 +222,12 @@ struct FlowGridPhase {
     }
 
     // 这里是核心：把传感器数据变成点阵的位移、大小和亮度状态。
-    mutating func advance(sample: MotionSample, timestamp: TimeInterval, configuration: FlowGridConfiguration) {
+    mutating func advance(
+        sample: MotionSample,
+        timestamp: TimeInterval,
+        configuration: FlowGridConfiguration,
+        motionSensitivityFactor: Double = 1.0
+    ) {
         guard lastTimestamp != nil else {
             reset(at: timestamp)
             return
@@ -244,12 +241,17 @@ struct FlowGridPhase {
             + ((1.0 - configuration.sensorSmoothing) * filteredAcceleration.dy)
         filteredVerticalAcceleration = (configuration.sensorSmoothing * sample.verticalAcceleration)
             + ((1.0 - configuration.sensorSmoothing) * filteredVerticalAcceleration)
-        let verticalAcceleration = filteredVerticalAcceleration * configuration.verticalSensitivity
+        let sensitivityFactor = min(max(motionSensitivityFactor, 2.0 / 3.0), 1.5)
+        let adjustedLateralAcceleration = filteredAcceleration.dx / sensitivityFactor
+        let adjustedLongitudinalAcceleration = filteredAcceleration.dy / sensitivityFactor
+        let adjustedVerticalAcceleration = filteredVerticalAcceleration
+            * configuration.verticalSensitivity
+            / sensitivityFactor
 
         let rawMagnitude = sqrt(
-            (filteredAcceleration.dx * filteredAcceleration.dx)
-                + (filteredAcceleration.dy * filteredAcceleration.dy)
-                + (verticalAcceleration * verticalAcceleration)
+            (adjustedLateralAcceleration * adjustedLateralAcceleration)
+                + (adjustedLongitudinalAcceleration * adjustedLongitudinalAcceleration)
+                + (adjustedVerticalAcceleration * adjustedVerticalAcceleration)
         )
 
         if rawMagnitude >= smoothedMagnitude {
@@ -262,11 +264,13 @@ struct FlowGridPhase {
 
         let horizontalDirection = configuration.invertHorizontalFlow ? 1.0 : -1.0
         let targetVelocityX = rawMagnitude > configuration.motionDeadzone
-            ? (filteredAcceleration.dx * configuration.velocityMultiplier * horizontalDirection)
+            ? (adjustedLateralAcceleration * configuration.velocityMultiplier * horizontalDirection)
             : 0.0
         let verticalDirection = configuration.invertVerticalFlow ? 1.0 : -1.0
         let targetVelocityY = rawMagnitude > configuration.motionDeadzone
-            ? ((filteredAcceleration.dy + verticalAcceleration) * configuration.velocityMultiplier * verticalDirection)
+            ? ((adjustedLongitudinalAcceleration + adjustedVerticalAcceleration)
+                * configuration.velocityMultiplier
+                * verticalDirection)
             : 0.0
 
         currentVelocity.dx += (targetVelocityX - currentVelocity.dx) * configuration.velocityFriction
@@ -405,26 +409,30 @@ func flowGridSafeRect(
 }
 
 func flowEdgeDistanceWeight(point: CGPoint, canvasSize: CGSize, safeRect: CGRect) -> CGFloat {
-    flowEdgeDistanceWeight(
-        point: point,
-        safeRect: safeRect,
-        inverseEdgeMaxDistance: flowInverseEdgeMaxDistance(
-            canvasSize: canvasSize,
-            safeRect: safeRect
-        )
-    )
-}
-
-func flowEdgeDistanceWeight(
-    point: CGPoint,
-    safeRect: CGRect,
-    inverseEdgeMaxDistance: CGFloat
-) -> CGFloat {
     let safeDistanceX = max(safeRect.minX - point.x, 0.0, point.x - safeRect.maxX)
     let safeDistanceY = max(safeRect.minY - point.y, 0.0, point.y - safeRect.maxY)
-    let distanceFromSafeZone = sqrt((safeDistanceX * safeDistanceX) + (safeDistanceY * safeDistanceY))
-    let normalized = min(max(distanceFromSafeZone * inverseEdgeMaxDistance, 0.0), 1.0)
-    return normalized
+
+    let horizontalReach: CGFloat
+    if point.x < safeRect.minX {
+        horizontalReach = max(safeRect.minX, 1.0)
+    } else if point.x > safeRect.maxX {
+        horizontalReach = max(canvasSize.width - safeRect.maxX, 1.0)
+    } else {
+        horizontalReach = 1.0
+    }
+
+    let verticalReach: CGFloat
+    if point.y < safeRect.minY {
+        verticalReach = max(safeRect.minY, 1.0)
+    } else if point.y > safeRect.maxY {
+        verticalReach = max(canvasSize.height - safeRect.maxY, 1.0)
+    } else {
+        verticalReach = 1.0
+    }
+
+    let normalizedX = safeDistanceX / horizontalReach
+    let normalizedY = safeDistanceY / verticalReach
+    return min(max(max(normalizedX, normalizedY), 0.0), 1.0)
 }
 
 func flowRoundedRectContains(point: CGPoint, rect: CGRect, cornerRadius: CGFloat) -> Bool {
@@ -461,17 +469,6 @@ func flowPseudoRandom(gridX: Int, gridY: Int) -> Double {
 
 private func flowGridCacheComponent(_ value: CGFloat) -> Int {
     Int((value * 1000.0).rounded())
-}
-
-private func flowInverseEdgeMaxDistance(canvasSize: CGSize, safeRect: CGRect) -> CGFloat {
-    let cornerDistances = [
-        hypot(safeRect.minX, safeRect.minY),
-        hypot(canvasSize.width - safeRect.maxX, safeRect.minY),
-        hypot(safeRect.minX, canvasSize.height - safeRect.maxY),
-        hypot(canvasSize.width - safeRect.maxX, canvasSize.height - safeRect.maxY)
-    ]
-    let maxDistance = max(cornerDistances.max() ?? 1.0, 1.0)
-    return 1.0 / maxDistance
 }
 
 func flowDotAppearance(
