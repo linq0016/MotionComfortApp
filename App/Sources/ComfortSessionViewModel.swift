@@ -6,8 +6,8 @@ import MotionComfortCore
 import MotionComfortVisual
 
 private enum SessionLaunchTiming {
-    static let loadingFeedbackDelay: Duration = .milliseconds(150)
-    static let minimumLoadingVisibility: Duration = .milliseconds(300)
+    static let loadingFeedbackDelay: Duration = .milliseconds(100)
+    static let minimumLoadingVisibility: Duration = .milliseconds(200)
     static let deniedToastVisibility: Duration = .seconds(1.5)
 }
 
@@ -116,8 +116,7 @@ final class ComfortSessionViewModel: ObservableObject {
     private var loadingFeedbackTask: Task<Void, Never>?
     private var presentationTask: Task<Void, Never>?
     private var deniedDismissTask: Task<Void, Never>?
-    private var loadingVisibleAt: ContinuousClock.Instant?
-    private let clock = ContinuousClock()
+    private var loadingVisibleAt: Date?
 
     init() {
         motionManager.$sample
@@ -154,7 +153,7 @@ final class ComfortSessionViewModel: ObservableObject {
 
     func beginSessionLaunch(
         style: VisualGuideStyle,
-        loadingFeedbackStart: ContinuousClock.Instant? = nil
+        loadingFeedbackStart: Date? = nil
     ) {
         guard !isLaunchInteractionLocked else {
             return
@@ -166,7 +165,7 @@ final class ComfortSessionViewModel: ObservableObject {
         visualGuideStyle = style
         sessionLaunchState = .preparing(style: style)
 
-        scheduleLoadingFeedback(startedAt: loadingFeedbackStart ?? clock.now)
+        scheduleLoadingFeedback(startedAt: loadingFeedbackStart ?? Date())
 
         if style == .liveView {
             beginLiveViewLaunch()
@@ -366,24 +365,24 @@ final class ComfortSessionViewModel: ObservableObject {
         }
     }
 
-    private func scheduleLoadingFeedback(startedAt: ContinuousClock.Instant) {
+    private func scheduleLoadingFeedback(startedAt: Date) {
         loadingFeedbackTask?.cancel()
         loadingFeedbackTask = Task { [weak self] in
             guard let self else {
                 return
             }
 
-            let elapsed = startedAt.duration(to: clock.now)
-            let remainingDelay = elapsed < SessionLaunchTiming.loadingFeedbackDelay ? SessionLaunchTiming.loadingFeedbackDelay - elapsed : .zero
+            let elapsed = Date().timeIntervalSince(startedAt)
+            let remainingDelay = max(0.0, SessionLaunchTiming.loadingFeedbackDelay.timeInterval - elapsed)
             if remainingDelay > .zero {
-                try? await Task.sleep(for: remainingDelay)
+                try? await Task.sleep(for: .seconds(remainingDelay))
             }
             await MainActor.run {
                 guard case .preparing = self.sessionLaunchState else {
                     return
                 }
 
-                self.loadingVisibleAt = self.clock.now
+                self.loadingVisibleAt = Date()
                 self.sessionLaunchOverlayState = .loading
             }
         }
@@ -462,8 +461,9 @@ final class ComfortSessionViewModel: ObservableObject {
             return .zero
         }
 
-        let elapsed = loadingVisibleAt.duration(to: clock.now)
-        return elapsed < SessionLaunchTiming.minimumLoadingVisibility ? SessionLaunchTiming.minimumLoadingVisibility - elapsed : .zero
+        let elapsed = Date().timeIntervalSince(loadingVisibleAt)
+        let remaining = max(0.0, SessionLaunchTiming.minimumLoadingVisibility.timeInterval - elapsed)
+        return .seconds(remaining)
     }
 
     private func cancelTransientLaunchTasks() {
@@ -510,5 +510,12 @@ final class ComfortSessionViewModel: ObservableObject {
         }
 
         return true
+    }
+}
+
+private extension Duration {
+    var timeInterval: TimeInterval {
+        let components = self.components
+        return TimeInterval(components.seconds) + (TimeInterval(components.attoseconds) / 1_000_000_000_000_000_000)
     }
 }

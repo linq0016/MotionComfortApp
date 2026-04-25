@@ -347,7 +347,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1. Stellar is designed primarily for motion sickness during car travel, and may also be helpful in other situations that commonly provoke motion sickness, such as air or sea travel. Use it while seated comfortably, holding your phone steadily, with the volume set to a comfortable level. Do not use Stellar while operating a vehicle."
+            "value" : "1. Stellar is designed primarily for easing motion sickness during car travel. Use it while seated comfortably, holding your phone steadily, with the volume set to a comfortable level. Do not use Stellar while operating a vehicle."
           }
         },
         "zh-Hans" : {
@@ -415,13 +415,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "5. Stellar is a fully local experience. It does not require an internet connection and does not collect any health data, location data, audio, or usage history. Other than camera access required for the Live View mode, no additional system permissions are needed."
+            "value" : "5. Stellar is a fully local experience. It does not require an internet connection and does not collect or upload any health data, location data, audio, or usage history. Stellar saves user settings locally to remember user customization, which can be reset by \"Reset Stellar\". Other than motion sensor data for the core function and camera access required for the Live View mode, no additional system permissions are needed."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "5. Stellar是完全本地化的体验，不需要联网，也不会收集健康数据、位置数据、音频内容或使用记录。除“实况视窗”模式需要相机权限外，不需要其他系统权限。"
+            "value" : "5. Stellar是完全本地化的体验，不需要联网，也不会收集或上传任何健康数据、位置数据、音频内容或使用记录。Stellar会在本地保存用户设置，来记忆用户自定义体验，也可以通过“重置Stellar”来重置这些设置。除核心功能需要访问运动传感器、“实况视窗”模式需要相机权限外，不需要其他系统权限。"
           }
         }
       }
@@ -432,13 +432,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "6. Stellar currently supports only iOS 26 (reaching about 80% adoption as of late March 2026). Support for iOS 18 and earlier versions is still under evaluation."
+            "value" : "6. Stellar currently supports only iOS 26. Support for iOS 18 and earlier versions is still under evaluation."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "6. 由于Stellar的视觉体验大量依赖Liquid Glass设计系统，目前仅支持iOS26（截止2026年3月底已覆盖约80%）。对iOS18及更早版本的支持仍在评估中。"
+            "value" : "6. 由于Stellar的视觉体验大量依赖Liquid Glass设计系统，目前仅支持iOS26。对iOS18及更早版本的支持仍在评估中。"
           }
         }
       }
@@ -455,6 +455,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "详细信息请见 PubMed"
+          }
+        }
+      }
+    },
+    "settings.about.privacy_policy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐私政策"
           }
         }
       }

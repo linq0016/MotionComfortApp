@@ -272,7 +272,7 @@ struct DashboardView: View {
     private func launchSession(style: VisualGuideStyle) {
         model.beginSessionLaunch(
             style: style,
-            loadingFeedbackStart: ContinuousClock().now
+            loadingFeedbackStart: Date()
         )
     }
 
@@ -758,9 +758,20 @@ private struct SettingsPanel: View {
 
     private var settingsAboutSection: some View {
         VStack(alignment: .leading, spacing: 10.0) {
-            Text("settings.about.title")
-                .font(.system(size: 13.0, weight: .semibold, design: .rounded))
-                .foregroundStyle(Color.white.opacity(0.50))
+            HStack(alignment: .firstTextBaseline, spacing: 12.0) {
+                Text("settings.about.title")
+                    .font(.system(size: 13.0, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Color.white.opacity(0.50))
+
+                Spacer(minLength: 12.0)
+
+                Link(destination: privacyPolicyURL) {
+                    Text("settings.about.privacy_policy")
+                        .underline()
+                        .font(.system(size: 12.0, weight: .regular, design: .rounded))
+                        .foregroundStyle(Color.white.opacity(0.44))
+                }
+            }
 
             VStack(alignment: .leading, spacing: 8.0) {
                 JustifiedParagraphText(
@@ -833,6 +844,10 @@ private struct SettingsPanel: View {
 
     private var aboutDetailsURL: URL {
         URL(string: "https://pubmed.ncbi.nlm.nih.gov/40128952/")!
+    }
+
+    private var privacyPolicyURL: URL {
+        URL(string: "https://linq0016.github.io/Stellar-Privacy-Policy/")!
     }
 }
 
