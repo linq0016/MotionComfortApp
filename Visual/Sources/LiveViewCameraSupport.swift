@@ -97,6 +97,30 @@ public enum LiveViewPreviewState: String, Sendable {
     case unavailable
 }
 
+private struct LiveViewCameraConfiguration: Sendable {
+    var capture = LiveViewCaptureConfiguration()
+    var analysis = LiveViewAnalysisConfiguration()
+}
+
+private struct LiveViewCaptureConfiguration: Sendable {
+    var targetFrameDuration = CMTime(value: 1, timescale: 60)
+    var targetFormatWidth = 1280
+    var targetFormatHeight = 720
+    var fallbackPresets: [AVCaptureSession.Preset] = [.inputPriority, .hd1280x720, .high]
+}
+
+private struct LiveViewAnalysisConfiguration: Sendable {
+    var luminanceEmaAlpha = 0.18
+    var polarityHoldDuration: TimeInterval = 0.45
+    var horizontalBandRatio = 0.18
+    var verticalBandRatio = 0.14
+    var minimumBandSize = 40
+    var strideDivisor = 72
+    var minimumStride = 6
+    var lightThreshold = 0.42
+    var darkThreshold = 0.50
+}
+
 public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked Sendable {
     @Published public private(set) var status: AVAuthorizationStatus
     @Published public private(set) var isRunning = false
@@ -117,9 +141,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
     private var sessionStartReferenceTime: TimeInterval?
     private var currentOrientation: InterfaceRenderOrientation = .portrait
 
-    private let luminanceEmaAlpha = 0.18
-    private let polarityHoldDuration: TimeInterval = 0.45
-    private let targetFrameDuration = CMTime(value: 1, timescale: 60)
+    private let configuration = LiveViewCameraConfiguration()
 
     public override init() {
         self.status = AVCaptureDevice.authorizationStatus(for: .video)
@@ -266,12 +288,8 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
         session.automaticallyConfiguresCaptureDeviceForWideColor = true
 
-        if session.canSetSessionPreset(.inputPriority) {
-            session.sessionPreset = .inputPriority
-        } else if session.canSetSessionPreset(.hd1280x720) {
-            session.sessionPreset = .hd1280x720
-        } else if session.canSetSessionPreset(.high) {
-            session.sessionPreset = .high
+        if let preset = configuration.capture.fallbackPresets.first(where: { session.canSetSessionPreset($0) }) {
+            session.sessionPreset = preset
         }
 
         session.inputs.forEach { session.removeInput($0) }
@@ -329,13 +347,13 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
     }
 
     private func applyTargetFrameDurationOnLockedDevice(_ device: AVCaptureDevice) {
-        device.activeVideoMinFrameDuration = targetFrameDuration
-        device.activeVideoMaxFrameDuration = targetFrameDuration
+        device.activeVideoMinFrameDuration = configuration.capture.targetFrameDuration
+        device.activeVideoMaxFrameDuration = configuration.capture.targetFrameDuration
     }
 
     private func bestFormat(for device: AVCaptureDevice) -> AVCaptureDevice.Format? {
-        let targetWidth = 1280
-        let targetHeight = 720
+        let targetWidth = configuration.capture.targetFormatWidth
+        let targetHeight = configuration.capture.targetFormatHeight
 
         return device.formats.max { lhs, rhs in
             formatScore(lhs, targetWidth: targetWidth, targetHeight: targetHeight)
@@ -388,10 +406,10 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
             return latestSceneAnalysis
         }
 
-        let bandWidth = max(Int(Double(width) * 0.18), 40)
-        let bandHeight = max(Int(Double(height) * 0.14), 40)
-        let strideX = max(width / 72, 6)
-        let strideY = max(height / 72, 6)
+        let bandWidth = max(Int(Double(width) * configuration.analysis.horizontalBandRatio), configuration.analysis.minimumBandSize)
+        let bandHeight = max(Int(Double(height) * configuration.analysis.verticalBandRatio), configuration.analysis.minimumBandSize)
+        let strideX = max(width / configuration.analysis.strideDivisor, configuration.analysis.minimumStride)
+        let strideY = max(height / configuration.analysis.strideDivisor, configuration.analysis.minimumStride)
 
         let leadingLuminance = averageLuminance(
             baseAddress: baseAddress,
@@ -462,7 +480,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
             return luminance
         }
 
-        let filtered = (previous * (1.0 - luminanceEmaAlpha)) + (luminance * luminanceEmaAlpha)
+        let filtered = (previous * (1.0 - configuration.analysis.luminanceEmaAlpha)) + (luminance * configuration.analysis.luminanceEmaAlpha)
         smoothedLuminance = filtered
         return filtered
     }
@@ -523,20 +541,17 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
         previous: LiveViewDotPolarity,
         timestamp: TimeInterval
     ) -> LiveViewDotPolarity {
-        let lightThreshold = 0.42
-        let darkThreshold = 0.50
-
         if let lastSwitchAt = lastPolaritySwitchAt,
-           timestamp - lastSwitchAt < polarityHoldDuration {
+           timestamp - lastSwitchAt < configuration.analysis.polarityHoldDuration {
             return previous
         }
 
         let next: LiveViewDotPolarity
         switch previous {
         case .light:
-            next = luminance > darkThreshold ? .dark : .light
+            next = luminance > configuration.analysis.darkThreshold ? .dark : .light
         case .dark:
-            next = luminance < lightThreshold ? .light : .dark
+            next = luminance < configuration.analysis.lightThreshold ? .light : .dark
         }
 
         if next != previous {
@@ -687,12 +702,12 @@ private struct LiveViewEdgeFlowOverlay: View {
 
                 Canvas(opaque: false, rendersAsynchronously: true) { context, canvasSize in
                     let flowState = phase.renderState
-                    let normA = min(flowState.smoothedMagnitude / configuration.maxAccelThreshold, 1.0)
+                    let normA = min(flowState.smoothedMagnitude / configuration.motion.maxAccelThreshold, 1.0)
                     let dotColor = renderState.dominantDotPolarity.color
-                    let wrappedOffsetX = flowWrappedOffset(flowState.offset.x, spacing: configuration.dotSpacing)
-                    let wrappedOffsetY = flowWrappedOffset(flowState.offset.y, spacing: configuration.dotSpacing)
-                    let cellOffsetX = flowIntegralCellOffset(flowState.offset.x, spacing: configuration.dotSpacing)
-                    let cellOffsetY = flowIntegralCellOffset(flowState.offset.y, spacing: configuration.dotSpacing)
+                    let wrappedOffsetX = flowWrappedOffset(flowState.offset.x, spacing: configuration.layout.dotSpacing)
+                    let wrappedOffsetY = flowWrappedOffset(flowState.offset.y, spacing: configuration.layout.dotSpacing)
+                    let cellOffsetX = flowIntegralCellOffset(flowState.offset.x, spacing: configuration.layout.dotSpacing)
+                    let cellOffsetY = flowIntegralCellOffset(flowState.offset.y, spacing: configuration.layout.dotSpacing)
 
                     for staticPoint in layout.points {
                         let point = CGPoint(
@@ -725,17 +740,17 @@ private struct LiveViewEdgeFlowOverlay: View {
                             continue
                         }
 
-                        appearance.radius += pow(edgeWeight, configuration.edgeRadiusCurve) * configuration.edgeRadiusBoost
+                        appearance.radius += pow(edgeWeight, configuration.appearance.edgeRadiusCurve) * configuration.appearance.edgeRadiusBoost
                         let softWeight = safeZoneSoftWeight(
                             point: point,
                             coreSafeRect: layout.safeRect,
                             cornerRadius: layout.safeZoneCornerRadius,
-                            featherWidth: configuration.safeZoneFeatherWidth
+                            featherWidth: configuration.safeZone.featherWidth
                         )
                         appearance.alpha *= Double(softWeight)
                         appearance.radius *= 1.0 - (safeZoneSoftRadiusAttenuation * (1.0 - softWeight))
 
-                        guard appearance.alpha > configuration.minimumVisibleAlpha else {
+                        guard appearance.alpha > configuration.appearance.minimumVisibleAlpha else {
                             continue
                         }
 

@@ -53,15 +53,15 @@ private struct FlowGridOverlay: View {
                 Canvas(opaque: true, rendersAsynchronously: true) { context, canvasSize in
                     context.fill(
                         Path(CGRect(origin: .zero, size: canvasSize)),
-                        with: .color(configuration.backgroundColor)
+                        with: .color(configuration.layout.backgroundColor)
                     )
 
                     let renderState = phase.renderState
-                    let normA = min(renderState.smoothedMagnitude / configuration.maxAccelThreshold, 1.0)
-                    let wrappedOffsetX = flowWrappedOffset(renderState.offset.x, spacing: configuration.dotSpacing)
-                    let wrappedOffsetY = flowWrappedOffset(renderState.offset.y, spacing: configuration.dotSpacing)
-                    let cellOffsetX = flowIntegralCellOffset(renderState.offset.x, spacing: configuration.dotSpacing)
-                    let cellOffsetY = flowIntegralCellOffset(renderState.offset.y, spacing: configuration.dotSpacing)
+                    let normA = min(renderState.smoothedMagnitude / configuration.motion.maxAccelThreshold, 1.0)
+                    let wrappedOffsetX = flowWrappedOffset(renderState.offset.x, spacing: configuration.layout.dotSpacing)
+                    let wrappedOffsetY = flowWrappedOffset(renderState.offset.y, spacing: configuration.layout.dotSpacing)
+                    let cellOffsetX = flowIntegralCellOffset(renderState.offset.x, spacing: configuration.layout.dotSpacing)
+                    let cellOffsetY = flowIntegralCellOffset(renderState.offset.y, spacing: configuration.layout.dotSpacing)
 
                     for staticPoint in layout.points {
                         let point = CGPoint(
@@ -90,9 +90,9 @@ private struct FlowGridOverlay: View {
                             continue
                         }
 
-                        appearance.radius += pow(edgeWeight, configuration.edgeRadiusCurve) * configuration.edgeRadiusBoost
+                        appearance.radius += pow(edgeWeight, configuration.appearance.edgeRadiusCurve) * configuration.appearance.edgeRadiusBoost
 
-                        guard appearance.alpha > configuration.minimumVisibleAlpha else {
+                        guard appearance.alpha > configuration.appearance.minimumVisibleAlpha else {
                             continue
                         }
 

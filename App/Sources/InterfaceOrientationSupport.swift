@@ -36,6 +36,7 @@ struct InterfaceOrientationReader: UIViewControllerRepresentable {
 
 final class OrientationReaderController: UIViewController {
     weak var observer: InterfaceOrientationObserver?
+    private var lastScheduledInterfaceOrientation: UIInterfaceOrientation?
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
@@ -67,6 +68,11 @@ final class OrientationReaderController: UIViewController {
                 .first?.effectiveGeometry.interfaceOrientation
 
         if let sceneOrientation {
+            guard sceneOrientation != lastScheduledInterfaceOrientation else {
+                return
+            }
+
+            lastScheduledInterfaceOrientation = sceneOrientation
             Task { @MainActor [weak observer] in
                 guard let observer else { return }
                 observer.update(from: sceneOrientation)

@@ -2,6 +2,13 @@ import MotionComfortAudio
 import MotionComfortVisual
 import SwiftUI
 
+private enum AppShellTiming {
+    static let minimumLaunchPlaceholderDuration: Duration = .milliseconds(325)
+    static let launchPlaceholderFadeDuration: TimeInterval = 0.265
+    static let sessionOverlayFadeDuration: TimeInterval = 0.28
+    static let sessionOverlayFadeDelay: Duration = .milliseconds(280)
+}
+
 // App 入口：创建全局会话状态，并把首页挂到窗口里。
 @main
 struct MotionComfortApp: App {
@@ -16,7 +23,8 @@ struct MotionComfortApp: App {
 }
 
 private struct AppRootView: View {
-    @ObservedObject var model: ComfortSessionViewModel
+    let model: ComfortSessionViewModel
+    @ObservedObject private var appShellState: SessionStateStore<AppShellSessionState>
     let orientationObserver: InterfaceOrientationObserver
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("hasCompletedWelcome") private var hasCompletedWelcome = false
@@ -37,6 +45,12 @@ private struct AppRootView: View {
     @State private var sessionFadeTaskToken = UUID()
     @State private var sessionDismissTask: Task<Void, Never>?
     @State private var sessionDismissTaskToken = UUID()
+
+    init(model: ComfortSessionViewModel, orientationObserver: InterfaceOrientationObserver) {
+        self.model = model
+        self._appShellState = ObservedObject(wrappedValue: model.appShellState)
+        self.orientationObserver = orientationObserver
+    }
 
     var body: some View {
         ZStack {
@@ -70,12 +84,12 @@ private struct AppRootView: View {
             await prepareLaunchState()
         }
         .preferredColorScheme(.dark)
-        .animation(.easeInOut(duration: 0.28), value: isSessionOverlayVisible)
-        .onChange(of: model.visualGuideStyle) { _, style in
+        .animation(.easeInOut(duration: AppShellTiming.sessionOverlayFadeDuration), value: isSessionOverlayVisible)
+        .onChange(of: appShellState.value.visualGuideStyle) { _, style in
             guard hasLoadedLaunchPreferences else { return }
             lastVisualGuideStyle = style.rawValue
         }
-        .onChange(of: model.audioMode) { _, mode in
+        .onChange(of: appShellState.value.audioMode) { _, mode in
             guard hasLoadedLaunchPreferences else { return }
             lastAudioMode = mode.rawValue
         }
@@ -88,7 +102,7 @@ private struct AppRootView: View {
                 persistMotionControlPreferencesImmediately()
             }
         }
-        .onChange(of: model.isSessionPresented) { _, isPresented in
+        .onChange(of: appShellState.value.isSessionPresented) { _, isPresented in
             handleSessionPresentationChanged(isPresented)
         }
         .onDisappear {
@@ -127,10 +141,10 @@ private struct AppRootView: View {
             hasLoadedLaunchPreferences = true
         }
 
-        try? await Task.sleep(for: .milliseconds(325))
+        try? await Task.sleep(for: AppShellTiming.minimumLaunchPlaceholderDuration)
         hasCompletedMinimumLaunchDisplay = true
 
-        withAnimation(.easeInOut(duration: 0.265)) {
+        withAnimation(.easeInOut(duration: AppShellTiming.launchPlaceholderFadeDuration)) {
             hasTransitionedFromLaunchPlaceholder = true
         }
     }
@@ -201,7 +215,7 @@ private struct AppRootView: View {
 
             isDashboardChromeActive = true
             isSessionOverlayMounted = true
-            withAnimation(.easeInOut(duration: 0.28)) {
+            withAnimation(.easeInOut(duration: AppShellTiming.sessionOverlayFadeDuration)) {
                 isSessionOverlayVisible = true
             }
 
@@ -209,7 +223,7 @@ private struct AppRootView: View {
         } else if isSessionOverlayMounted {
             cancelSessionFadeTask()
             isDashboardChromeActive = true
-            withAnimation(.easeInOut(duration: 0.28)) {
+            withAnimation(.easeInOut(duration: AppShellTiming.sessionOverlayFadeDuration)) {
                 isSessionOverlayVisible = false
             }
 
@@ -222,7 +236,7 @@ private struct AppRootView: View {
         cancelSessionDismissTask()
         isDashboardChromeActive = true
         model.prepareForSessionDismiss()
-        withAnimation(.easeInOut(duration: 0.28)) {
+        withAnimation(.easeInOut(duration: AppShellTiming.sessionOverlayFadeDuration)) {
             isSessionOverlayVisible = false
         }
 
@@ -246,7 +260,7 @@ private struct AppRootView: View {
         cancelSessionFadeTask()
         sessionFadeTaskToken = token
         sessionFadeTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(280))
+            try? await Task.sleep(for: AppShellTiming.sessionOverlayFadeDelay)
             guard !Task.isCancelled else { return }
             guard sessionFadeTaskToken == token else { return }
             guard model.isSessionPresented, isSessionOverlayMounted, isSessionOverlayVisible else {
@@ -266,7 +280,7 @@ private struct AppRootView: View {
         cancelSessionDismissTask()
         sessionDismissTaskToken = token
         sessionDismissTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(280))
+            try? await Task.sleep(for: AppShellTiming.sessionOverlayFadeDelay)
             guard !Task.isCancelled else { return }
             guard sessionDismissTaskToken == token else { return }
             guard isSessionOverlayMounted, !isSessionOverlayVisible else {

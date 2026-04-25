@@ -5,7 +5,8 @@ import UIKit
 
 struct DashboardView: View {
     @Environment(\.locale) private var locale
-    @ObservedObject var model: ComfortSessionViewModel
+    let model: ComfortSessionViewModel
+    @ObservedObject private var dashboardState: SessionStateStore<DashboardSessionState>
     @ObservedObject var orientationObserver: InterfaceOrientationObserver
     let resetWelcomeAndReturnToIntro: () -> Void
     @Binding var quickStartEnabled: Bool
@@ -23,6 +24,25 @@ struct DashboardView: View {
     @State private var launchDimDismissTask: Task<Void, Never>?
     @State private var settingsCompactHeight: CGFloat = 360.0
     @State private var settingsSheetDetent: PresentationDetent = .height(360.0)
+
+    init(
+        model: ComfortSessionViewModel,
+        orientationObserver: InterfaceOrientationObserver,
+        resetWelcomeAndReturnToIntro: @escaping () -> Void,
+        quickStartEnabled: Binding<Bool>,
+        backgroundAudioEnabled: Binding<Bool>,
+        shouldAutoStartRememberedSession: Bool,
+        isChromeActive: Bool = true
+    ) {
+        self.model = model
+        self._dashboardState = ObservedObject(wrappedValue: model.dashboardState)
+        self.orientationObserver = orientationObserver
+        self.resetWelcomeAndReturnToIntro = resetWelcomeAndReturnToIntro
+        self._quickStartEnabled = quickStartEnabled
+        self._backgroundAudioEnabled = backgroundAudioEnabled
+        self.shouldAutoStartRememberedSession = shouldAutoStartRememberedSession
+        self.isChromeActive = isChromeActive
+    }
 
     var body: some View {
         ZStack {
@@ -53,19 +73,19 @@ struct DashboardView: View {
                 .padding(.top, 48.0)
                 .padding(.bottom, 62.0)
             }
-            .allowsHitTesting(!model.isLaunchInteractionLocked)
+            .allowsHitTesting(!dashboardState.value.isLaunchInteractionLocked)
 
-            if isLaunchDimVisible || model.sessionLaunchOverlayState != .none {
+            if isLaunchDimVisible || dashboardState.value.sessionLaunchOverlayState != .none {
                 SessionLaunchOverlay(
-                    overlayState: model.sessionLaunchOverlayState,
+                    overlayState: dashboardState.value.sessionLaunchOverlayState,
                     showDim: isLaunchDimVisible
                 )
                     .transition(.opacity)
             }
 
         }
-        .allowsHitTesting(!model.isSessionPresented)
-        .animation(.easeInOut(duration: 0.18), value: model.sessionLaunchOverlayState)
+        .allowsHitTesting(!dashboardState.value.isSessionPresented)
+        .animation(.easeInOut(duration: 0.18), value: dashboardState.value.sessionLaunchOverlayState)
         .animation(.easeInOut(duration: 0.18), value: isLaunchDimVisible)
         .sheet(isPresented: $isSettingsPresented) {
             SettingsPanel(
@@ -97,10 +117,10 @@ struct DashboardView: View {
             didAttemptAutoStart = true
 
             Task { @MainActor in
-                launchSession(style: model.visualGuideStyle)
+                launchSession(style: dashboardState.value.visualGuideStyle)
             }
         }
-        .onChange(of: model.sessionLaunchOverlayState) { _, newValue in
+        .onChange(of: dashboardState.value.sessionLaunchOverlayState) { _, newValue in
             handleLaunchOverlayStateChange(newValue)
         }
     }
@@ -197,7 +217,7 @@ struct DashboardView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            AudioModeGlassControl(selection: $model.audioMode, controlWidth: nil, controlHeight: 60.0)
+            AudioModeGlassControl(selection: audioModeBinding, controlWidth: nil, controlHeight: 60.0)
                 .frame(maxWidth: .infinity)
                 .frame(height: 60.0)
 
@@ -256,8 +276,15 @@ struct DashboardView: View {
         )
     }
 
+    private var audioModeBinding: Binding<AudioMode> {
+        Binding(
+            get: { dashboardState.value.audioMode },
+            set: { model.audioMode = $0 }
+        )
+    }
+
     private var audioModeDetailText: LocalizedStringKey {
-        switch model.audioMode {
+        switch dashboardState.value.audioMode {
         case .melodic:
             return "dashboard.audio_mode.detail.melodic"
         case .monotone:
@@ -268,7 +295,7 @@ struct DashboardView: View {
     }
 
     private var audioModeDetailLocalizationValue: String.LocalizationValue {
-        switch model.audioMode {
+        switch dashboardState.value.audioMode {
         case .melodic:
             return "dashboard.audio_mode.detail.melodic"
         case .monotone:

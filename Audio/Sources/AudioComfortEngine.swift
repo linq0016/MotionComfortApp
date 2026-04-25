@@ -17,7 +17,48 @@ public final class AudioComfortEngine: ObservableObject {
         let monotoneAssetURL: URL?
     }
 
-    private let sampleRate: Double
+    private struct AudioComfortConfiguration: Sendable {
+        var sampleRate: Double = 44_100.0
+        var mixerOutputVolume: Float = 1.0
+        var playbackVolumes: [AudioMode: Float] = [
+            .off: 0.0,
+            .monotone: 0.18,
+            .melodic: 0.19
+        ]
+        var silentLoop = LoopSynthesisConfiguration(
+            duration: 1.0,
+            layers: [(frequency: 220.0, amplitude: 0.0)],
+            modulationFrequency: 0.0
+        )
+        var monotoneFallbackLoop = LoopSynthesisConfiguration(
+            duration: 1.0,
+            layers: [(frequency: 100.0, amplitude: 0.18)],
+            modulationFrequency: 0.0
+        )
+        var monotoneAsset = MonotoneAssetConfiguration(
+            frequency: 100.0,
+            amplitude: 0.7,
+            duration: 1.0,
+            cacheDirectoryName: "MotionComfortAudio",
+            fileName: "monotone_100hz.wav"
+        )
+    }
+
+    private struct LoopSynthesisConfiguration: Sendable {
+        var duration: Double
+        var layers: [(frequency: Double, amplitude: Double)]
+        var modulationFrequency: Double
+    }
+
+    private struct MonotoneAssetConfiguration: Sendable {
+        var frequency: Double
+        var amplitude: Float
+        var duration: Double
+        var cacheDirectoryName: String
+        var fileName: String
+    }
+
+    private let configuration: AudioComfortConfiguration
     private let engine: AVAudioEngine
     private let player: AVAudioPlayerNode
     private let format: AVAudioFormat?
@@ -29,8 +70,10 @@ public final class AudioComfortEngine: ObservableObject {
     private var pendingPlaybackMode: AudioMode?
 
     public init(sampleRate: Double = 44_100.0) {
+        var configuration = AudioComfortConfiguration()
+        configuration.sampleRate = sampleRate
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)
-        self.sampleRate = sampleRate
+        self.configuration = configuration
         self.engine = AVAudioEngine()
         self.player = AVAudioPlayerNode()
         self.format = format
@@ -43,7 +86,7 @@ public final class AudioComfortEngine: ObservableObject {
 
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: format)
-        engine.mainMixerNode.outputVolume = 1.0
+        engine.mainMixerNode.outputVolume = configuration.mixerOutputVolume
 
         if format == nil {
             assertionFailure("Unable to create stereo audio format.")
@@ -55,11 +98,11 @@ public final class AudioComfortEngine: ObservableObject {
             return
         }
 
-        let sampleRate = sampleRate
+        let configuration = configuration
         let melodicAssetURL = melodicAssetURL
-        prewarmTask = Task.detached(priority: .utility) { [weak self, sampleRate, melodicAssetURL] in
+        prewarmTask = Task.detached(priority: .utility) { [weak self, configuration, melodicAssetURL] in
             let resources = Self.prepareAudioResources(
-                sampleRate: sampleRate,
+                configuration: configuration,
                 melodicAssetURL: melodicAssetURL
             )
             guard !Task.isCancelled else {
@@ -112,7 +155,7 @@ public final class AudioComfortEngine: ObservableObject {
         player.stop()
         player.reset()
         player.scheduleBuffer(buffer, at: nil, options: [.loops], completionHandler: nil)
-        player.volume = playbackVolume(for: mode)
+        player.volume = configuration.playbackVolumes[mode] ?? 0.0
         player.play()
 
         activeMode = mode
@@ -153,17 +196,6 @@ public final class AudioComfortEngine: ObservableObject {
         }
     }
 
-    private func playbackVolume(for mode: AudioMode) -> Float {
-        switch mode {
-        case .off:
-            return 0.0
-        case .monotone:
-            return 0.18
-        case .melodic:
-            return 0.19
-        }
-    }
-
     private func installPreparedResources(_ resources: PreparedAudioResources) {
         for (mode, preparedBuffer) in resources.buffers {
             buffers[mode] = preparedBuffer.buffer
@@ -194,7 +226,7 @@ public final class AudioComfortEngine: ObservableObject {
     }
 
     nonisolated private static func prepareAudioResources(
-        sampleRate: Double,
+        configuration: AudioComfortConfiguration,
         melodicAssetURL: URL?
     ) -> PreparedAudioResources {
         var preparedBuffers: [AudioMode: PreparedAudioBuffer] = [:]
@@ -202,7 +234,7 @@ public final class AudioComfortEngine: ObservableObject {
 
         if let melodicBuffer = makeBuffer(
             for: .melodic,
-            sampleRate: sampleRate,
+            configuration: configuration,
             melodicAssetURL: melodicAssetURL
         ) {
             preparedBuffers[.melodic] = PreparedAudioBuffer(buffer: melodicBuffer)
@@ -210,7 +242,7 @@ public final class AudioComfortEngine: ObservableObject {
 
         if let monotoneBuffer = makeBuffer(
             for: .monotone,
-            sampleRate: sampleRate,
+            configuration: configuration,
             melodicAssetURL: melodicAssetURL,
             monotoneAssetURL: &monotoneAssetURL
         ) {
@@ -225,30 +257,26 @@ public final class AudioComfortEngine: ObservableObject {
 
     nonisolated private static func makeBuffer(
         for mode: AudioMode,
-        sampleRate: Double,
+        configuration: AudioComfortConfiguration,
         melodicAssetURL: URL?,
         monotoneAssetURL: inout URL?
     ) -> AVAudioPCMBuffer? {
         switch mode {
         case .off:
             return makeLoopBuffer(
-                sampleRate: sampleRate,
-                duration: 1.0,
-                layers: [(220.0, 0.0)],
-                modulationFrequency: 0.0
+                sampleRate: configuration.sampleRate,
+                configuration: configuration.silentLoop
             )
         case .monotone:
-            monotoneAssetURL = prepareMonotoneAsset(sampleRate: sampleRate)
+            monotoneAssetURL = prepareMonotoneAsset(configuration: configuration)
 
             if let url = monotoneAssetURL, let loaded = loadBuffer(from: url) {
                 return loaded
             }
 
             return makeLoopBuffer(
-                sampleRate: sampleRate,
-                duration: 1.0,
-                layers: [(100.0, 0.18)],
-                modulationFrequency: 0.0
+                sampleRate: configuration.sampleRate,
+                configuration: configuration.monotoneFallbackLoop
             )
         case .melodic:
             guard let url = melodicAssetURL else {
@@ -261,13 +289,13 @@ public final class AudioComfortEngine: ObservableObject {
 
     nonisolated private static func makeBuffer(
         for mode: AudioMode,
-        sampleRate: Double,
+        configuration: AudioComfortConfiguration,
         melodicAssetURL: URL?
     ) -> AVAudioPCMBuffer? {
         var monotoneAssetURL: URL?
         return makeBuffer(
             for: mode,
-            sampleRate: sampleRate,
+            configuration: configuration,
             melodicAssetURL: melodicAssetURL,
             monotoneAssetURL: &monotoneAssetURL
         )
@@ -275,9 +303,7 @@ public final class AudioComfortEngine: ObservableObject {
 
     nonisolated private static func makeLoopBuffer(
         sampleRate: Double,
-        duration: Double,
-        layers: [(frequency: Double, amplitude: Double)],
-        modulationFrequency: Double
+        configuration: LoopSynthesisConfiguration
     ) -> AVAudioPCMBuffer? {
         let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)
         guard let format else {
@@ -285,7 +311,7 @@ public final class AudioComfortEngine: ObservableObject {
             return nil
         }
 
-        let frameCount = AVAudioFrameCount(format.sampleRate * duration)
+        let frameCount = AVAudioFrameCount(format.sampleRate * configuration.duration)
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
             assertionFailure("Unable to create PCM buffer.")
             return nil
@@ -297,12 +323,12 @@ public final class AudioComfortEngine: ObservableObject {
 
             for frame in 0..<Int(frameCount) {
                 let time = Double(frame) / format.sampleRate
-                let modulation = modulationFrequency > 0.0
-                    ? 0.88 + (0.12 * sin(2.0 * Double.pi * modulationFrequency * time))
+                let modulation = configuration.modulationFrequency > 0.0
+                    ? 0.88 + (0.12 * sin(2.0 * Double.pi * configuration.modulationFrequency * time))
                     : 1.0
                 var mixedValue = 0.0
 
-                for layer in layers {
+                for layer in configuration.layers {
                     mixedValue += sin(2.0 * Double.pi * layer.frequency * time) * layer.amplitude
                 }
 
@@ -330,11 +356,11 @@ public final class AudioComfortEngine: ObservableObject {
         }
     }
 
-    nonisolated private static func prepareMonotoneAsset(sampleRate: Double) -> URL? {
+    nonisolated private static func prepareMonotoneAsset(configuration: AudioComfortConfiguration) -> URL? {
         let fileManager = FileManager.default
         let directory = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)
             .first?
-            .appendingPathComponent("MotionComfortAudio", isDirectory: true)
+            .appendingPathComponent(configuration.monotoneAsset.cacheDirectoryName, isDirectory: true)
 
         guard let directory else {
             return nil
@@ -346,28 +372,28 @@ public final class AudioComfortEngine: ObservableObject {
             return nil
         }
 
-        let url = directory.appendingPathComponent("monotone_100hz.wav")
+        let url = directory.appendingPathComponent(configuration.monotoneAsset.fileName)
         if fileManager.fileExists(atPath: url.path) {
             return url
         }
 
-        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2) else {
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: configuration.sampleRate, channels: 2) else {
             return nil
         }
 
-        let frameCount = AVAudioFrameCount(sampleRate)
+        let frameCount = AVAudioFrameCount(configuration.sampleRate * configuration.monotoneAsset.duration)
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
             return nil
         }
 
         buffer.frameLength = frameCount
-        let amplitude: Float = 0.7
+        let amplitude = configuration.monotoneAsset.amplitude
 
         for channel in 0..<Int(format.channelCount) {
             let samples = buffer.floatChannelData![channel]
             for frame in 0..<Int(frameCount) {
-                let time = Double(frame) / sampleRate
-                samples[frame] = Float(sin(2.0 * Double.pi * 100.0 * time)) * amplitude
+                let time = Double(frame) / configuration.sampleRate
+                samples[frame] = Float(sin(2.0 * Double.pi * configuration.monotoneAsset.frequency * time)) * amplitude
             }
         }
 

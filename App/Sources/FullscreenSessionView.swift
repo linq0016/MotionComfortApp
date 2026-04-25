@@ -5,6 +5,13 @@ import Foundation
 import SwiftUI
 import UIKit
 
+private enum FullscreenTiming {
+    static let hudAutoHideDelay: TimeInterval = 5.0
+    static let hudRefreshThrottle: TimeInterval = 0.25
+    static let hudAnimationDuration: TimeInterval = 0.24
+    static let liveViewGuidanceToastDuration: Duration = .seconds(4.0)
+}
+
 // 全屏会话页：真正承载运行中的视觉引导效果。
 struct FullscreenSessionView: View {
     @ObservedObject var model: ComfortSessionViewModel
@@ -20,9 +27,6 @@ struct FullscreenSessionView: View {
     @State private var lastHUDRefreshAt: Date?
     @State private var isLiveViewGuidanceToastVisible = false
     @State private var liveViewGuidanceToastTask: Task<Void, Never>?
-
-    private let hudAutoHideDelay: TimeInterval = 5.0
-    private let hudRefreshThrottle: TimeInterval = 0.25
 
     var body: some View {
         ZStack {
@@ -83,8 +87,8 @@ struct FullscreenSessionView: View {
         }
         .preferredColorScheme(.dark)
         .statusBarHidden()
-        .animation(.easeInOut(duration: 0.24), value: areHUDControlsVisible)
-        .animation(.easeInOut(duration: 0.24), value: isLiveViewGuidanceToastVisible)
+        .animation(.easeInOut(duration: FullscreenTiming.hudAnimationDuration), value: areHUDControlsVisible)
+        .animation(.easeInOut(duration: FullscreenTiming.hudAnimationDuration), value: isLiveViewGuidanceToastVisible)
         .onAppear {
             model.startAudioIfNeeded()
             scheduleHUDHide()
@@ -106,7 +110,7 @@ struct FullscreenSessionView: View {
 
             liveViewGuidanceToastTask?.cancel()
             liveViewGuidanceToastTask = nil
-            withAnimation(.easeInOut(duration: 0.24)) {
+            withAnimation(.easeInOut(duration: FullscreenTiming.hudAnimationDuration)) {
                 isLiveViewGuidanceToastVisible = false
             }
         }
@@ -139,7 +143,7 @@ struct FullscreenSessionView: View {
 
     private func registerFullscreenInteraction(forceHUDRefresh: Bool = false) {
         if !areHUDControlsVisible {
-            withAnimation(.easeInOut(duration: 0.24)) {
+            withAnimation(.easeInOut(duration: FullscreenTiming.hudAnimationDuration)) {
                 areHUDControlsVisible = true
             }
 
@@ -157,7 +161,7 @@ struct FullscreenSessionView: View {
 
     private func beginMotionControlEditing() {
         if !areHUDControlsVisible {
-            withAnimation(.easeInOut(duration: 0.24)) {
+            withAnimation(.easeInOut(duration: FullscreenTiming.hudAnimationDuration)) {
                 areHUDControlsVisible = true
             }
         }
@@ -168,7 +172,7 @@ struct FullscreenSessionView: View {
     private func toggleHUDVisibility() {
         cancelHUDHide()
 
-        withAnimation(.easeInOut(duration: 0.24)) {
+        withAnimation(.easeInOut(duration: FullscreenTiming.hudAnimationDuration)) {
             areHUDControlsVisible.toggle()
         }
 
@@ -181,12 +185,12 @@ struct FullscreenSessionView: View {
         let now = Date()
         if !force,
            let lastHUDRefreshAt,
-           now.timeIntervalSince(lastHUDRefreshAt) < hudRefreshThrottle {
+           now.timeIntervalSince(lastHUDRefreshAt) < FullscreenTiming.hudRefreshThrottle {
             return
         }
 
         lastHUDRefreshAt = now
-        hideHUDDeadline = now.addingTimeInterval(hudAutoHideDelay)
+        hideHUDDeadline = now.addingTimeInterval(FullscreenTiming.hudAutoHideDelay)
         guard hideHUDTask == nil else {
             return
         }
@@ -204,7 +208,7 @@ struct FullscreenSessionView: View {
                     continue
                 }
 
-                withAnimation(.easeInOut(duration: 0.24)) {
+                withAnimation(.easeInOut(duration: FullscreenTiming.hudAnimationDuration)) {
                     areHUDControlsVisible = false
                 }
                 hideHUDDeadline = nil
@@ -233,10 +237,10 @@ struct FullscreenSessionView: View {
         isLiveViewGuidanceToastVisible = true
 
         liveViewGuidanceToastTask = Task {
-            try? await Task.sleep(for: .seconds(4.0))
+            try? await Task.sleep(for: FullscreenTiming.liveViewGuidanceToastDuration)
             guard !Task.isCancelled else { return }
             await MainActor.run {
-                withAnimation(.easeInOut(duration: 0.24)) {
+                withAnimation(.easeInOut(duration: FullscreenTiming.hudAnimationDuration)) {
                     isLiveViewGuidanceToastVisible = false
                 }
                 liveViewGuidanceToastTask = nil
@@ -483,7 +487,7 @@ private struct MotionControlsLayer: View {
         case .portrait:
             return 0.75
         case .landscapeLeft, .landscapeRight:
-            return 0.80
+            return 0.75
         }
     }
 
@@ -619,6 +623,10 @@ private struct NativeSnapSlider: UIViewRepresentable {
             self.onEditingBegan = onEditingBegan
             self.onInteraction = onInteraction
             self.onEditingEnded = onEditingEnded
+        }
+
+        deinit {
+            valueCommitTask?.cancel()
         }
 
         private func makeFeedbackGeneratorIfNeeded() -> UISelectionFeedbackGenerator {

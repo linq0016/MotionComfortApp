@@ -5,6 +5,12 @@ import MotionComfortAudio
 import MotionComfortCore
 import MotionComfortVisual
 
+private enum SessionLaunchTiming {
+    static let loadingFeedbackDelay: Duration = .milliseconds(150)
+    static let minimumLoadingVisibility: Duration = .milliseconds(300)
+    static let deniedToastVisibility: Duration = .seconds(1.5)
+}
+
 enum SessionLaunchState: Equatable {
     case idle
     case preparing(style: VisualGuideStyle)
@@ -18,6 +24,20 @@ enum SessionLaunchOverlayState: Equatable {
     case denied
 }
 
+struct AppShellSessionState: Equatable {
+    var visualGuideStyle: VisualGuideStyle = .dynamic
+    var audioMode: AudioMode = .melodic
+    var isSessionPresented = false
+}
+
+struct DashboardSessionState: Equatable {
+    var visualGuideStyle: VisualGuideStyle = .dynamic
+    var audioMode: AudioMode = .melodic
+    var sessionLaunchOverlayState: SessionLaunchOverlayState = .none
+    var isLaunchInteractionLocked = false
+    var isSessionPresented = false
+}
+
 @MainActor
 final class SessionRenderState: ObservableObject {
     @Published private(set) var sample: MotionSample = .neutral
@@ -27,15 +47,38 @@ final class SessionRenderState: ObservableObject {
     }
 }
 
+@MainActor
+final class SessionStateStore<State: Equatable>: ObservableObject {
+    @Published private(set) var value: State
+
+    init(_ value: State) {
+        self.value = value
+    }
+
+    func update(_ nextValue: State) {
+        guard nextValue != value else {
+            return
+        }
+
+        value = nextValue
+    }
+}
+
 // 会话中控：把界面、运动输入、视觉状态和音频状态串起来。
 @MainActor
 final class ComfortSessionViewModel: ObservableObject {
-    @Published var visualGuideStyle: VisualGuideStyle = .dynamic
+    @Published var visualGuideStyle: VisualGuideStyle = .dynamic {
+        didSet {
+            syncDerivedSessionState()
+        }
+    }
     @Published var motionInputMode: MotionInputMode = .realTime
     @Published var dynamicSpeedMultiplier = 2.0
     @Published var motionSensitivityFactor = 1.0
     @Published var audioMode: AudioMode = .melodic {
         didSet {
+            syncDerivedSessionState()
+
             if audioMode != .off {
                 audioEngine.prewarmResourcesIfNeeded()
             }
@@ -50,10 +93,20 @@ final class ComfortSessionViewModel: ObservableObject {
 
     private(set) var sample: MotionSample = .neutral
     @Published private(set) var isRunning = false
-    @Published private(set) var sessionLaunchState: SessionLaunchState = .idle
-    @Published private(set) var sessionLaunchOverlayState: SessionLaunchOverlayState = .none
+    @Published private(set) var sessionLaunchState: SessionLaunchState = .idle {
+        didSet {
+            syncDerivedSessionState()
+        }
+    }
+    @Published private(set) var sessionLaunchOverlayState: SessionLaunchOverlayState = .none {
+        didSet {
+            syncDerivedSessionState()
+        }
+    }
 
     let renderState = SessionRenderState()
+    let appShellState = SessionStateStore(AppShellSessionState())
+    let dashboardState = SessionStateStore(DashboardSessionState())
     private let motionManager = MotionManager()
     private let audioEngine = AudioComfortEngine()
     let liveViewCamera = LiveViewCameraModel()
@@ -65,9 +118,6 @@ final class ComfortSessionViewModel: ObservableObject {
     private var deniedDismissTask: Task<Void, Never>?
     private var loadingVisibleAt: ContinuousClock.Instant?
     private let clock = ContinuousClock()
-    private let loadingFeedbackDelay: Duration = .milliseconds(150)
-    private let minimumLoadingVisibility: Duration = .milliseconds(300)
-    private let deniedToastVisibility: Duration = .seconds(1.5)
 
     init() {
         motionManager.$sample
@@ -197,6 +247,25 @@ final class ComfortSessionViewModel: ObservableObject {
         }
     }
 
+    private func syncDerivedSessionState() {
+        appShellState.update(
+            AppShellSessionState(
+                visualGuideStyle: visualGuideStyle,
+                audioMode: audioMode,
+                isSessionPresented: isSessionPresented
+            )
+        )
+        dashboardState.update(
+            DashboardSessionState(
+                visualGuideStyle: visualGuideStyle,
+                audioMode: audioMode,
+                sessionLaunchOverlayState: sessionLaunchOverlayState,
+                isLaunchInteractionLocked: isLaunchInteractionLocked,
+                isSessionPresented: isSessionPresented
+            )
+        )
+    }
+
     private func beginLiveViewLaunch() {
         startLaunchPreparationTask(for: .liveView) { [weak self] token in
             guard let self else {
@@ -305,7 +374,7 @@ final class ComfortSessionViewModel: ObservableObject {
             }
 
             let elapsed = startedAt.duration(to: clock.now)
-            let remainingDelay = elapsed < loadingFeedbackDelay ? loadingFeedbackDelay - elapsed : .zero
+            let remainingDelay = elapsed < SessionLaunchTiming.loadingFeedbackDelay ? SessionLaunchTiming.loadingFeedbackDelay - elapsed : .zero
             if remainingDelay > .zero {
                 try? await Task.sleep(for: remainingDelay)
             }
@@ -357,7 +426,7 @@ final class ComfortSessionViewModel: ObservableObject {
                 return
             }
 
-            try? await Task.sleep(for: deniedToastVisibility)
+            try? await Task.sleep(for: SessionLaunchTiming.deniedToastVisibility)
             await MainActor.run {
                 guard case .denied(let deniedStyle) = self.sessionLaunchState, deniedStyle == style else {
                     return
@@ -394,7 +463,7 @@ final class ComfortSessionViewModel: ObservableObject {
         }
 
         let elapsed = loadingVisibleAt.duration(to: clock.now)
-        return elapsed < minimumLoadingVisibility ? minimumLoadingVisibility - elapsed : .zero
+        return elapsed < SessionLaunchTiming.minimumLoadingVisibility ? SessionLaunchTiming.minimumLoadingVisibility - elapsed : .zero
     }
 
     private func cancelTransientLaunchTasks() {

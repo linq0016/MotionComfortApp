@@ -10,13 +10,96 @@ struct FlowGridRenderState {
 
 // 共享参数表：集中控制点阵的速度、密度、亮度和尺寸。
 struct FlowGridConfiguration: Sendable {
+    var layout: FlowGridLayoutConfiguration
+    var motion: FlowGridMotionConfiguration
+    var appearance: FlowGridAppearanceConfiguration
+    var safeZone: FlowGridSafeZoneConfiguration
+
+    static let minimal = FlowGridConfiguration(
+        layout: FlowGridLayoutConfiguration(
+            backgroundColor: Color.black,
+            dotSpacing: 35.0
+        ),
+        motion: FlowGridMotionConfiguration(
+            sensorSmoothing: 0.08,
+            verticalSensitivity: 1.2,
+            velocityMultiplier: 10.0,
+            velocityFriction: 0.15,
+            magnitudeSmoothing: 0.9,
+            magnitudeDecaySmoothing: 0.94,
+            maxAccelThreshold: 0.6,
+            motionDeadzone: 0.006,
+            invertHorizontalFlow: true,
+            invertVerticalFlow: true
+        ),
+        appearance: FlowGridAppearanceConfiguration(
+            baseDensity: 0.20,
+            extraDensityRange: 0.60,
+            baseOpacity: 0.12,
+            baseRadius: 1.6,
+            maxExtraRadius: 3.5,
+            edgeRadiusBoost: 4.0,
+            edgeRadiusCurve: 1.75,
+            minimumVisibleAlpha: 0.018,
+            maxAlpha: 0.76,
+            fadeMultiplier: 1.45,
+            alphaVariation: 0.50
+        ),
+        safeZone: FlowGridSafeZoneConfiguration(
+            marginRatio: 0.25,
+            horizontalMarginRatio: 0.25,
+            verticalMarginRatio: 0.25,
+            cornerRadius: 0.0,
+            featherWidth: 0.0
+        )
+    )
+
+    static let liveViewEdge = FlowGridConfiguration(
+        layout: FlowGridLayoutConfiguration(
+            backgroundColor: Color.clear,
+            dotSpacing: 32.0
+        ),
+        motion: FlowGridMotionConfiguration(
+            sensorSmoothing: 0.08,
+            verticalSensitivity: 1.2,
+            velocityMultiplier: 10.0,
+            velocityFriction: 0.15,
+            magnitudeSmoothing: 0.9,
+            magnitudeDecaySmoothing: 0.94,
+            maxAccelThreshold: 0.6,
+            motionDeadzone: 0.006,
+            invertHorizontalFlow: true,
+            invertVerticalFlow: true
+        ),
+        appearance: FlowGridAppearanceConfiguration(
+            baseDensity: 0.20,
+            extraDensityRange: 0.64,
+            baseOpacity: 0.21,
+            baseRadius: 1.6,
+            maxExtraRadius: 3.5,
+            edgeRadiusBoost: 4.0,
+            edgeRadiusCurve: 1.75,
+            minimumVisibleAlpha: 0.03,
+            maxAlpha: 0.86,
+            fadeMultiplier: 1.55,
+            alphaVariation: 0.50
+        ),
+        safeZone: FlowGridSafeZoneConfiguration(
+            marginRatio: 0.24,
+            horizontalMarginRatio: 0.26,
+            verticalMarginRatio: 0.20,
+            cornerRadius: 40.0,
+            featherWidth: 88.0
+        )
+    )
+}
+
+struct FlowGridLayoutConfiguration: Sendable {
     var backgroundColor: Color
     var dotSpacing: CGFloat
-    var marginRatio: CGFloat
-    var horizontalMarginRatio: CGFloat
-    var verticalMarginRatio: CGFloat
-    var safeZoneCornerRadius: CGFloat
-    var safeZoneFeatherWidth: CGFloat
+}
+
+struct FlowGridMotionConfiguration: Sendable {
     var sensorSmoothing: Double
     var verticalSensitivity: Double
     var velocityMultiplier: Double
@@ -25,6 +108,11 @@ struct FlowGridConfiguration: Sendable {
     var magnitudeDecaySmoothing: Double
     var maxAccelThreshold: Double
     var motionDeadzone: Double
+    var invertHorizontalFlow: Bool
+    var invertVerticalFlow: Bool
+}
+
+struct FlowGridAppearanceConfiguration: Sendable {
     var baseDensity: Double
     var extraDensityRange: Double
     var baseOpacity: Double
@@ -36,70 +124,14 @@ struct FlowGridConfiguration: Sendable {
     var maxAlpha: Double
     var fadeMultiplier: Double
     var alphaVariation: Double
-    var invertHorizontalFlow: Bool
-    var invertVerticalFlow: Bool
+}
 
-    static let minimal = FlowGridConfiguration(
-        backgroundColor: Color.black,
-        dotSpacing: 35.0,
-        marginRatio: 0.25,
-        horizontalMarginRatio: 0.25,
-        verticalMarginRatio: 0.25,
-        safeZoneCornerRadius: 0.0,
-        safeZoneFeatherWidth: 0.0,
-        sensorSmoothing: 0.08,
-        verticalSensitivity: 1.2,
-        velocityMultiplier: 10.0,
-        velocityFriction: 0.15,
-        magnitudeSmoothing: 0.9,
-        magnitudeDecaySmoothing: 0.94,
-        maxAccelThreshold: 0.6,
-        motionDeadzone: 0.006,
-        baseDensity: 0.20,
-        extraDensityRange: 0.60,
-        baseOpacity: 0.12,
-        baseRadius: 1.6,
-        maxExtraRadius: 3.5,
-        edgeRadiusBoost: 4.0,
-        edgeRadiusCurve: 1.75,
-        minimumVisibleAlpha: 0.018,
-        maxAlpha: 0.76,
-        fadeMultiplier: 1.45,
-        alphaVariation: 0.50,
-        invertHorizontalFlow: true,
-        invertVerticalFlow: true
-    )
-
-    static let liveViewEdge = FlowGridConfiguration(
-        backgroundColor: Color.clear,
-        dotSpacing: 32.0,
-        marginRatio: 0.24,
-        horizontalMarginRatio: 0.26,
-        verticalMarginRatio: 0.20,
-        safeZoneCornerRadius: 40.0,
-        safeZoneFeatherWidth: 88.0,
-        sensorSmoothing: 0.08,
-        verticalSensitivity: 1.2,
-        velocityMultiplier: 10.0,
-        velocityFriction: 0.15,
-        magnitudeSmoothing: 0.9,
-        magnitudeDecaySmoothing: 0.94,
-        maxAccelThreshold: 0.6,
-        motionDeadzone: 0.006,
-        baseDensity: 0.20,
-        extraDensityRange: 0.64,
-        baseOpacity: 0.21,
-        baseRadius: 1.6,
-        maxExtraRadius: 3.5,
-        edgeRadiusBoost: 4.0,
-        edgeRadiusCurve: 1.75,
-        minimumVisibleAlpha: 0.03,
-        maxAlpha: 0.86,
-        fadeMultiplier: 1.55,
-        alphaVariation: 0.50,
-        invertHorizontalFlow: true,
-        invertVerticalFlow: true
-    )
+struct FlowGridSafeZoneConfiguration: Sendable {
+    var marginRatio: CGFloat
+    var horizontalMarginRatio: CGFloat
+    var verticalMarginRatio: CGFloat
+    var cornerRadius: CGFloat
+    var featherWidth: CGFloat
 }
 
 struct FlowGridStaticPoint: Sendable {
@@ -158,10 +190,10 @@ final class FlowGridLayoutCache: @unchecked Sendable {
             orientation: orientation
         )
         let safeZoneCornerRadius = min(
-            configuration.safeZoneCornerRadius,
+            configuration.safeZone.cornerRadius,
             min(safeRect.width, safeRect.height) * 0.5
         )
-        guard size.width > 0.0, size.height > 0.0, configuration.dotSpacing > 0.0 else {
+        guard size.width > 0.0, size.height > 0.0, configuration.layout.dotSpacing > 0.0 else {
             return FlowGridStaticLayout(
                 size: size,
                 safeRect: safeRect,
@@ -170,16 +202,16 @@ final class FlowGridLayoutCache: @unchecked Sendable {
             )
         }
 
-        let maxGridX = Int(floor((size.width + configuration.dotSpacing) / configuration.dotSpacing))
-        let maxGridY = Int(floor((size.height + configuration.dotSpacing) / configuration.dotSpacing))
+        let maxGridX = Int(floor((size.width + configuration.layout.dotSpacing) / configuration.layout.dotSpacing))
+        let maxGridY = Int(floor((size.height + configuration.layout.dotSpacing) / configuration.layout.dotSpacing))
         var points: [FlowGridStaticPoint] = []
         points.reserveCapacity((maxGridX + 2) * (maxGridY + 2))
 
         for gridX in -1...maxGridX {
-            let baseX = CGFloat(gridX) * configuration.dotSpacing
+            let baseX = CGFloat(gridX) * configuration.layout.dotSpacing
 
             for gridY in -1...maxGridY {
-                let baseY = CGFloat(gridY) * configuration.dotSpacing
+                let baseY = CGFloat(gridY) * configuration.layout.dotSpacing
                 points.append(
                     FlowGridStaticPoint(
                         basePosition: CGPoint(x: baseX, y: baseY),
@@ -235,17 +267,17 @@ struct FlowGridPhase {
 
         lastTimestamp = timestamp
 
-        filteredAcceleration.dx = (configuration.sensorSmoothing * sample.lateralAcceleration)
-            + ((1.0 - configuration.sensorSmoothing) * filteredAcceleration.dx)
-        filteredAcceleration.dy = (configuration.sensorSmoothing * sample.longitudinalAcceleration)
-            + ((1.0 - configuration.sensorSmoothing) * filteredAcceleration.dy)
-        filteredVerticalAcceleration = (configuration.sensorSmoothing * sample.verticalAcceleration)
-            + ((1.0 - configuration.sensorSmoothing) * filteredVerticalAcceleration)
+        filteredAcceleration.dx = (configuration.motion.sensorSmoothing * sample.lateralAcceleration)
+            + ((1.0 - configuration.motion.sensorSmoothing) * filteredAcceleration.dx)
+        filteredAcceleration.dy = (configuration.motion.sensorSmoothing * sample.longitudinalAcceleration)
+            + ((1.0 - configuration.motion.sensorSmoothing) * filteredAcceleration.dy)
+        filteredVerticalAcceleration = (configuration.motion.sensorSmoothing * sample.verticalAcceleration)
+            + ((1.0 - configuration.motion.sensorSmoothing) * filteredVerticalAcceleration)
         let sensitivityFactor = min(max(motionSensitivityFactor, 2.0 / 3.0), 1.5)
         let adjustedLateralAcceleration = filteredAcceleration.dx / sensitivityFactor
         let adjustedLongitudinalAcceleration = filteredAcceleration.dy / sensitivityFactor
         let adjustedVerticalAcceleration = filteredVerticalAcceleration
-            * configuration.verticalSensitivity
+            * configuration.motion.verticalSensitivity
             / sensitivityFactor
 
         let rawMagnitude = sqrt(
@@ -255,36 +287,36 @@ struct FlowGridPhase {
         )
 
         if rawMagnitude >= smoothedMagnitude {
-            smoothedMagnitude = (smoothedMagnitude * configuration.magnitudeSmoothing)
-                + (rawMagnitude * (1.0 - configuration.magnitudeSmoothing))
+            smoothedMagnitude = (smoothedMagnitude * configuration.motion.magnitudeSmoothing)
+                + (rawMagnitude * (1.0 - configuration.motion.magnitudeSmoothing))
         } else {
-            smoothedMagnitude = (smoothedMagnitude * configuration.magnitudeDecaySmoothing)
-                + (rawMagnitude * (1.0 - configuration.magnitudeDecaySmoothing))
+            smoothedMagnitude = (smoothedMagnitude * configuration.motion.magnitudeDecaySmoothing)
+                + (rawMagnitude * (1.0 - configuration.motion.magnitudeDecaySmoothing))
         }
 
-        let horizontalDirection = configuration.invertHorizontalFlow ? 1.0 : -1.0
-        let targetVelocityX = rawMagnitude > configuration.motionDeadzone
-            ? (adjustedLateralAcceleration * configuration.velocityMultiplier * horizontalDirection)
+        let horizontalDirection = configuration.motion.invertHorizontalFlow ? 1.0 : -1.0
+        let targetVelocityX = rawMagnitude > configuration.motion.motionDeadzone
+            ? (adjustedLateralAcceleration * configuration.motion.velocityMultiplier * horizontalDirection)
             : 0.0
-        let verticalDirection = configuration.invertVerticalFlow ? 1.0 : -1.0
-        let targetVelocityY = rawMagnitude > configuration.motionDeadzone
+        let verticalDirection = configuration.motion.invertVerticalFlow ? 1.0 : -1.0
+        let targetVelocityY = rawMagnitude > configuration.motion.motionDeadzone
             ? ((adjustedLongitudinalAcceleration + adjustedVerticalAcceleration)
-                * configuration.velocityMultiplier
+                * configuration.motion.velocityMultiplier
                 * verticalDirection)
             : 0.0
 
-        currentVelocity.dx += (targetVelocityX - currentVelocity.dx) * configuration.velocityFriction
-        currentVelocity.dy += (targetVelocityY - currentVelocity.dy) * configuration.velocityFriction
+        currentVelocity.dx += (targetVelocityX - currentVelocity.dx) * configuration.motion.velocityFriction
+        currentVelocity.dy += (targetVelocityY - currentVelocity.dy) * configuration.motion.velocityFriction
 
         currentOffset.x += currentVelocity.dx
         currentOffset.y += currentVelocity.dy
 
         if abs(currentOffset.x) > 100_000.0 {
-            currentOffset.x.formTruncatingRemainder(dividingBy: configuration.dotSpacing * 1000.0)
+            currentOffset.x.formTruncatingRemainder(dividingBy: configuration.layout.dotSpacing * 1000.0)
         }
 
         if abs(currentOffset.y) > 100_000.0 {
-            currentOffset.y.formTruncatingRemainder(dividingBy: configuration.dotSpacing * 1000.0)
+            currentOffset.y.formTruncatingRemainder(dividingBy: configuration.layout.dotSpacing * 1000.0)
         }
     }
 }
@@ -308,12 +340,12 @@ private final class FlowGridLayoutCacheKey: NSObject {
     ) {
         widthKey = flowGridCacheComponent(size.width)
         heightKey = flowGridCacheComponent(size.height)
-        dotSpacingKey = flowGridCacheComponent(configuration.dotSpacing)
-        marginRatioKey = flowGridCacheComponent(configuration.marginRatio)
-        horizontalMarginRatioKey = flowGridCacheComponent(configuration.horizontalMarginRatio)
-        verticalMarginRatioKey = flowGridCacheComponent(configuration.verticalMarginRatio)
-        safeZoneCornerRadiusKey = flowGridCacheComponent(configuration.safeZoneCornerRadius)
-        safeZoneFeatherWidthKey = flowGridCacheComponent(configuration.safeZoneFeatherWidth)
+        dotSpacingKey = flowGridCacheComponent(configuration.layout.dotSpacing)
+        marginRatioKey = flowGridCacheComponent(configuration.safeZone.marginRatio)
+        horizontalMarginRatioKey = flowGridCacheComponent(configuration.safeZone.horizontalMarginRatio)
+        verticalMarginRatioKey = flowGridCacheComponent(configuration.safeZone.verticalMarginRatio)
+        safeZoneCornerRadiusKey = flowGridCacheComponent(configuration.safeZone.cornerRadius)
+        safeZoneFeatherWidthKey = flowGridCacheComponent(configuration.safeZone.featherWidth)
         self.orientation = orientation
 
         var hasher = Hasher()
@@ -381,12 +413,12 @@ func flowGridSafeRect(
     configuration: FlowGridConfiguration,
     orientation: InterfaceRenderOrientation
 ) -> CGRect {
-    let baseHorizontalMargin = configuration.horizontalMarginRatio > 0.0
-        ? configuration.horizontalMarginRatio
-        : configuration.marginRatio
-    let baseVerticalMargin = configuration.verticalMarginRatio > 0.0
-        ? configuration.verticalMarginRatio
-        : configuration.marginRatio
+    let baseHorizontalMargin = configuration.safeZone.horizontalMarginRatio > 0.0
+        ? configuration.safeZone.horizontalMarginRatio
+        : configuration.safeZone.marginRatio
+    let baseVerticalMargin = configuration.safeZone.verticalMarginRatio > 0.0
+        ? configuration.safeZone.verticalMarginRatio
+        : configuration.safeZone.marginRatio
 
     let horizontalMarginRatio: CGFloat
     let verticalMarginRatio: CGFloat
@@ -477,24 +509,24 @@ func flowDotAppearance(
     configuration: FlowGridConfiguration
 ) -> (alpha: Double, radius: CGFloat)? {
     var alpha = 0.0
-    var radius = configuration.baseRadius
+    var radius = configuration.appearance.baseRadius
 
-    if hash < configuration.baseDensity {
-        alpha = configuration.baseOpacity + (normA * (1.0 - configuration.baseOpacity))
-        radius = configuration.baseRadius + (normA * configuration.maxExtraRadius)
-    } else if hash < configuration.baseDensity + (normA * configuration.extraDensityRange) {
-        let fadeProgress = (normA * configuration.extraDensityRange) - (hash - configuration.baseDensity)
-        alpha = min(fadeProgress * configuration.fadeMultiplier, configuration.maxAlpha)
-        radius = configuration.baseRadius + (normA * configuration.maxExtraRadius)
+    if hash < configuration.appearance.baseDensity {
+        alpha = configuration.appearance.baseOpacity + (normA * (1.0 - configuration.appearance.baseOpacity))
+        radius = configuration.appearance.baseRadius + (normA * configuration.appearance.maxExtraRadius)
+    } else if hash < configuration.appearance.baseDensity + (normA * configuration.appearance.extraDensityRange) {
+        let fadeProgress = (normA * configuration.appearance.extraDensityRange) - (hash - configuration.appearance.baseDensity)
+        alpha = min(fadeProgress * configuration.appearance.fadeMultiplier, configuration.appearance.maxAlpha)
+        radius = configuration.appearance.baseRadius + (normA * configuration.appearance.maxExtraRadius)
     }
 
-    if configuration.alphaVariation > 0.0 {
-        let variationRange = configuration.alphaVariation * (0.90 + (0.70 * normA))
+    if configuration.appearance.alphaVariation > 0.0 {
+        let variationRange = configuration.appearance.alphaVariation * (0.90 + (0.70 * normA))
         let variation = 1.0 - (variationRange * 0.5) + (hash * variationRange)
         alpha *= variation
     }
 
-    guard alpha > configuration.minimumVisibleAlpha else {
+    guard alpha > configuration.appearance.minimumVisibleAlpha else {
         return nil
     }
 
