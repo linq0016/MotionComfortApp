@@ -1,7 +1,7 @@
+import Foundation
 import Metal
 import MetalKit
 import MotionComfortCore
-import QuartzCore
 import SwiftUI
 import UIKit
 
@@ -153,29 +153,50 @@ private final class DynamicRenderView: MTKView {
 }
 
 private struct DynamicSpaceConfiguration {
+    let counts = DynamicSpaceCountsConfiguration()
+    let world = DynamicSpaceWorldConfiguration()
+    let motion = DynamicSpaceMotionConfiguration()
+    let nebula = DynamicSpaceNebulaConfiguration()
+    let particles = DynamicSpaceParticleConfiguration()
+}
+
+private struct DynamicSpaceCountsConfiguration {
     let particleCount = 800
-    let baseParticleCount = 400
     let dustCount = 15000
+    let nebulaCloudCount = 12
+}
+
+private struct DynamicSpaceWorldConfiguration {
     let minZ: Float = 0.2
     let maxZ: Float = 5.0
     let idleSpeed: Float = 0.005
-    let camSensX: Float = 0.060
-    let camSensY: Float = 0.060
-    let nebulaCloudCount = 12
-    let nebulaAtlasColumns = 4
-    let nebulaAtlasRows = 3
-    let nebulaBaseAlpha: Float = 0.60
-    let nebulaBaseScreenScale: Float = 0.25
-    let nebulaDepthBoost: Float = 3.00
-    let nebulaDepthBase: Float = 1.50
-    let nebulaSizeVariance: Float = 0.20
-    let nebulaTileContentScale: CGFloat = 0.25
-    let nebulaTileEdgeFade: CGFloat = 0.20
-    let nebulaAtlasInset: Float = 0.10
-    let nebulaBoundaryFeather: Float = 0.10
+}
+
+private struct DynamicSpaceMotionConfiguration {
+    let cameraSensitivityX: Float = 0.050
+    let cameraSensitivityY: Float = 0.050
     let sensorSmoothing: Float = 0.42
     let verticalSensitivity: Float = 1.2
+    let velocityGain: Float = 2.0
     let velocityFriction: Float = 0.10
+}
+
+private struct DynamicSpaceNebulaConfiguration {
+    let atlasColumns = 4
+    let atlasRows = 3
+    let baseAlpha: Float = 0.60
+    let baseScreenScale: Float = 0.25
+    let depthBoost: Float = 3.00
+    let depthBase: Float = 1.50
+    let sizeVariance: Float = 0.20
+    let tileContentScale: CGFloat = 0.25
+    let tileEdgeFade: CGFloat = 0.20
+    let atlasInset: Float = 0.10
+    let boundaryFeather: Float = 0.10
+}
+
+private struct DynamicSpaceParticleConfiguration {
+    let baseParticleCount = 400
     let brightnessDivisor: Float = 0.6
 }
 
@@ -238,7 +259,7 @@ private struct DynamicSpaceSceneState {
     var elapsedTime: Float = 0.0
 
     init(config: DynamicSpaceConfiguration) {
-        currentWarpSpeed = config.idleSpeed
+        currentWarpSpeed = config.world.idleSpeed
     }
 }
 
@@ -348,10 +369,10 @@ private struct DynamicRenderResources {
             device: device,
             bitmap: DynamicTextureFactory.makeCloudAtlasBitmap(
                 tileSize: 320,
-                columns: config.nebulaAtlasColumns,
-                rows: config.nebulaAtlasRows,
-                contentScale: config.nebulaTileContentScale,
-                edgeFade: config.nebulaTileEdgeFade
+                columns: config.nebula.atlasColumns,
+                rows: config.nebula.atlasRows,
+                contentScale: config.nebula.tileContentScale,
+                edgeFade: config.nebula.tileEdgeFade
             )
         )
         let dustTexture = try DynamicMetalRenderer.makeTexture(
@@ -472,7 +493,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     private let dustTexture: MTLTexture
 
     private var state: DynamicSpaceSceneState
-    private var lastUpdateTime: CFTimeInterval?
+    private var lastUpdateTime: TimeInterval?
     private var drawableSize: CGSize = .zero
 
     private var nebulaVertices: [DynamicNebulaQuadVertex]
@@ -489,15 +510,6 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     private var dustCount = 0
     private var haloCount = 0
     private var sharpCount = 0
-
-    #if DEBUG
-    private var debugMetricsWindowStart: CFTimeInterval?
-    private var debugFrameCount = 0
-    private var debugFrameIntervalTotal: CFTimeInterval = 0.0
-    private var debugFrameIntervalMax: CFTimeInterval = 0.0
-    private var debugCPUEncodeTotal: CFTimeInterval = 0.0
-    private var debugCPUEncodeMax: CFTimeInterval = 0.0
-    #endif
 
     init(mtkView: MTKView, resources: DynamicRenderResources) throws {
         let device = resources.device
@@ -517,9 +529,9 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         self.dustTexture = resources.dustTexture
         self.state = DynamicSpaceSceneState(config: config)
 
-        let nebulaStride = MemoryLayout<DynamicNebulaQuadVertex>.stride * config.nebulaCloudCount * 6
-        let dustStride = MemoryLayout<DynamicSpriteVertex>.stride * config.dustCount
-        let particleStride = MemoryLayout<DynamicSpriteVertex>.stride * config.particleCount
+        let nebulaStride = MemoryLayout<DynamicNebulaQuadVertex>.stride * config.counts.nebulaCloudCount * 6
+        let dustStride = MemoryLayout<DynamicSpriteVertex>.stride * config.counts.dustCount
+        let particleStride = MemoryLayout<DynamicSpriteVertex>.stride * config.counts.particleCount
 
         guard
             let nebulaBuffer = device.makeBuffer(length: nebulaStride, options: [.storageModeShared]),
@@ -535,10 +547,10 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         self.haloBuffer = haloBuffer
         self.sharpBuffer = sharpBuffer
 
-        self.nebulaVertices = Array(repeating: DynamicNebulaQuadVertex(), count: config.nebulaCloudCount * 6)
-        self.dustVertices = Array(repeating: DynamicSpriteVertex(), count: config.dustCount)
-        self.haloVertices = Array(repeating: DynamicSpriteVertex(), count: config.particleCount)
-        self.sharpVertices = Array(repeating: DynamicSpriteVertex(), count: config.particleCount)
+        self.nebulaVertices = Array(repeating: DynamicNebulaQuadVertex(), count: config.counts.nebulaCloudCount * 6)
+        self.dustVertices = Array(repeating: DynamicSpriteVertex(), count: config.counts.dustCount)
+        self.haloVertices = Array(repeating: DynamicSpriteVertex(), count: config.counts.particleCount)
+        self.sharpVertices = Array(repeating: DynamicSpriteVertex(), count: config.counts.particleCount)
 
         super.init()
 
@@ -563,14 +575,11 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             return
         }
 
-        let now = CACurrentMediaTime()
-        let rawDeltaTime: CFTimeInterval
+        let now = Date().timeIntervalSinceReferenceDate
         let deltaTime: Float
         if let lastUpdateTime {
-            rawDeltaTime = now - lastUpdateTime
-            deltaTime = Float(min(max(rawDeltaTime, 1.0 / 120.0), 1.0 / 30.0))
+            deltaTime = Float(min(max(now - lastUpdateTime, 1.0 / 120.0), 1.0 / 30.0))
         } else {
-            rawDeltaTime = 1.0 / 60.0
             deltaTime = 1.0 / 60.0
         }
         lastUpdateTime = now
@@ -579,9 +588,9 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
 
         var uniforms = DynamicViewportUniforms(
             viewportSize: SIMD2(Float(drawableSize.width), Float(drawableSize.height)),
-            atlasGrid: SIMD2(Float(config.nebulaAtlasColumns), Float(config.nebulaAtlasRows)),
-            nebulaAtlasInset: config.nebulaAtlasInset,
-            nebulaBoundaryFeather: config.nebulaBoundaryFeather
+            atlasGrid: SIMD2(Float(config.nebula.atlasColumns), Float(config.nebula.atlasRows)),
+            nebulaAtlasInset: config.nebula.atlasInset,
+            nebulaBoundaryFeather: config.nebula.boundaryFeather
         )
 
         drawNebulaQuads(
@@ -619,59 +628,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         encoder.endEncoding()
         commandBuffer.present(drawable)
         commandBuffer.commit()
-
-        #if DEBUG
-        recordDebugFrameMetrics(frameStart: now, frameInterval: rawDeltaTime)
-        #endif
     }
-
-    #if DEBUG
-    private func recordDebugFrameMetrics(frameStart: CFTimeInterval, frameInterval: CFTimeInterval) {
-        let frameEnd = CACurrentMediaTime()
-        let cpuEncodeTime = frameEnd - frameStart
-
-        if debugMetricsWindowStart == nil {
-            debugMetricsWindowStart = frameStart
-        }
-
-        debugFrameCount += 1
-        debugFrameIntervalTotal += frameInterval
-        debugFrameIntervalMax = max(debugFrameIntervalMax, frameInterval)
-        debugCPUEncodeTotal += cpuEncodeTime
-        debugCPUEncodeMax = max(debugCPUEncodeMax, cpuEncodeTime)
-
-        guard let windowStart = debugMetricsWindowStart else {
-            return
-        }
-
-        let windowDuration = frameEnd - windowStart
-        guard windowDuration >= 1.0 else {
-            return
-        }
-
-        let fps = Double(debugFrameCount) / windowDuration
-        let averageFrameMilliseconds = (debugFrameIntervalTotal / Double(debugFrameCount)) * 1000.0
-        let maxFrameMilliseconds = debugFrameIntervalMax * 1000.0
-        let averageCPUEncodeMilliseconds = (debugCPUEncodeTotal / Double(debugFrameCount)) * 1000.0
-        let maxCPUEncodeMilliseconds = debugCPUEncodeMax * 1000.0
-
-        print(String(
-            format: "[DynamicDebug] fps=%.1f frame_ms_avg=%.2f frame_ms_max=%.2f cpu_encode_ms_avg=%.2f cpu_encode_ms_max=%.2f",
-            fps,
-            averageFrameMilliseconds,
-            maxFrameMilliseconds,
-            averageCPUEncodeMilliseconds,
-            maxCPUEncodeMilliseconds
-        ))
-
-        debugMetricsWindowStart = frameEnd
-        debugFrameCount = 0
-        debugFrameIntervalTotal = 0.0
-        debugFrameIntervalMax = 0.0
-        debugCPUEncodeTotal = 0.0
-        debugCPUEncodeMax = 0.0
-    }
-    #endif
 
     private func rebuildScene(for size: CGSize) {
         guard size.width > 0.0, size.height > 0.0 else {
@@ -683,8 +640,8 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         state.filteredAccel = .zero
         state.motionEnvelope = 0.0
         state.currentVelocity = .zero
-        state.currentWarpSpeed = config.idleSpeed
-        state.universeSpreadX = config.maxZ * 2.8
+        state.currentWarpSpeed = config.world.idleSpeed
+        state.universeSpreadX = config.world.maxZ * 2.8
         state.universeSpreadY = state.universeSpreadX * max(1.0, Float(size.height / size.width))
         state.elapsedTime = 0.0
 
@@ -692,7 +649,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         state.dusts.removeAll(keepingCapacity: true)
         state.nebulas.removeAll(keepingCapacity: true)
 
-        for _ in 0..<config.particleCount {
+        for _ in 0..<config.counts.particleCount {
             let index = state.particles.count
             let isSharp = Float.random(in: 0.0...1.0) < 0.80
             let particle = DynamicParticle(
@@ -706,12 +663,12 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
                 phase: Float.random(in: 0.0...(Float.pi * 2.0)),
                 currentAlpha: 0.0,
                 currentScale: 1.0,
-                isReserve: index >= config.baseParticleCount
+                isReserve: index >= config.particles.baseParticleCount
             )
             state.particles.append(spawnedParticle(from: particle, randomDepth: true))
         }
 
-        for _ in 0..<config.dustCount {
+        for _ in 0..<config.counts.dustCount {
             let dust = DynamicDust(
                 x: 0.0,
                 y: 0.0,
@@ -723,19 +680,19 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             state.dusts.append(spawnedDust(from: dust, randomDepth: true))
         }
 
-        let atlasCount = max(config.nebulaAtlasColumns * config.nebulaAtlasRows, 1)
+        let atlasCount = max(config.nebula.atlasColumns * config.nebula.atlasRows, 1)
         let uniqueAtlasIndices = Array(0..<atlasCount).shuffled()
 
-        for index in 0..<config.nebulaCloudCount {
+        for index in 0..<config.counts.nebulaCloudCount {
             state.nebulas.append(
                 DynamicNebula(
                     colorIndex: Int32.random(in: 0..<Int32(DynamicPalette.colors.count)),
                     atlasIndex: Int32(uniqueAtlasIndices[index % uniqueAtlasIndices.count]),
-                    sizeJitter: Float.random(in: -config.nebulaSizeVariance...config.nebulaSizeVariance),
+                    sizeJitter: Float.random(in: -config.nebula.sizeVariance...config.nebula.sizeVariance),
                     brightnessScale: Float.random(in: 0.75...1.00),
                     anchorX: Float.random(in: -0.14...0.14),
                     anchorY: Float.random(in: -0.14...0.14),
-                    anchorZ: Float.random(in: config.minZ + 0.9...config.maxZ - 1.1),
+                    anchorZ: Float.random(in: config.world.minZ + 0.9...config.world.maxZ - 1.1),
                     driftPhaseX: Float.random(in: 0.0...(Float.pi * 2.0)),
                     driftPhaseY: Float.random(in: 0.0...(Float.pi * 2.0)),
                     driftSpeedX: Float.random(in: 0.00016...0.00046),
@@ -758,28 +715,28 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             Float(sample.lateralAcceleration),
             Float(sample.longitudinalAcceleration)
         )
-        state.filteredAccel = (accel * config.sensorSmoothing) + (state.filteredAccel * (1.0 - config.sensorSmoothing))
-        state.filteredVerticalAcceleration = (Float(sample.verticalAcceleration) * config.sensorSmoothing)
-            + (state.filteredVerticalAcceleration * (1.0 - config.sensorSmoothing))
+        state.filteredAccel = (accel * config.motion.sensorSmoothing) + (state.filteredAccel * (1.0 - config.motion.sensorSmoothing))
+        state.filteredVerticalAcceleration = (Float(sample.verticalAcceleration) * config.motion.sensorSmoothing)
+            + (state.filteredVerticalAcceleration * (1.0 - config.motion.sensorSmoothing))
         let sensitivityFactor = min(max(motionSensitivityFactor, 2.0 / 3.0), 1.5)
         let adjustedLateralAcceleration = state.filteredAccel.x / sensitivityFactor
         let adjustedLongitudinalAcceleration = state.filteredAccel.y / sensitivityFactor
         let adjustedVerticalAcceleration = state.filteredVerticalAcceleration
-            * config.verticalSensitivity
+            * config.motion.verticalSensitivity
             / sensitivityFactor
 
-        state.currentVelocity.x += ((-adjustedLateralAcceleration * 2.0) - state.currentVelocity.x) * config.velocityFriction
-        state.currentVelocity.y += (((-(adjustedLongitudinalAcceleration + adjustedVerticalAcceleration)) * 2.0) - state.currentVelocity.y) * config.velocityFriction
+        state.currentVelocity.x += ((-adjustedLateralAcceleration * config.motion.velocityGain) - state.currentVelocity.x) * config.motion.velocityFriction
+        state.currentVelocity.y += (((-(adjustedLongitudinalAcceleration + adjustedVerticalAcceleration)) * config.motion.velocityGain) - state.currentVelocity.y) * config.motion.velocityFriction
 
-        state.camX += state.currentVelocity.x * config.camSensX * frameScale
-        state.camY += state.currentVelocity.y * config.camSensY * frameScale
+        state.camX += state.currentVelocity.x * config.motion.cameraSensitivityX * frameScale
+        state.camY += state.currentVelocity.y * config.motion.cameraSensitivityY * frameScale
 
         let accelMagnitude = sqrt(
             (adjustedLateralAcceleration * adjustedLateralAcceleration)
                 + (adjustedLongitudinalAcceleration * adjustedLongitudinalAcceleration)
                 + (adjustedVerticalAcceleration * adjustedVerticalAcceleration)
         )
-        let rawIntensity = min(accelMagnitude / config.brightnessDivisor, 1.0)
+        let rawIntensity = min(accelMagnitude / config.particles.brightnessDivisor, 1.0)
         let targetIntensity = pow(rawIntensity, 0.82)
         let attackRate: Float = 0.24
         let releaseRate: Float = 0.045
@@ -794,7 +751,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         let activeHaloScale: Float = 1.0 + (state.motionEnvelope * 0.85)
 
         let clampedMultiplier = min(max(speedMultiplier, 0.0), 6.0)
-        let targetWarpSpeed = config.idleSpeed * clampedMultiplier
+        let targetWarpSpeed = config.world.idleSpeed * clampedMultiplier
         state.currentWarpSpeed += (targetWarpSpeed - state.currentWarpSpeed) * 0.05 * frameScale
 
         buildNebulas(timeMs: state.elapsedTime * 1000.0)
@@ -818,20 +775,20 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
         let centerY = Float(drawableSize.height) * 0.5
         let clusterRadiusX = Float(drawableSize.width) * 0.35
         let clusterRadiusY = Float(drawableSize.height) * 0.30
-        let baseScreenSize = Float(min(drawableSize.width, drawableSize.height)) * config.nebulaBaseScreenScale
+        let baseScreenSize = Float(min(drawableSize.width, drawableSize.height)) * config.nebula.baseScreenScale
         nebulaCount = 0
 
         for nebula in state.nebulas {
             let lissajousX = sin((timeMs * nebula.driftSpeedX) + nebula.driftPhaseX)
             let lissajousY = sin((timeMs * nebula.driftSpeedY * 1.37) + nebula.driftPhaseY)
             let breathAlpha = sin((timeMs * nebula.alphaFreq) + nebula.alphaPhase) * 0.25 + 0.75
-            let alpha = min(config.nebulaBaseAlpha * breathAlpha * nebula.brightnessScale, 1.0)
+            let alpha = min(config.nebula.baseAlpha * breathAlpha * nebula.brightnessScale, 1.0)
             let color = DynamicPalette.colors[Int(nebula.colorIndex)]
             let relX = (nebula.anchorX + lissajousX * nebula.wanderRadiusX) * clusterRadiusX
             let relY = (nebula.anchorY + lissajousY * nebula.wanderRadiusY) * clusterRadiusY
-            let scale = 1.0 / max(nebula.anchorZ, config.minZ)
+            let scale = 1.0 / max(nebula.anchorZ, config.world.minZ)
             let randomJitter = 1.0 + nebula.sizeJitter
-            let depthFactor = config.nebulaDepthBase + (scale * config.nebulaDepthBoost)
+            let depthFactor = config.nebula.depthBase + (scale * config.nebula.depthBoost)
             let screenX = centerX + relX
             let screenY = centerY + relY
             let renderSize = baseScreenSize * randomJitter * depthFactor
@@ -936,7 +893,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
                 state.dusts[index].currentAlpha = 0.0
             }
 
-            if state.dusts[index].z < config.minZ {
+            if state.dusts[index].z < config.world.minZ {
                 state.dusts[index] = spawnedDust(from: state.dusts[index], randomDepth: false)
                 relX = state.dusts[index].x - state.camX
                 relY = state.dusts[index].y - state.camY
@@ -947,7 +904,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
             let screenY = centerY + relY * (Float(drawableSize.width) * 0.5) * scale
             let renderSize = max(state.dusts[index].baseSize * scale * 1.35, 1.8)
             let isVisible = screenX > 0.0 && screenX < Float(drawableSize.width) && screenY > 0.0 && screenY < Float(drawableSize.height)
-            let depthAlpha = state.dusts[index].z > config.maxZ - 1.2 ? (config.maxZ - state.dusts[index].z) / 1.2 : 1.0
+            let depthAlpha = state.dusts[index].z > config.world.maxZ - 1.2 ? (config.world.maxZ - state.dusts[index].z) / 1.2 : 1.0
             let targetAlpha = min(state.dusts[index].baseAlpha + 0.28 + activeBrightness * 0.85, 0.98) * depthAlpha
             let dustAlphaRate: Float = targetAlpha > state.dusts[index].currentAlpha ? 0.2 : 0.08
             state.dusts[index].currentAlpha += (targetAlpha - state.dusts[index].currentAlpha) * dustAlphaRate * frameScale
@@ -1007,7 +964,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
                 state.particles[index].currentAlpha = 0.0
             }
 
-            if state.particles[index].z < config.minZ {
+            if state.particles[index].z < config.world.minZ {
                 state.particles[index] = spawnedParticle(from: state.particles[index], randomDepth: false)
                 relX = state.particles[index].x - state.camX
                 relY = state.particles[index].y - state.camY
@@ -1026,7 +983,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
 
             state.particles[index].phase += 0.03 * frameScale
             let breath = sin(state.particles[index].phase) * 0.15 + 0.85
-            let depthAlpha = state.particles[index].z > config.maxZ - 1.2 ? (config.maxZ - state.particles[index].z) / 1.2 : 1.0
+            let depthAlpha = state.particles[index].z > config.world.maxZ - 1.2 ? (config.world.maxZ - state.particles[index].z) / 1.2 : 1.0
             let alphaFloor: Float = state.particles[index].isSharp ? 0.44 : 0.52
             let alphaGain: Float = state.particles[index].isSharp ? 1.45 : 1.70
             let reserveAlphaBoost: Float = state.particles[index].isReserve ? reserveIntensity : 1.0
@@ -1053,7 +1010,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
 
     private func spawnedParticle(from particle: DynamicParticle, randomDepth: Bool) -> DynamicParticle {
         var next = particle
-        next.z = randomDepth ? Float.random(in: config.minZ...config.maxZ) : config.maxZ
+        next.z = randomDepth ? Float.random(in: config.world.minZ...config.world.maxZ) : config.world.maxZ
         next.x = state.camX + Float.random(in: -0.5...0.5) * state.universeSpreadX
         next.y = state.camY + Float.random(in: -0.5...0.5) * state.universeSpreadY
         next.currentAlpha = 0.0
@@ -1063,7 +1020,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
 
     private func spawnedDust(from dust: DynamicDust, randomDepth: Bool) -> DynamicDust {
         var next = dust
-        next.z = randomDepth ? Float.random(in: config.minZ...config.maxZ) : config.maxZ
+        next.z = randomDepth ? Float.random(in: config.world.minZ...config.world.maxZ) : config.world.maxZ
         if !randomDepth {
             next.currentAlpha = 0.0
             return next

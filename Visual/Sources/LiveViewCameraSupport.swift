@@ -114,6 +114,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
     private var latestOverlayRenderState = LiveViewOverlayRenderState()
     private var smoothedLuminance: Double?
     private var lastPolaritySwitchAt: TimeInterval?
+    private var sessionStartReferenceTime: TimeInterval?
     private var currentOrientation: InterfaceRenderOrientation = .portrait
 
     private let luminanceEmaAlpha = 0.18
@@ -131,6 +132,15 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
     public func start() {
         let currentStatus = AVCaptureDevice.authorizationStatus(for: .video)
+        analysisQueue.async { [weak self] in
+            guard let self else {
+                return
+            }
+
+            self.sessionStartReferenceTime = Date().timeIntervalSinceReferenceDate
+            self.lastPolaritySwitchAt = nil
+        }
+
         DispatchQueue.main.async {
             self.status = currentStatus
             if currentStatus == .authorized {
@@ -172,6 +182,15 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
     }
 
     public func stop() {
+        analysisQueue.async { [weak self] in
+            guard let self else {
+                return
+            }
+
+            self.sessionStartReferenceTime = nil
+            self.lastPolaritySwitchAt = nil
+        }
+
         sessionQueue.async { [weak self] in
             guard let self else {
                 return
@@ -420,7 +439,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
         let overallLuminance = (leadingLuminance + trailingLuminance + topLuminance + bottomLuminance) / 4.0
         let filteredLuminance = applyLuminanceSmoothing(overallLuminance)
-        let timestamp = ProcessInfo.processInfo.systemUptime
+        let timestamp = sessionRelativeTimestamp()
 
         let rawAnalysis = LiveViewSceneAnalysis(
             leadingBandLuminance: leadingLuminance,
@@ -489,6 +508,14 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
         }
 
         return sum / count
+    }
+
+    private func sessionRelativeTimestamp() -> TimeInterval {
+        guard let sessionStartReferenceTime else {
+            return 0.0
+        }
+
+        return Date().timeIntervalSinceReferenceDate - sessionStartReferenceTime
     }
 
     private func updatedPolarity(
