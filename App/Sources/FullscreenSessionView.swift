@@ -27,6 +27,7 @@ struct FullscreenSessionView: View {
     @State private var lastHUDRefreshAt: Date?
     @State private var isLiveViewGuidanceToastVisible = false
     @State private var liveViewGuidanceToastTask: Task<Void, Never>?
+    @State private var dynamicRenderControl = DynamicRenderControl()
 
     var body: some View {
         ZStack {
@@ -42,6 +43,7 @@ struct FullscreenSessionView: View {
                 orientation: orientationObserver.orientation,
                 dynamicSpeedMultiplier: model.dynamicSpeedMultiplier,
                 motionSensitivityFactor: model.motionSensitivityFactor,
+                dynamicRenderControl: dynamicRenderControl,
                 liveViewCamera: model.liveViewCamera
             )
                 .ignoresSafeArea()
@@ -70,6 +72,7 @@ struct FullscreenSessionView: View {
                 orientation: orientationObserver.orientation,
                 motionSensitivityFactor: $model.motionSensitivityFactor,
                 speedMultiplier: $model.dynamicSpeedMultiplier,
+                dynamicRenderControl: dynamicRenderControl,
                 onEditingBegan: beginMotionControlEditing,
                 onInteraction: {
                     registerFullscreenInteraction()
@@ -371,6 +374,7 @@ private struct MotionControlsLayer: View {
     let orientation: InterfaceRenderOrientation
     @Binding var motionSensitivityFactor: Double
     @Binding var speedMultiplier: Double
+    let dynamicRenderControl: DynamicRenderControl
     let onEditingBegan: () -> Void
     let onInteraction: () -> Void
     let onEditingEnded: () -> Void
@@ -388,6 +392,9 @@ private struct MotionControlsLayer: View {
         .ignoresSafeArea()
         .opacity(isVisible ? 1.0 : 0.0)
         .allowsHitTesting(isVisible)
+        .onDisappear {
+            dynamicRenderControl.endSpeedPreview(committedSpeedMultiplier: speedMultiplier)
+        }
     }
 
     private var controlCard: some View {
@@ -413,7 +420,12 @@ private struct MotionControlsLayer: View {
 
             controlSlider(
                 motionSensitivitySliderPosition,
-                defaultPosition: sliderPosition(forMotionSensitivityFactor: 1.0)
+                defaultPosition: sliderPosition(forMotionSensitivityFactor: 1.0),
+                commitsPreviewToBinding: false,
+                onPreviewChanged: nil,
+                onFinalValue: commitMotionSensitivity,
+                onEditingBegan: onEditingBegan,
+                onEditingEnded: finishMotionSensitivityEditing
             )
 
             Spacer(minLength: 0.0)
@@ -424,7 +436,12 @@ private struct MotionControlsLayer: View {
 
             controlSlider(
                 dynamicSpeedSliderPosition,
-                defaultPosition: sliderPosition(for: 2.0)
+                defaultPosition: sliderPosition(for: 2.0),
+                commitsPreviewToBinding: false,
+                onPreviewChanged: previewDynamicSpeed,
+                onFinalValue: commitDynamicSpeed,
+                onEditingBegan: beginDynamicSpeedEditing,
+                onEditingEnded: finishDynamicSpeedEditing
             )
 
             Spacer(minLength: 0.0)
@@ -442,7 +459,12 @@ private struct MotionControlsLayer: View {
         ZStack {
             controlSlider(
                 value,
-                defaultPosition: sliderPosition(forMotionSensitivityFactor: 1.0)
+                defaultPosition: sliderPosition(forMotionSensitivityFactor: 1.0),
+                commitsPreviewToBinding: false,
+                onPreviewChanged: nil,
+                onFinalValue: commitMotionSensitivity,
+                onEditingBegan: onEditingBegan,
+                onEditingEnded: finishMotionSensitivityEditing
             )
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                 .padding(.bottom, 7.0)
@@ -467,13 +489,44 @@ private struct MotionControlsLayer: View {
     }
 
     private func controlSlider(_ value: Binding<Double>) -> some View {
-        controlSlider(value, defaultPosition: nil)
+        controlSlider(
+            value,
+            defaultPosition: nil,
+            commitsPreviewToBinding: true,
+            onPreviewChanged: nil,
+            onFinalValue: nil,
+            onEditingBegan: onEditingBegan,
+            onEditingEnded: onEditingEnded
+        )
     }
 
     private func controlSlider(_ value: Binding<Double>, defaultPosition: Double?) -> some View {
+        controlSlider(
+            value,
+            defaultPosition: defaultPosition,
+            commitsPreviewToBinding: true,
+            onPreviewChanged: nil,
+            onFinalValue: nil,
+            onEditingBegan: onEditingBegan,
+            onEditingEnded: onEditingEnded
+        )
+    }
+
+    private func controlSlider(
+        _ value: Binding<Double>,
+        defaultPosition: Double?,
+        commitsPreviewToBinding: Bool,
+        onPreviewChanged: ((Double) -> Void)?,
+        onFinalValue: ((Double) -> Void)?,
+        onEditingBegan: @escaping () -> Void,
+        onEditingEnded: @escaping () -> Void
+    ) -> some View {
         NativeSnapSlider(
             value: value,
             defaultPosition: defaultPosition,
+            commitsPreviewToBinding: commitsPreviewToBinding,
+            onPreviewChanged: onPreviewChanged,
+            onFinalValue: onFinalValue,
             onEditingBegan: onEditingBegan,
             onInteraction: onInteraction,
             onEditingEnded: onEditingEnded
@@ -508,9 +561,42 @@ private struct MotionControlsLayer: View {
                 sliderPosition(for: speedMultiplier)
             },
             set: { sliderPosition in
-                speedMultiplier = speedMultiplier(for: sliderPosition)
+                speedMultiplier = speedMultiplier(for: clampedSliderPosition(sliderPosition))
             }
         )
+    }
+
+    private func commitMotionSensitivity(_ sliderPosition: Double) {
+        let finalPosition = clampedSliderPosition(sliderPosition)
+        motionSensitivityFactor = motionSensitivityFactor(for: finalPosition)
+    }
+
+    private func finishMotionSensitivityEditing() {
+        onEditingEnded()
+    }
+
+    private func beginDynamicSpeedEditing() {
+        dynamicRenderControl.beginSpeedPreview(committedSpeedMultiplier: speedMultiplier)
+        onEditingBegan()
+    }
+
+    private func previewDynamicSpeed(_ sliderPosition: Double) {
+        dynamicRenderControl.updateSpeedPreview(speedMultiplier(for: sliderPosition))
+    }
+
+    private func commitDynamicSpeed(_ sliderPosition: Double) {
+        let finalSpeedMultiplier = speedMultiplier(for: sliderPosition)
+        dynamicRenderControl.updateSpeedPreview(finalSpeedMultiplier)
+        speedMultiplier = finalSpeedMultiplier
+        dynamicRenderControl.endSpeedPreview(committedSpeedMultiplier: finalSpeedMultiplier)
+    }
+
+    private func finishDynamicSpeedEditing() {
+        onEditingEnded()
+    }
+
+    private func clampedSliderPosition(_ sliderPosition: Double) -> Double {
+        min(max(sliderPosition, 0.0), 1.0)
     }
 
     private func sliderPosition(forMotionSensitivityFactor factor: Double) -> Double {
@@ -538,13 +624,15 @@ private struct MotionControlsLayer: View {
 private struct NativeSnapSlider: UIViewRepresentable {
     @Binding var value: Double
     let defaultPosition: Double?
+    let commitsPreviewToBinding: Bool
+    let onPreviewChanged: ((Double) -> Void)?
+    let onFinalValue: ((Double) -> Void)?
     let onEditingBegan: () -> Void
     let onInteraction: () -> Void
     let onEditingEnded: () -> Void
 
     private let snapThreshold: Double = 0.03
     private let valueStep: Double = 0.02
-    private let valueCommitInterval: TimeInterval = 0.20
     private let tintColor = UIColor(red: 0.25, green: 0.72, blue: 1.0, alpha: 1.0)
 
     func makeCoordinator() -> Coordinator {
@@ -553,7 +641,9 @@ private struct NativeSnapSlider: UIViewRepresentable {
             defaultPosition: defaultPosition,
             snapThreshold: snapThreshold,
             valueStep: valueStep,
-            valueCommitInterval: valueCommitInterval,
+            commitsPreviewToBinding: commitsPreviewToBinding,
+            onPreviewChanged: onPreviewChanged,
+            onFinalValue: onFinalValue,
             onEditingBegan: onEditingBegan,
             onInteraction: onInteraction,
             onEditingEnded: onEditingEnded
@@ -595,22 +685,23 @@ private struct NativeSnapSlider: UIViewRepresentable {
         var defaultPosition: Double?
         let snapThreshold: Double
         let valueStep: Double
-        let valueCommitInterval: TimeInterval
+        let commitsPreviewToBinding: Bool
+        let onPreviewChanged: ((Double) -> Void)?
+        let onFinalValue: ((Double) -> Void)?
         let onEditingBegan: () -> Void
         let onInteraction: () -> Void
         let onEditingEnded: () -> Void
         private var feedbackGenerator: UISelectionFeedbackGenerator?
         private var isInsideSnapZone = false
-        private var pendingValue: Double?
-        private var valueCommitTask: Task<Void, Never>?
-        private var canCommitImmediately = true
 
         init(
             value: Binding<Double>,
             defaultPosition: Double?,
             snapThreshold: Double,
             valueStep: Double,
-            valueCommitInterval: TimeInterval,
+            commitsPreviewToBinding: Bool,
+            onPreviewChanged: ((Double) -> Void)?,
+            onFinalValue: ((Double) -> Void)?,
             onEditingBegan: @escaping () -> Void,
             onInteraction: @escaping () -> Void,
             onEditingEnded: @escaping () -> Void
@@ -619,14 +710,12 @@ private struct NativeSnapSlider: UIViewRepresentable {
             self.defaultPosition = defaultPosition
             self.snapThreshold = snapThreshold
             self.valueStep = valueStep
-            self.valueCommitInterval = valueCommitInterval
+            self.commitsPreviewToBinding = commitsPreviewToBinding
+            self.onPreviewChanged = onPreviewChanged
+            self.onFinalValue = onFinalValue
             self.onEditingBegan = onEditingBegan
             self.onInteraction = onInteraction
             self.onEditingEnded = onEditingEnded
-        }
-
-        deinit {
-            valueCommitTask?.cancel()
         }
 
         private func makeFeedbackGeneratorIfNeeded() -> UISelectionFeedbackGenerator {
@@ -643,10 +732,6 @@ private struct NativeSnapSlider: UIViewRepresentable {
         func touchBegan(_ sender: UISlider) {
             let feedbackGenerator = makeFeedbackGeneratorIfNeeded()
             feedbackGenerator.prepare()
-            pendingValue = nil
-            valueCommitTask?.cancel()
-            valueCommitTask = nil
-            canCommitImmediately = true
             onEditingBegan()
         }
 
@@ -654,9 +739,7 @@ private struct NativeSnapSlider: UIViewRepresentable {
         func valueChanged(_ sender: UISlider) {
             let rawValue = Double(sender.value)
             guard let defaultPosition else {
-                let nextValue = steppedValue(for: rawValue)
-                sender.setValue(Float(nextValue), animated: false)
-                enqueueValue(nextValue)
+                commitPreviewValue(liveValue(for: rawValue))
                 return
             }
 
@@ -672,18 +755,18 @@ private struct NativeSnapSlider: UIViewRepresentable {
                     feedbackGenerator.prepare()
                 }
             } else {
-                nextValue = steppedValue(for: rawValue)
-                sender.setValue(Float(nextValue), animated: false)
+                nextValue = liveValue(for: rawValue)
             }
 
             isInsideSnapZone = shouldSnap
-            enqueueValue(nextValue)
+            commitPreviewValue(nextValue)
         }
 
         @objc
         func touchEnded(_ sender: UISlider) {
-            valueChanged(sender)
-            flushValue(Double(sender.value))
+            let finalValue = finalizedValue(for: Double(sender.value))
+            sender.setValue(Float(finalValue), animated: false)
+            commitFinalValue(finalValue)
             onInteraction()
             onEditingEnded()
             isInsideSnapZone = false
@@ -701,7 +784,7 @@ private struct NativeSnapSlider: UIViewRepresentable {
 
             onInteraction()
             slider.setValue(Float(defaultPosition), animated: true)
-            flushValue(defaultPosition)
+            commitFinalValue(defaultPosition)
             isInsideSnapZone = false
             onEditingEnded()
 
@@ -710,63 +793,37 @@ private struct NativeSnapSlider: UIViewRepresentable {
             feedbackGenerator.prepare()
         }
 
-        private func enqueueValue(_ nextValue: Double) {
-            guard abs(value - nextValue) > 0.0001 else {
-                return
-            }
-
-            if canCommitImmediately {
-                canCommitImmediately = false
-                commitValue(nextValue)
-                schedulePendingCommitIfNeeded()
-                return
-            }
-
-            pendingValue = nextValue
-            schedulePendingCommitIfNeeded()
-        }
-
-        private func flushValue(_ nextValue: Double) {
-            valueCommitTask?.cancel()
-            valueCommitTask = nil
-            pendingValue = nil
-            canCommitImmediately = true
-            commitValue(nextValue)
-        }
-
-        private func schedulePendingCommitIfNeeded() {
-            guard valueCommitTask == nil else {
-                return
-            }
-
-            valueCommitTask = Task { @MainActor [weak self] in
-                while !Task.isCancelled {
-                    guard let self else {
-                        return
-                    }
-
-                    try? await Task.sleep(for: .milliseconds(Int(valueCommitInterval * 1000.0)))
-                    guard !Task.isCancelled else {
-                        return
-                    }
-
-                    guard let nextValue = self.pendingValue else {
-                        self.canCommitImmediately = true
-                        self.valueCommitTask = nil
-                        return
-                    }
-
-                    self.pendingValue = nil
-                    self.commitValue(nextValue)
-                }
+        private func commitPreviewValue(_ nextValue: Double) {
+            if let onPreviewChanged {
+                onPreviewChanged(nextValue)
+            } else if commitsPreviewToBinding {
+                commitBindingValue(nextValue)
             }
         }
 
-        private func commitValue(_ nextValue: Double) {
-            guard abs(value - nextValue) > 0.0001 else {
-                return
+        private func commitFinalValue(_ nextValue: Double) {
+            if let onFinalValue {
+                onFinalValue(nextValue)
+            } else {
+                commitBindingValue(nextValue)
             }
+        }
+
+        private func commitBindingValue(_ nextValue: Double) {
+            guard abs(value - nextValue) > 0.0001 else { return }
             value = nextValue
+        }
+
+        private func liveValue(for rawValue: Double) -> Double {
+            min(max(rawValue, 0.0), 1.0)
+        }
+
+        private func finalizedValue(for rawValue: Double) -> Double {
+            if let defaultPosition, abs(rawValue - defaultPosition) <= snapThreshold {
+                return defaultPosition
+            }
+
+            return steppedValue(for: rawValue)
         }
 
         private func steppedValue(for rawValue: Double) -> Double {
@@ -790,6 +847,7 @@ private struct SessionCueOverlay: View {
     let orientation: InterfaceRenderOrientation
     let dynamicSpeedMultiplier: Double
     let motionSensitivityFactor: Double
+    let dynamicRenderControl: DynamicRenderControl
     let liveViewCamera: LiveViewCameraModel
 
     var body: some View {
@@ -799,6 +857,7 @@ private struct SessionCueOverlay: View {
             orientation: orientation,
             dynamicSpeedMultiplier: dynamicSpeedMultiplier,
             motionSensitivityFactor: motionSensitivityFactor,
+            dynamicRenderControl: dynamicRenderControl,
             liveViewCamera: liveViewCamera
         )
     }

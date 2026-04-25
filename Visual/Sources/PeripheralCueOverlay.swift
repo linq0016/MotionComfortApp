@@ -8,6 +8,7 @@ public struct PeripheralCueOverlay: View {
     public var orientation: InterfaceRenderOrientation
     public var dynamicSpeedMultiplier: Double
     public var motionSensitivityFactor: Double
+    public var dynamicRenderControl: DynamicRenderControl?
     public var liveViewCamera: LiveViewCameraModel?
 
     public init(
@@ -16,6 +17,7 @@ public struct PeripheralCueOverlay: View {
         orientation: InterfaceRenderOrientation = .portrait,
         dynamicSpeedMultiplier: Double = 1.0,
         motionSensitivityFactor: Double = 1.0,
+        dynamicRenderControl: DynamicRenderControl? = nil,
         liveViewCamera: LiveViewCameraModel? = nil
     ) {
         self.sample = sample
@@ -23,6 +25,7 @@ public struct PeripheralCueOverlay: View {
         self.orientation = orientation
         self.dynamicSpeedMultiplier = dynamicSpeedMultiplier
         self.motionSensitivityFactor = motionSensitivityFactor
+        self.dynamicRenderControl = dynamicRenderControl
         self.liveViewCamera = liveViewCamera
     }
 
@@ -40,7 +43,8 @@ public struct PeripheralCueOverlay: View {
                     sample: sample,
                     orientation: orientation,
                     speedMultiplier: dynamicSpeedMultiplier,
-                    motionSensitivityFactor: motionSensitivityFactor
+                    motionSensitivityFactor: motionSensitivityFactor,
+                    renderControl: dynamicRenderControl
                 )
             case .liveView:
                 if let liveViewCamera {

@@ -5,22 +5,83 @@ import MotionComfortCore
 import SwiftUI
 import UIKit
 
+@MainActor
+public final class DynamicRenderControl {
+    private weak var renderer: (any DynamicRenderPreviewReceiver)?
+    private var previewSpeedMultiplier: Float?
+
+    public init() {}
+
+    public func beginSpeedPreview(committedSpeedMultiplier: Double) {
+        let value = Self.clampedSpeedMultiplier(committedSpeedMultiplier)
+        previewSpeedMultiplier = value
+        renderer?.setSpeedMultiplier(value)
+    }
+
+    public func updateSpeedPreview(_ speedMultiplier: Double) {
+        let value = Self.clampedSpeedMultiplier(speedMultiplier)
+        previewSpeedMultiplier = value
+        renderer?.setSpeedMultiplier(value)
+    }
+
+    public func endSpeedPreview(committedSpeedMultiplier: Double) {
+        let value = Self.clampedSpeedMultiplier(committedSpeedMultiplier)
+        previewSpeedMultiplier = nil
+        renderer?.setSpeedMultiplier(value)
+    }
+
+    fileprivate func attach(_ renderer: any DynamicRenderPreviewReceiver) {
+        self.renderer = renderer
+        if let previewSpeedMultiplier {
+            renderer.setSpeedMultiplier(previewSpeedMultiplier)
+        }
+    }
+
+    fileprivate func detach(_ renderer: any DynamicRenderPreviewReceiver) {
+        guard let currentRenderer = self.renderer,
+              ObjectIdentifier(currentRenderer) == ObjectIdentifier(renderer)
+        else {
+            return
+        }
+        self.renderer = nil
+    }
+
+    fileprivate func applyCommittedSpeedMultiplier(_ speedMultiplier: Double) {
+        guard previewSpeedMultiplier == nil else {
+            return
+        }
+        renderer?.setSpeedMultiplier(Self.clampedSpeedMultiplier(speedMultiplier))
+    }
+
+    private static func clampedSpeedMultiplier(_ speedMultiplier: Double) -> Float {
+        Float(min(max(speedMultiplier, 0.0), 6.0))
+    }
+}
+
+@MainActor
+private protocol DynamicRenderPreviewReceiver: AnyObject {
+    func setSpeedMultiplier(_ speedMultiplier: Float)
+}
+
 public struct DynamicFlowOverlay: View {
     let sample: MotionSample
     let orientation: InterfaceRenderOrientation
     let speedMultiplier: Double
     let motionSensitivityFactor: Double
+    let renderControl: DynamicRenderControl?
 
     public init(
         sample: MotionSample = .neutral,
         orientation: InterfaceRenderOrientation = .portrait,
         speedMultiplier: Double = 1.0,
-        motionSensitivityFactor: Double = 1.0
+        motionSensitivityFactor: Double = 1.0,
+        renderControl: DynamicRenderControl? = nil
     ) {
         self.sample = sample
         self.orientation = orientation
         self.speedMultiplier = speedMultiplier
         self.motionSensitivityFactor = motionSensitivityFactor
+        self.renderControl = renderControl
     }
 
     public var body: some View {
@@ -28,7 +89,8 @@ public struct DynamicFlowOverlay: View {
             DynamicMetalView(
                 sample: sample.rotatedForDisplay(orientation),
                 speedMultiplier: speedMultiplier,
-                motionSensitivityFactor: motionSensitivityFactor
+                motionSensitivityFactor: motionSensitivityFactor,
+                renderControl: renderControl
             )
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
@@ -52,6 +114,7 @@ private struct DynamicMetalView: UIViewRepresentable {
     let sample: MotionSample
     let speedMultiplier: Double
     let motionSensitivityFactor: Double
+    let renderControl: DynamicRenderControl?
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -82,6 +145,8 @@ private struct DynamicMetalView: UIViewRepresentable {
             renderer.speedMultiplier = Float(speedMultiplier)
             renderer.motionSensitivityFactor = Float(motionSensitivityFactor)
             context.coordinator.renderer = renderer
+            context.coordinator.renderControl = renderControl
+            renderControl?.attach(renderer)
             view.delegate = renderer
             view.clearFailure()
         } catch {
@@ -94,12 +159,28 @@ private struct DynamicMetalView: UIViewRepresentable {
     func updateUIView(_ uiView: DynamicRenderView, context: Context) {
         uiView.updateDrawableSizeIfNeeded()
         context.coordinator.renderer?.sample = sample
-        context.coordinator.renderer?.speedMultiplier = Float(speedMultiplier)
+        if let renderControl {
+            context.coordinator.renderControl = renderControl
+            if let renderer = context.coordinator.renderer {
+                renderControl.attach(renderer)
+            }
+            renderControl.applyCommittedSpeedMultiplier(speedMultiplier)
+        } else {
+            context.coordinator.renderer?.speedMultiplier = Float(speedMultiplier)
+        }
         context.coordinator.renderer?.motionSensitivityFactor = Float(motionSensitivityFactor)
+    }
+
+    static func dismantleUIView(_ uiView: DynamicRenderView, coordinator: Coordinator) {
+        if let renderer = coordinator.renderer {
+            coordinator.renderControl?.detach(renderer)
+        }
+        coordinator.renderer = nil
     }
 
     final class Coordinator {
         var renderer: DynamicMetalRenderer?
+        weak var renderControl: DynamicRenderControl?
     }
 }
 
@@ -476,7 +557,7 @@ private final class DynamicRenderResourceCache: @unchecked Sendable {
 }
 
 @MainActor
-private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
+private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRenderPreviewReceiver {
     var sample: MotionSample = .neutral
     var speedMultiplier: Float = 1.0
     var motionSensitivityFactor: Float = 1.0
@@ -510,6 +591,10 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate {
     private var dustCount = 0
     private var haloCount = 0
     private var sharpCount = 0
+
+    func setSpeedMultiplier(_ speedMultiplier: Float) {
+        self.speedMultiplier = min(max(speedMultiplier, 0.0), 6.0)
+    }
 
     init(mtkView: MTKView, resources: DynamicRenderResources) throws {
         let device = resources.device
