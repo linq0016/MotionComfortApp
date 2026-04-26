@@ -157,7 +157,6 @@ private struct DynamicMetalView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: DynamicRenderView, context: Context) {
-        uiView.updateDrawableSizeIfNeeded()
         context.coordinator.renderer?.sample = sample
         if let renderControl {
             context.coordinator.renderControl = renderControl
@@ -199,16 +198,7 @@ private final class DynamicRenderView: MTKView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        updateDrawableSizeIfNeeded()
         failureLabel.frame = bounds.insetBy(dx: 24.0, dy: 24.0)
-    }
-
-    func updateDrawableSizeIfNeeded() {
-        let scale = window?.screen.scale ?? traitCollection.displayScale
-        let nextSize = CGSize(width: bounds.width * scale, height: bounds.height * scale)
-        if nextSize.width > 0.0, nextSize.height > 0.0, drawableSize != nextSize {
-            drawableSize = nextSize
-        }
     }
 
     func showFailure(_ message: String) {
@@ -644,6 +634,12 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
     }
 
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
+        guard abs(drawableSize.width - size.width) > 1.0
+            || abs(drawableSize.height - size.height) > 1.0
+        else {
+            return
+        }
+
         drawableSize = size
         rebuildScene(for: size)
     }
@@ -945,65 +941,80 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
     private func buildDust(activeBrightness: Float, frameScale: Float) {
         let centerX = Float(drawableSize.width) * 0.5
         let centerY = Float(drawableSize.height) * 0.5
+        let halfScreenWidth = Float(drawableSize.width) * 0.5
+        let screenWidth = Float(drawableSize.width)
+        let screenHeight = Float(drawableSize.height)
         let halfX = state.universeSpreadX * 0.5
         let halfY = state.universeSpreadY * 0.5
+        let currentWarpSpeed = state.currentWarpSpeed
+        let camX = state.camX
+        let camY = state.camY
+        let universeSpreadX = state.universeSpreadX
+        let universeSpreadY = state.universeSpreadY
+        let minZ = config.world.minZ
+        let maxZ = config.world.maxZ
         dustCount = 0
 
-        for index in state.dusts.indices {
-            state.dusts[index].z -= state.currentWarpSpeed * frameScale
+        state.dusts.withUnsafeMutableBufferPointer { dusts in
+            for index in dusts.indices {
+                var dust = dusts[index]
+                dust.z -= currentWarpSpeed * frameScale
 
-            var relX = state.dusts[index].x - state.camX
-            var relY = state.dusts[index].y - state.camY
-            var hasWrapped = false
+                var relX = dust.x - camX
+                var relY = dust.y - camY
+                var hasWrapped = false
 
-            if relX > halfX {
-                state.dusts[index].x -= state.universeSpreadX
-                hasWrapped = true
-            } else if relX < -halfX {
-                state.dusts[index].x += state.universeSpreadX
-                hasWrapped = true
-            }
+                if relX > halfX {
+                    dust.x -= universeSpreadX
+                    hasWrapped = true
+                } else if relX < -halfX {
+                    dust.x += universeSpreadX
+                    hasWrapped = true
+                }
 
-            if relY > halfY {
-                state.dusts[index].y -= state.universeSpreadY
-                hasWrapped = true
-            } else if relY < -halfY {
-                state.dusts[index].y += state.universeSpreadY
-                hasWrapped = true
-            }
+                if relY > halfY {
+                    dust.y -= universeSpreadY
+                    hasWrapped = true
+                } else if relY < -halfY {
+                    dust.y += universeSpreadY
+                    hasWrapped = true
+                }
 
-            if hasWrapped {
-                relX = state.dusts[index].x - state.camX
-                relY = state.dusts[index].y - state.camY
-                state.dusts[index].currentAlpha = 0.0
-            }
+                if hasWrapped {
+                    relX = dust.x - camX
+                    relY = dust.y - camY
+                    dust.currentAlpha = 0.0
+                }
 
-            if state.dusts[index].z < config.world.minZ {
-                state.dusts[index] = spawnedDust(from: state.dusts[index], randomDepth: false)
-                relX = state.dusts[index].x - state.camX
-                relY = state.dusts[index].y - state.camY
-            }
+                if dust.z < minZ {
+                    dust.z = maxZ
+                    dust.currentAlpha = 0.0
+                    relX = dust.x - camX
+                    relY = dust.y - camY
+                }
 
-            let scale = 1.0 / state.dusts[index].z
-            let screenX = centerX + relX * (Float(drawableSize.width) * 0.5) * scale
-            let screenY = centerY + relY * (Float(drawableSize.width) * 0.5) * scale
-            let renderSize = max(state.dusts[index].baseSize * scale * 1.35, 1.8)
-            let isVisible = screenX > 0.0 && screenX < Float(drawableSize.width) && screenY > 0.0 && screenY < Float(drawableSize.height)
-            let depthAlpha = state.dusts[index].z > config.world.maxZ - 1.2 ? (config.world.maxZ - state.dusts[index].z) / 1.2 : 1.0
-            let targetAlpha = min(state.dusts[index].baseAlpha + 0.28 + activeBrightness * 0.85, 0.98) * depthAlpha
-            let dustAlphaRate: Float = targetAlpha > state.dusts[index].currentAlpha ? 0.2 : 0.08
-            state.dusts[index].currentAlpha += (targetAlpha - state.dusts[index].currentAlpha) * dustAlphaRate * frameScale
+                let scale = 1.0 / dust.z
+                let screenX = centerX + relX * halfScreenWidth * scale
+                let screenY = centerY + relY * halfScreenWidth * scale
+                let renderSize = max(dust.baseSize * scale * 1.35, 1.8)
+                let isVisible = screenX > 0.0 && screenX < screenWidth && screenY > 0.0 && screenY < screenHeight
+                let depthAlpha = dust.z > maxZ - 1.2 ? (maxZ - dust.z) / 1.2 : 1.0
+                let targetAlpha = min(dust.baseAlpha + 0.28 + activeBrightness * 0.85, 0.98) * depthAlpha
+                let dustAlphaRate: Float = targetAlpha > dust.currentAlpha ? 0.2 : 0.08
+                dust.currentAlpha += (targetAlpha - dust.currentAlpha) * dustAlphaRate * frameScale
 
-            if state.dusts[index].currentAlpha > 0.01 && isVisible {
-                let color = SIMD3<Float>(repeating: 1.0)
-                dustVertices[dustCount] = DynamicSpriteVertex(
-                    positionAndSize: SIMD4(screenX, screenY, renderSize, min(state.dusts[index].currentAlpha, 1.0)),
-                    colorAndSoftness: SIMD4(color.x, color.y, color.z, 1.0)
-                )
-                dustCount += 1
+                if dust.currentAlpha > 0.01 && isVisible {
+                    let color = SIMD3<Float>(repeating: 1.0)
+                    dustVertices[dustCount] = DynamicSpriteVertex(
+                        positionAndSize: SIMD4(screenX, screenY, renderSize, min(dust.currentAlpha, 1.0)),
+                        colorAndSoftness: SIMD4(color.x, color.y, color.z, 1.0)
+                    )
+                    dustCount += 1
+                }
+
+                dusts[index] = dust
             }
         }
-
     }
 
     private func buildParticles(
@@ -1015,80 +1026,99 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
     ) {
         let centerX = Float(drawableSize.width) * 0.5
         let centerY = Float(drawableSize.height) * 0.5
+        let halfScreenWidth = Float(drawableSize.width) * 0.5
+        let screenWidth = Float(drawableSize.width)
+        let screenHeight = Float(drawableSize.height)
         let halfX = state.universeSpreadX * 0.5
         let halfY = state.universeSpreadY * 0.5
+        let currentWarpSpeed = state.currentWarpSpeed
+        let camX = state.camX
+        let camY = state.camY
+        let universeSpreadX = state.universeSpreadX
+        let universeSpreadY = state.universeSpreadY
+        let minZ = config.world.minZ
+        let maxZ = config.world.maxZ
         haloCount = 0
         sharpCount = 0
 
-        for index in state.particles.indices {
-            state.particles[index].z -= state.currentWarpSpeed * frameScale
+        state.particles.withUnsafeMutableBufferPointer { particles in
+            for index in particles.indices {
+                var particle = particles[index]
+                particle.z -= currentWarpSpeed * frameScale
 
-            var relX = state.particles[index].x - state.camX
-            var relY = state.particles[index].y - state.camY
-            var hasWrapped = false
+                var relX = particle.x - camX
+                var relY = particle.y - camY
+                var hasWrapped = false
 
-            if relX > halfX {
-                state.particles[index].x -= state.universeSpreadX
-                hasWrapped = true
-            } else if relX < -halfX {
-                state.particles[index].x += state.universeSpreadX
-                hasWrapped = true
-            }
-
-            if relY > halfY {
-                state.particles[index].y -= state.universeSpreadY
-                hasWrapped = true
-            } else if relY < -halfY {
-                state.particles[index].y += state.universeSpreadY
-                hasWrapped = true
-            }
-
-            if hasWrapped {
-                relX = state.particles[index].x - state.camX
-                relY = state.particles[index].y - state.camY
-                state.particles[index].currentAlpha = 0.0
-            }
-
-            if state.particles[index].z < config.world.minZ {
-                state.particles[index] = spawnedParticle(from: state.particles[index], randomDepth: false)
-                relX = state.particles[index].x - state.camX
-                relY = state.particles[index].y - state.camY
-            }
-
-            let scale = 1.0 / state.particles[index].z
-            let screenX = centerX + relX * (Float(drawableSize.width) * 0.5) * scale
-            let screenY = centerY + relY * (Float(drawableSize.width) * 0.5) * scale
-            let reserveScaleBoost: Float = state.particles[index].isReserve ? (1.0 + reserveIntensity * 0.28) : 1.0
-            let targetScale: Float = (state.particles[index].isSharp ? (1.0 + accelIntensity * 0.22) : activeHaloScale) * reserveScaleBoost
-            let scaleRate: Float = targetScale > state.particles[index].currentScale ? 0.15 : 0.06
-            state.particles[index].currentScale += (targetScale - state.particles[index].currentScale) * scaleRate * frameScale
-            let sizeBoost: Float = state.particles[index].isSharp ? 2.18 : 2.00
-            let renderSize = max(state.particles[index].size * scale * state.particles[index].currentScale * sizeBoost, 2.2)
-            let isVisible = screenX > -renderSize && screenX < Float(drawableSize.width) + renderSize && screenY > -renderSize && screenY < Float(drawableSize.height) + renderSize
-
-            state.particles[index].phase += 0.03 * frameScale
-            let breath = sin(state.particles[index].phase) * 0.15 + 0.85
-            let depthAlpha = state.particles[index].z > config.world.maxZ - 1.2 ? (config.world.maxZ - state.particles[index].z) / 1.2 : 1.0
-            let alphaFloor: Float = state.particles[index].isSharp ? 0.44 : 0.52
-            let alphaGain: Float = state.particles[index].isSharp ? 1.45 : 1.70
-            let reserveAlphaBoost: Float = state.particles[index].isReserve ? reserveIntensity : 1.0
-            let targetAlpha = min(state.particles[index].baseAlpha + alphaFloor + activeBrightness * alphaGain, 1.0) * breath * depthAlpha * reserveAlphaBoost
-            let particleAlphaRate: Float = targetAlpha > state.particles[index].currentAlpha ? 0.15 : 0.055
-            state.particles[index].currentAlpha += (targetAlpha - state.particles[index].currentAlpha) * particleAlphaRate * frameScale
-
-            if state.particles[index].currentAlpha > 0.001 && isVisible {
-                let color = DynamicPalette.colors[Int(state.particles[index].colorIndex)]
-                let sprite = DynamicSpriteVertex(
-                    positionAndSize: SIMD4(screenX, screenY, renderSize, min(state.particles[index].currentAlpha, 1.0)),
-                    colorAndSoftness: SIMD4(color.x, color.y, color.z, state.particles[index].isSharp ? 0.5 : 1.0)
-                )
-                if state.particles[index].isSharp {
-                    sharpVertices[sharpCount] = sprite
-                    sharpCount += 1
-                } else {
-                    haloVertices[haloCount] = sprite
-                    haloCount += 1
+                if relX > halfX {
+                    particle.x -= universeSpreadX
+                    hasWrapped = true
+                } else if relX < -halfX {
+                    particle.x += universeSpreadX
+                    hasWrapped = true
                 }
+
+                if relY > halfY {
+                    particle.y -= universeSpreadY
+                    hasWrapped = true
+                } else if relY < -halfY {
+                    particle.y += universeSpreadY
+                    hasWrapped = true
+                }
+
+                if hasWrapped {
+                    relX = particle.x - camX
+                    relY = particle.y - camY
+                    particle.currentAlpha = 0.0
+                }
+
+                if particle.z < minZ {
+                    particle.z = maxZ
+                    particle.x = camX + Float.random(in: -0.5...0.5) * universeSpreadX
+                    particle.y = camY + Float.random(in: -0.5...0.5) * universeSpreadY
+                    particle.currentAlpha = 0.0
+                    particle.currentScale = 1.0
+                    relX = particle.x - camX
+                    relY = particle.y - camY
+                }
+
+                let scale = 1.0 / particle.z
+                let screenX = centerX + relX * halfScreenWidth * scale
+                let screenY = centerY + relY * halfScreenWidth * scale
+                let reserveScaleBoost: Float = particle.isReserve ? (1.0 + reserveIntensity * 0.28) : 1.0
+                let targetScale: Float = (particle.isSharp ? (1.0 + accelIntensity * 0.22) : activeHaloScale) * reserveScaleBoost
+                let scaleRate: Float = targetScale > particle.currentScale ? 0.15 : 0.06
+                particle.currentScale += (targetScale - particle.currentScale) * scaleRate * frameScale
+                let sizeBoost: Float = particle.isSharp ? 2.18 : 2.00
+                let renderSize = max(particle.size * scale * particle.currentScale * sizeBoost, 2.2)
+                let isVisible = screenX > -renderSize && screenX < screenWidth + renderSize && screenY > -renderSize && screenY < screenHeight + renderSize
+
+                particle.phase += 0.03 * frameScale
+                let breath = sin(particle.phase) * 0.15 + 0.85
+                let depthAlpha = particle.z > maxZ - 1.2 ? (maxZ - particle.z) / 1.2 : 1.0
+                let alphaFloor: Float = particle.isSharp ? 0.44 : 0.52
+                let alphaGain: Float = particle.isSharp ? 1.45 : 1.70
+                let reserveAlphaBoost: Float = particle.isReserve ? reserveIntensity : 1.0
+                let targetAlpha = min(particle.baseAlpha + alphaFloor + activeBrightness * alphaGain, 1.0) * breath * depthAlpha * reserveAlphaBoost
+                let particleAlphaRate: Float = targetAlpha > particle.currentAlpha ? 0.15 : 0.055
+                particle.currentAlpha += (targetAlpha - particle.currentAlpha) * particleAlphaRate * frameScale
+
+                if particle.currentAlpha > 0.001 && isVisible {
+                    let color = DynamicPalette.colors[Int(particle.colorIndex)]
+                    let sprite = DynamicSpriteVertex(
+                        positionAndSize: SIMD4(screenX, screenY, renderSize, min(particle.currentAlpha, 1.0)),
+                        colorAndSoftness: SIMD4(color.x, color.y, color.z, particle.isSharp ? 0.5 : 1.0)
+                    )
+                    if particle.isSharp {
+                        sharpVertices[sharpCount] = sprite
+                        sharpCount += 1
+                    } else {
+                        haloVertices[haloCount] = sprite
+                        haloCount += 1
+                    }
+                }
+
+                particles[index] = particle
             }
         }
     }
@@ -1268,6 +1298,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
 
         return try device.makeRenderPipelineState(descriptor: descriptor)
     }
+
 }
 
 private enum DynamicBlendMode {

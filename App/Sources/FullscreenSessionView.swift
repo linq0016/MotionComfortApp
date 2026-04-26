@@ -746,10 +746,10 @@ private struct NativeSnapSlider: UIViewRepresentable {
             let shouldSnap = abs(rawValue - defaultPosition) <= snapThreshold
             let nextValue: Double
             if shouldSnap {
-                sender.setValue(Float(defaultPosition), animated: false)
                 nextValue = defaultPosition
 
                 if !isInsideSnapZone {
+                    sender.setValue(Float(defaultPosition), animated: false)
                     let feedbackGenerator = makeFeedbackGeneratorIfNeeded()
                     feedbackGenerator.selectionChanged()
                     feedbackGenerator.prepare()
