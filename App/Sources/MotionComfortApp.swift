@@ -5,8 +5,8 @@ import SwiftUI
 private enum AppShellTiming {
     static let minimumLaunchPlaceholderDuration: Duration = .milliseconds(325)
     static let launchPlaceholderFadeDuration: TimeInterval = 0.265
-    static let sessionOverlayFadeDuration: TimeInterval = 0.28
-    static let sessionOverlayFadeDelay: Duration = .milliseconds(280)
+    static let sessionOverlayFadeDuration: TimeInterval = 0.20
+    static let sessionOverlayFadeDelay: Duration = .milliseconds(200)
 }
 
 // App 入口：创建全局会话状态，并把首页挂到窗口里。
@@ -213,7 +213,7 @@ private struct AppRootView: View {
             cancelSessionDismissTask()
             cancelSessionFadeTask()
 
-            isDashboardChromeActive = true
+            isDashboardChromeActive = false
             isSessionOverlayMounted = true
             withAnimation(.easeInOut(duration: AppShellTiming.sessionOverlayFadeDuration)) {
                 isSessionOverlayVisible = true

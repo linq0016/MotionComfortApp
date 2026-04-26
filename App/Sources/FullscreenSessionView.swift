@@ -422,6 +422,7 @@ private struct MotionControlsLayer: View {
                 motionSensitivitySliderPosition,
                 defaultPosition: sliderPosition(forMotionSensitivityFactor: 1.0),
                 commitsPreviewToBinding: false,
+                reportsContinuousChanges: false,
                 onPreviewChanged: nil,
                 onFinalValue: commitMotionSensitivity,
                 onEditingBegan: onEditingBegan,
@@ -438,6 +439,7 @@ private struct MotionControlsLayer: View {
                 dynamicSpeedSliderPosition,
                 defaultPosition: sliderPosition(for: 2.0),
                 commitsPreviewToBinding: false,
+                reportsContinuousChanges: true,
                 onPreviewChanged: previewDynamicSpeed,
                 onFinalValue: commitDynamicSpeed,
                 onEditingBegan: beginDynamicSpeedEditing,
@@ -461,6 +463,7 @@ private struct MotionControlsLayer: View {
                 value,
                 defaultPosition: sliderPosition(forMotionSensitivityFactor: 1.0),
                 commitsPreviewToBinding: false,
+                reportsContinuousChanges: false,
                 onPreviewChanged: nil,
                 onFinalValue: commitMotionSensitivity,
                 onEditingBegan: onEditingBegan,
@@ -493,6 +496,7 @@ private struct MotionControlsLayer: View {
             value,
             defaultPosition: nil,
             commitsPreviewToBinding: true,
+            reportsContinuousChanges: true,
             onPreviewChanged: nil,
             onFinalValue: nil,
             onEditingBegan: onEditingBegan,
@@ -505,6 +509,7 @@ private struct MotionControlsLayer: View {
             value,
             defaultPosition: defaultPosition,
             commitsPreviewToBinding: true,
+            reportsContinuousChanges: true,
             onPreviewChanged: nil,
             onFinalValue: nil,
             onEditingBegan: onEditingBegan,
@@ -516,6 +521,7 @@ private struct MotionControlsLayer: View {
         _ value: Binding<Double>,
         defaultPosition: Double?,
         commitsPreviewToBinding: Bool,
+        reportsContinuousChanges: Bool,
         onPreviewChanged: ((Double) -> Void)?,
         onFinalValue: ((Double) -> Void)?,
         onEditingBegan: @escaping () -> Void,
@@ -525,6 +531,7 @@ private struct MotionControlsLayer: View {
             value: value,
             defaultPosition: defaultPosition,
             commitsPreviewToBinding: commitsPreviewToBinding,
+            reportsContinuousChanges: reportsContinuousChanges,
             onPreviewChanged: onPreviewChanged,
             onFinalValue: onFinalValue,
             onEditingBegan: onEditingBegan,
@@ -625,6 +632,7 @@ private struct NativeSnapSlider: UIViewRepresentable {
     @Binding var value: Double
     let defaultPosition: Double?
     let commitsPreviewToBinding: Bool
+    let reportsContinuousChanges: Bool
     let onPreviewChanged: ((Double) -> Void)?
     let onFinalValue: ((Double) -> Void)?
     let onEditingBegan: () -> Void
@@ -642,6 +650,7 @@ private struct NativeSnapSlider: UIViewRepresentable {
             snapThreshold: snapThreshold,
             valueStep: valueStep,
             commitsPreviewToBinding: commitsPreviewToBinding,
+            reportsContinuousChanges: reportsContinuousChanges,
             onPreviewChanged: onPreviewChanged,
             onFinalValue: onFinalValue,
             onEditingBegan: onEditingBegan,
@@ -654,6 +663,7 @@ private struct NativeSnapSlider: UIViewRepresentable {
         let slider = SnapMarkedSlider(frame: .zero)
         slider.minimumValue = 0.0
         slider.maximumValue = 1.0
+        slider.isContinuous = reportsContinuousChanges
         slider.minimumTrackTintColor = tintColor
         slider.maximumTrackTintColor = UIColor.white.withAlphaComponent(0.18)
         slider.defaultPosition = defaultPosition.map { CGFloat($0) }
@@ -673,6 +683,7 @@ private struct NativeSnapSlider: UIViewRepresentable {
 
     func updateUIView(_ uiView: SnapMarkedSlider, context: Context) {
         uiView.defaultPosition = defaultPosition.map { CGFloat($0) }
+        uiView.isContinuous = reportsContinuousChanges
         if !uiView.isTracking, abs(Double(uiView.value) - value) > 0.0001 {
             uiView.setValue(Float(value), animated: false)
         }
@@ -686,6 +697,7 @@ private struct NativeSnapSlider: UIViewRepresentable {
         let snapThreshold: Double
         let valueStep: Double
         let commitsPreviewToBinding: Bool
+        let reportsContinuousChanges: Bool
         let onPreviewChanged: ((Double) -> Void)?
         let onFinalValue: ((Double) -> Void)?
         let onEditingBegan: () -> Void
@@ -700,6 +712,7 @@ private struct NativeSnapSlider: UIViewRepresentable {
             snapThreshold: Double,
             valueStep: Double,
             commitsPreviewToBinding: Bool,
+            reportsContinuousChanges: Bool,
             onPreviewChanged: ((Double) -> Void)?,
             onFinalValue: ((Double) -> Void)?,
             onEditingBegan: @escaping () -> Void,
@@ -711,6 +724,7 @@ private struct NativeSnapSlider: UIViewRepresentable {
             self.snapThreshold = snapThreshold
             self.valueStep = valueStep
             self.commitsPreviewToBinding = commitsPreviewToBinding
+            self.reportsContinuousChanges = reportsContinuousChanges
             self.onPreviewChanged = onPreviewChanged
             self.onFinalValue = onFinalValue
             self.onEditingBegan = onEditingBegan

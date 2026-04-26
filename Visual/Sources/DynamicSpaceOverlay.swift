@@ -128,7 +128,7 @@ private struct DynamicMetalView: UIViewRepresentable {
         view.preferredFramesPerSecond = 60
         view.enableSetNeedsDisplay = false
         view.isPaused = false
-        view.framebufferOnly = false
+        view.framebufferOnly = true
         view.autoResizeDrawable = true
         view.isOpaque = true
         view.clearColor = MTLClearColor(red: 1.0 / 255.0, green: 1.0 / 255.0, blue: 5.0 / 255.0, alpha: 1.0)
@@ -392,12 +392,10 @@ private struct DynamicRenderResources {
     let pixelFormat: MTLPixelFormat
     let library: MTLLibrary
     let additivePipeline: MTLRenderPipelineState
-    let screenPipeline: MTLRenderPipelineState
     let nebulaQuadPipeline: MTLRenderPipelineState
     let blurTexture: MTLTexture
     let sharpTexture: MTLTexture
     let cloudAtlasTexture: MTLTexture
-    let dustTexture: MTLTexture
 
     static func make(pixelFormat: MTLPixelFormat) throws -> DynamicRenderResources {
         let config = DynamicSpaceConfiguration()
@@ -411,13 +409,6 @@ private struct DynamicRenderResources {
             library: library,
             pixelFormat: pixelFormat,
             fragmentBlend: .additive
-        )
-        let screenPipeline = try DynamicMetalRenderer.makePipeline(
-            device: device,
-            library: library,
-            pixelFormat: pixelFormat,
-            fragmentBlend: .screen,
-            fragmentName: "dynamicNebulaFragment"
         )
         let nebulaQuadPipeline = try DynamicMetalRenderer.makePipeline(
             device: device,
@@ -446,22 +437,16 @@ private struct DynamicRenderResources {
                 edgeFade: config.nebula.tileEdgeFade
             )
         )
-        let dustTexture = try DynamicMetalRenderer.makeTexture(
-            device: device,
-            bitmap: DynamicTextureFactory.makeDustBitmap(size: 8)
-        )
 
         return DynamicRenderResources(
             device: device,
             pixelFormat: pixelFormat,
             library: library,
             additivePipeline: additivePipeline,
-            screenPipeline: screenPipeline,
             nebulaQuadPipeline: nebulaQuadPipeline,
             blurTexture: blurTexture,
             sharpTexture: sharpTexture,
-            cloudAtlasTexture: cloudAtlasTexture,
-            dustTexture: dustTexture
+            cloudAtlasTexture: cloudAtlasTexture
         )
     }
 }
@@ -555,13 +540,11 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
     private let config = DynamicSpaceConfiguration()
     private let commandQueue: MTLCommandQueue
     private let additivePipeline: MTLRenderPipelineState
-    private let screenPipeline: MTLRenderPipelineState
     private let nebulaQuadPipeline: MTLRenderPipelineState
 
     private let blurTexture: MTLTexture
     private let sharpTexture: MTLTexture
     private let cloudAtlasTexture: MTLTexture
-    private let dustTexture: MTLTexture
 
     private var state: DynamicSpaceSceneState
     private var lastUpdateTime: TimeInterval?
@@ -596,12 +579,10 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
 
         self.commandQueue = commandQueue
         self.additivePipeline = resources.additivePipeline
-        self.screenPipeline = resources.screenPipeline
         self.nebulaQuadPipeline = resources.nebulaQuadPipeline
         self.blurTexture = resources.blurTexture
         self.sharpTexture = resources.sharpTexture
         self.cloudAtlasTexture = resources.cloudAtlasTexture
-        self.dustTexture = resources.dustTexture
         self.state = DynamicSpaceSceneState(config: config)
 
         let nebulaStride = MemoryLayout<DynamicNebulaQuadVertex>.stride * config.counts.nebulaCloudCount * 6
@@ -647,11 +628,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
     func draw(in view: MTKView) {
         guard
             drawableSize.width > 0.0,
-            drawableSize.height > 0.0,
-            let renderPassDescriptor = view.currentRenderPassDescriptor,
-            let drawable = view.currentDrawable,
-            let commandBuffer = commandQueue.makeCommandBuffer(),
-            let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
+            drawableSize.height > 0.0
         else {
             return
         }
@@ -666,6 +643,15 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
         lastUpdateTime = now
 
         updateScene(deltaTime: deltaTime)
+
+        guard
+            let renderPassDescriptor = view.currentRenderPassDescriptor,
+            let drawable = view.currentDrawable,
+            let commandBuffer = commandQueue.makeCommandBuffer(),
+            let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
+        else {
+            return
+        }
 
         var uniforms = DynamicViewportUniforms(
             viewportSize: SIMD2(Float(drawableSize.width), Float(drawableSize.height)),
@@ -1205,7 +1191,6 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
                 guard
                     library.makeFunction(name: "dynamicSpriteVertex") != nil,
                     library.makeFunction(name: "dynamicSpriteFragment") != nil,
-                    library.makeFunction(name: "dynamicNebulaFragment") != nil,
                     library.makeFunction(name: "dynamicNebulaQuadVertex") != nil,
                     library.makeFunction(name: "dynamicNebulaQuadFragment") != nil
                 else {
@@ -1223,7 +1208,6 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
             guard
                 fallback.makeFunction(name: "dynamicSpriteVertex") != nil,
                 fallback.makeFunction(name: "dynamicSpriteFragment") != nil,
-                fallback.makeFunction(name: "dynamicNebulaFragment") != nil,
                 fallback.makeFunction(name: "dynamicNebulaQuadVertex") != nil,
                 fallback.makeFunction(name: "dynamicNebulaQuadFragment") != nil
             else {
@@ -1348,13 +1332,6 @@ private enum DynamicTextureFactory {
             let colorSpace = CGColorSpaceCreateDeviceRGB()
             let gradient = CGGradient(colorsSpace: colorSpace, colors: colors, locations: locations)!
             context.drawRadialGradient(gradient, startCenter: center, startRadius: 0.0, endCenter: center, endRadius: radius, options: [.drawsAfterEndLocation])
-        }
-    }
-
-    static func makeDustBitmap(size: Int) -> DynamicTextureBitmap {
-        makeBitmap(size: size) { context, size in
-            context.setFillColor(UIColor.white.cgColor)
-            context.fill(CGRect(x: 0.0, y: 0.0, width: CGFloat(size), height: CGFloat(size)))
         }
     }
 
