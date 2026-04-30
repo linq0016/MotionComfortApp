@@ -607,13 +607,13 @@ private struct MotionControlsLayer: View {
     }
 
     private func sliderPosition(forMotionSensitivityFactor factor: Double) -> Double {
-        let clampedFactor = min(max(factor, 2.0 / 3.0), 1.5)
-        return (1.5 - clampedFactor) / (5.0 / 6.0)
+        let clampedFactor = min(max(factor, 0.5), 1.5)
+        return 1.5 - clampedFactor
     }
 
     private func motionSensitivityFactor(for sliderPosition: Double) -> Double {
         let clampedPosition = min(max(sliderPosition, 0.0), 1.0)
-        return 1.5 - (clampedPosition * (5.0 / 6.0))
+        return 1.5 - clampedPosition
     }
 
     private func sliderPosition(for speedMultiplier: Double) -> Double {

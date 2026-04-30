@@ -18,16 +18,15 @@ struct FlowGridConfiguration: Sendable {
     static let minimal = FlowGridConfiguration(
         layout: FlowGridLayoutConfiguration(
             backgroundColor: Color.black,
-            dotSpacing: 35.0
+            dotSpacing: 40.0
         ),
         motion: FlowGridMotionConfiguration(
             sensorSmoothing: 0.08,
-            verticalSensitivity: 1.2,
-            velocityMultiplier: 10.0,
+            velocityMultiplier: 15.0,
             velocityFriction: 0.15,
             magnitudeSmoothing: 0.9,
             magnitudeDecaySmoothing: 0.94,
-            maxAccelThreshold: 0.6,
+            maxAccelThreshold: 0.4,
             motionDeadzone: 0.006,
             invertHorizontalFlow: true,
             invertVerticalFlow: true
@@ -35,13 +34,13 @@ struct FlowGridConfiguration: Sendable {
         appearance: FlowGridAppearanceConfiguration(
             baseDensity: 0.20,
             extraDensityRange: 0.60,
-            baseOpacity: 0.12,
+            baseOpacity: 0.25,
             baseRadius: 1.6,
             maxExtraRadius: 3.5,
             edgeRadiusBoost: 4.0,
             edgeRadiusCurve: 1.75,
-            minimumVisibleAlpha: 0.018,
-            maxAlpha: 0.76,
+            minimumVisibleAlpha: 0.02,
+            maxAlpha: 0.80,
             fadeMultiplier: 1.45,
             alphaVariation: 0.50
         ),
@@ -61,26 +60,25 @@ struct FlowGridConfiguration: Sendable {
         ),
         motion: FlowGridMotionConfiguration(
             sensorSmoothing: 0.08,
-            verticalSensitivity: 1.2,
-            velocityMultiplier: 10.0,
+            velocityMultiplier: 15.0,
             velocityFriction: 0.15,
             magnitudeSmoothing: 0.9,
             magnitudeDecaySmoothing: 0.94,
-            maxAccelThreshold: 0.6,
+            maxAccelThreshold: 0.4,
             motionDeadzone: 0.006,
             invertHorizontalFlow: true,
             invertVerticalFlow: true
         ),
         appearance: FlowGridAppearanceConfiguration(
             baseDensity: 0.20,
-            extraDensityRange: 0.64,
-            baseOpacity: 0.21,
+            extraDensityRange: 0.60,
+            baseOpacity: 0.25,
             baseRadius: 1.6,
             maxExtraRadius: 3.5,
             edgeRadiusBoost: 4.0,
             edgeRadiusCurve: 1.75,
-            minimumVisibleAlpha: 0.03,
-            maxAlpha: 0.86,
+            minimumVisibleAlpha: 0.02,
+            maxAlpha: 0.80,
             fadeMultiplier: 1.55,
             alphaVariation: 0.50
         ),
@@ -101,7 +99,6 @@ struct FlowGridLayoutConfiguration: Sendable {
 
 struct FlowGridMotionConfiguration: Sendable {
     var sensorSmoothing: Double
-    var verticalSensitivity: Double
     var velocityMultiplier: Double
     var velocityFriction: Double
     var magnitudeSmoothing: Double
@@ -273,12 +270,10 @@ struct FlowGridPhase {
             + ((1.0 - configuration.motion.sensorSmoothing) * filteredAcceleration.dy)
         filteredVerticalAcceleration = (configuration.motion.sensorSmoothing * sample.verticalAcceleration)
             + ((1.0 - configuration.motion.sensorSmoothing) * filteredVerticalAcceleration)
-        let sensitivityFactor = min(max(motionSensitivityFactor, 2.0 / 3.0), 1.5)
+        let sensitivityFactor = min(max(motionSensitivityFactor, 0.5), 1.5)
         let adjustedLateralAcceleration = filteredAcceleration.dx / sensitivityFactor
         let adjustedLongitudinalAcceleration = filteredAcceleration.dy / sensitivityFactor
-        let adjustedVerticalAcceleration = filteredVerticalAcceleration
-            * configuration.motion.verticalSensitivity
-            / sensitivityFactor
+        let adjustedVerticalAcceleration = filteredVerticalAcceleration / sensitivityFactor
 
         let rawMagnitude = sqrt(
             (adjustedLateralAcceleration * adjustedLateralAcceleration)

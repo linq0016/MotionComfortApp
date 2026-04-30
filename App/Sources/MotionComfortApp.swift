@@ -153,7 +153,7 @@ private struct AppRootView: View {
         let restoredVisualStyle = VisualGuideStyle(rawValue: lastVisualGuideStyle) ?? .dynamic
         let restoredAudioMode = AudioMode(rawValue: lastAudioMode) ?? .melodic
         let restoredDynamicSpeedMultiplier = min(max(lastDynamicSpeedMultiplier, 0.0), 6.0)
-        let restoredMotionSensitivityFactor = min(max(lastMotionSensitivityFactor, 2.0 / 3.0), 1.5)
+        let restoredMotionSensitivityFactor = min(max(lastMotionSensitivityFactor, 0.5), 1.5)
 
         if VisualGuideStyle(rawValue: lastVisualGuideStyle) == nil {
             lastVisualGuideStyle = restoredVisualStyle.rawValue

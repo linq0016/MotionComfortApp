@@ -247,8 +247,7 @@ private struct DynamicSpaceMotionConfiguration {
     let cameraSensitivityX: Float = 0.050
     let cameraSensitivityY: Float = 0.050
     let sensorSmoothing: Float = 0.42
-    let verticalSensitivity: Float = 1.2
-    let velocityGain: Float = 2.0
+    let velocityGain: Float = 3.0
     let velocityFriction: Float = 0.10
 }
 
@@ -268,7 +267,7 @@ private struct DynamicSpaceNebulaConfiguration {
 
 private struct DynamicSpaceParticleConfiguration {
     let baseParticleCount = 400
-    let brightnessDivisor: Float = 0.6
+    let brightnessDivisor: Float = 0.4
 }
 
 private struct DynamicParticle {
@@ -785,12 +784,10 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
         state.filteredAccel = (accel * config.motion.sensorSmoothing) + (state.filteredAccel * (1.0 - config.motion.sensorSmoothing))
         state.filteredVerticalAcceleration = (Float(sample.verticalAcceleration) * config.motion.sensorSmoothing)
             + (state.filteredVerticalAcceleration * (1.0 - config.motion.sensorSmoothing))
-        let sensitivityFactor = min(max(motionSensitivityFactor, 2.0 / 3.0), 1.5)
+        let sensitivityFactor = min(max(motionSensitivityFactor, 0.5), 1.5)
         let adjustedLateralAcceleration = state.filteredAccel.x / sensitivityFactor
         let adjustedLongitudinalAcceleration = state.filteredAccel.y / sensitivityFactor
-        let adjustedVerticalAcceleration = state.filteredVerticalAcceleration
-            * config.motion.verticalSensitivity
-            / sensitivityFactor
+        let adjustedVerticalAcceleration = state.filteredVerticalAcceleration / sensitivityFactor
 
         state.currentVelocity.x += ((-adjustedLateralAcceleration * config.motion.velocityGain) - state.currentVelocity.x) * config.motion.velocityFriction
         state.currentVelocity.y += (((-(adjustedLongitudinalAcceleration + adjustedVerticalAcceleration)) * config.motion.velocityGain) - state.currentVelocity.y) * config.motion.velocityFriction
