@@ -4,6 +4,7 @@ Stellar目前已经上架iOS App Store，可以搜索全名或点击下方链接
 https://apps.apple.com/cn/app/stellar-motion-comfort/id6762748536?l
 
 Stellar仍在积极维护更新，最新版本请见TestFlight公测链接：
+
 https://testflight.apple.com/join/WsDpa9ah
 
 # Stellar: The Motion Comfort App 晕动缓解视听体验
