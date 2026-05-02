@@ -1,8 +1,10 @@
 <img width="120" height="120" alt="Screenshot 2026-04-20 at 10 48 10" src="https://github.com/user-attachments/assets/392b76e9-f4d9-4cea-8004-71b0e7460c9f" />
 Stellar目前已经上架iOS App Store，可以搜索全名或点击下方链接：
+
 https://apps.apple.com/cn/app/stellar-motion-comfort/id6762748536?l
 
-Stellar仍在积极维护更新，最新版本请见TestFlight公测链接：https://testflight.apple.com/join/WsDpa9ah
+Stellar仍在积极维护更新，最新版本请见TestFlight公测链接：
+https://testflight.apple.com/join/WsDpa9ah
 
 # Stellar: The Motion Comfort App 晕动缓解视听体验
 Stellar是我个人用OpenAI Codex从0开发的一款专门用来缓解乘坐机动车时容易产生的晕动症的App，目前项目文件为完全开源。
