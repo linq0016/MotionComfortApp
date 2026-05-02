@@ -1346,15 +1346,19 @@ struct MotionComfortLogoImage: View {
 struct SharedChromeBackground: View {
     var orientation: InterfaceRenderOrientation = .portrait
     var isActive = true
+    @State private var frozenTime: TimeInterval = 0.0
 
     var body: some View {
         Group {
             if isActive {
                 TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
                     chrome(time: timeline.date.timeIntervalSinceReferenceDate)
+                        .onChange(of: timeline.date) { _, date in
+                            frozenTime = date.timeIntervalSinceReferenceDate
+                        }
                 }
             } else {
-                chrome(time: 0.0)
+                chrome(time: frozenTime)
             }
         }
         .allowsHitTesting(false)
