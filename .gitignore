@@ -4,6 +4,8 @@
 build/
 DerivedData/
 
+.codex/
+
 *.xcuserstate
 *.xcscmblueprint
 xcuserdata/
