@@ -1,6 +1,11 @@
 <img width="573" height="573" alt="Screenshot 2026-04-20 at 10 48 10" src="https://github.com/user-attachments/assets/392b76e9-f4d9-4cea-8004-71b0e7460c9f" />
 
-Update: TestFlight 公测链接：https://testflight.apple.com/join/WsDpa9ah
+Update: 
+Stellar目前已经上架iOS App Store，可以搜索全名或点击下方链接：
+https://apps.apple.com/cn/app/stellar-motion-comfort/id6762748536?l
+
+Stellar仍在积极维护更新，最新版本请见TestFlight公测链接：https://testflight.apple.com/join/WsDpa9ah
+
 # Stellar: The Motion Comfort App 晕动缓解视听体验
 Stellar是我个人用OpenAI Codex从0开发的一款专门用来缓解乘坐机动车时容易产生的晕动症的App，目前项目文件为完全开源。
 由于时效性与中国大陆的法规要求，苹果App Store上架/TestFlight External Testing正在申请中，目前项目可以Internal Testing的形式运行，但需要联系我手动添加权限。如果有需要，请随时联系我的邮箱linq0016@icloud.com。
@@ -9,71 +14,50 @@ Stellar的灵感来自于，因为我的女朋友乘坐网约车常常受到晕�
 
 
 以下为自动生成的项目详细介绍
-# MotionComfort
+# Stellar
 
-MotionComfort is an iOS 26 passenger-comfort app prototype built around a stable session shell:
+Stellar is an iOS motion comfort app designed to help ease motion sickness during travel. It combines real-time motion-responsive visual guidance with optional 100 Hz-based audio modes, creating a lightweight local experience for passengers in cars, planes, boats, and similar environments.
 
-- A visual route: `Minimal`, `Dynamic`, or `Live View`
-- A motion input route: `Real-time Motion` or `Demo Motion`
-- An audio route: `Off`, `Monotone`, or `Melodic`
+## What It Does
 
-The project is intentionally split into small modules so the app shell, motion input, visual rendering, and audio playback can evolve independently
+Stellar provides three visual modes:
 
-## Why XcodeGen
+- **Minimal**: clean peripheral dot guidance that responds to device motion.
+- **Interstellar**: an immersive star-field view with motion-reactive particles and adjustable cruise speed.
+- **Live View**: a camera-based viewfinder with calming edge effects, so users can still see the real world.
 
-`XcodeGen` is not required to build this product, but it is a useful project-management tool:
+The app also includes optional audio modes, background audio support, quick startup, and local-only settings persistence.
 
-- It keeps the project structure in `project.yml` instead of a hand-edited `.xcodeproj`.
-- It makes multi-target setups easier to review in Git.
-- It reduces drift when the app grows into separate modules.
+## How It Works
 
-If you want to use it, run:
+Motion sickness is commonly associated with sensory conflict between visual input, vestibular signals, and body motion cues. Stellar uses the device motion sensor to visualize acceleration through stable, predictable visual patterns. These cues are intended to reduce the mismatch between what users feel and what they see.
 
-```bash
-brew install xcodegen
-xcodegen generate
-open MotionComfort.xcodeproj
-```
+Audio modes are based around 100 Hz sound stimulation, which some research suggests may help modulate the inner ear system for certain users. Effects may vary by individual.
 
-If you prefer a standard Xcode app template instead, the source layout in this repository can still be copied into a manually created project.
+Stellar is not a medical product and does not provide medical advice.
 
-## Current Product Status
+## Privacy
 
-- `Minimal`: current primary visual mode
-- `Live View`: real camera preview with edge flow overlays
-- `Dynamic`: H5-matched nebula particle starfield with layered clouds, dust, and warp travel
-- `Monotone`: continuous 100 Hz comfort signal
-- `Melodic`: bundled looped music asset
+Stellar is fully local. It does not require an internet connection and does not collect or upload health data, location data, audio, or usage history.
 
-## Module Layout
+The app uses:
 
-- `App`: SwiftUI pages, routing, interface orientation observation, and session start/stop flow
-- `Core`: shared motion model and small math helpers
-- `Visual`: motion input, visual mode routing, minimal flow, live-view camera support, and direction mapping
-- `Audio`: audio mode routing and bundled / generated playback assets
-- `docs`: product framing, research notes, and safety limits
+- Motion sensor data for core visual guidance.
+- Camera access only for Live View mode.
+- Local storage only for user preferences.
 
-## Session Flow
+## Code Structure
 
-1. Open `Dashboard`
-2. Choose a visual mode first
-3. Choose motion input
-4. Choose audio mode
-5. Start the fullscreen session
-6. Exit back to the dashboard and stop motion / audio together
+- `App/` — SwiftUI app shell, dashboard, onboarding, settings, fullscreen session UI, and haptics.
+- `Core/` — shared motion data models and core types.
+- `Visual/` — motion processing, Minimal / Live View dot rendering, Interstellar Metal renderer, and camera support.
+- `Audio/` — 100 Hz-based audio engine and bundled melodic audio asset.
+- `project.yml` — project generation/configuration source.
+- `App/Resources/` — localized strings and Info.plist localization.
 
-## Product Positioning
+## Platform
 
-The visual system remains the strongest part of the prototype because it aligns with the same broad design direction Apple uses in Vehicle Motion Cues: animated peripheral indicators that help passengers reconcile visual and vestibular input.
-
-Audio should still be framed conservatively. This is a comfort or support app, not a medical device or guaranteed therapy.
-
-## Immediate Next Steps
-
-1. Tighten the new `Dynamic` route with device-side performance tuning and visual parity checks against the H5 reference.
-2. Add onboarding and clearer passenger-only safety guidance.
-3. Add user studies for visual comfort, audio preference, and false-positive motion cases.
-4. Continue tightening session architecture as more visual modes are added.
+Stellar currently targets iOS 26 and uses Liquid Glass APIs for its interface.
 
 ## Release Versioning
 
