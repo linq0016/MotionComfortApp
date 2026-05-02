@@ -1,6 +1,6 @@
 <img width="120" height="120" alt="Screenshot 2026-04-20 at 10 48 10" src="https://github.com/user-attachments/assets/392b76e9-f4d9-4cea-8004-71b0e7460c9f" />
 Stellar目前已经上架iOS App Store，可以搜索全名或点击下方链接：
-[![Download on the App Store](https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg)](https://apps.apple.com/cn/app/stellar-motion-comfort/id6762748536?l)
+https://apps.apple.com/cn/app/stellar-motion-comfort/id6762748536?l
 
 Stellar仍在积极维护更新，最新版本请见TestFlight公测链接：https://testflight.apple.com/join/WsDpa9ah
 
