@@ -267,7 +267,6 @@ private struct AppRootView: View {
                 return
             }
 
-            model.completeSessionFadeIn()
             isDashboardChromeActive = false
 
             guard sessionFadeTaskToken == token else { return }

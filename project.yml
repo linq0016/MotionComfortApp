@@ -10,8 +10,8 @@ settings:
   base:
     SWIFT_VERSION: 6.0
     IPHONEOS_DEPLOYMENT_TARGET: 26.0
-    MARKETING_VERSION: 0.9.4
-    CURRENT_PROJECT_VERSION: 0.9.4
+    MARKETING_VERSION: 1.0.2
+    CURRENT_PROJECT_VERSION: 1.0.2
 targets:
   MotionComfortApp:
     type: application
@@ -22,8 +22,6 @@ targets:
         DEVELOPMENT_TEAM: 9NWVQ7RFAT
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: App/Info.plist
-        MARKETING_VERSION: 0.9.4
-        CURRENT_PROJECT_VERSION: 0.9.4
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_BUNDLE_IDENTIFIER: com.linq.StellarMotionComfort
         PRODUCT_NAME: Stellar
@@ -45,8 +43,6 @@ targets:
         buildPhase: resources
     resources:
       - path: Audio/Resources/GStringsFinal.wav
-      - path: App/Resources/Localizable.xcstrings
-      - path: App/Resources/InfoPlist.xcstrings
     preBuildScripts:
       - name: Copy Melodic Asset
         script: cp "${SRCROOT}/Audio/Resources/GStringsFinal.wav" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GStringsFinal.wav"
@@ -60,8 +56,8 @@ targets:
         CFBundleDisplayName: Stellar
         CFBundleIconName: AppIcon
         CFBundleName: Stellar
-        CFBundleShortVersionString: 0.9.4
-        CFBundleVersion: 0.9.4
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         LSApplicationCategoryType: public.app-category.healthcare-fitness
         ITSAppUsesNonExemptEncryption: NO
         UIUserInterfaceStyle: Dark
@@ -109,16 +105,5 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
     sources:
       - Audio/Sources
-    dependencies:
-      - target: MotionComfortCore
-  MotionComfortCoreTests:
-    type: bundle.unit-test
-    platform: iOS
-    deploymentTarget: "26.0"
-    settings:
-      base:
-        GENERATE_INFOPLIST_FILE: YES
-    sources:
-      - Tests/MotionComfortCoreTests
     dependencies:
       - target: MotionComfortCore

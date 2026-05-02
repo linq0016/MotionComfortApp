@@ -8,8 +8,6 @@ import MotionComfortCore
 public final class MotionManager: ObservableObject {
     @Published public private(set) var sample: MotionSample
     @Published public private(set) var isRunning: Bool
-    @Published public private(set) var activeMode: MotionInputMode?
-    @Published public private(set) var isLiveMotionAvailable: Bool
 
     private let motionManager: CMMotionManager
     private var samplingTask: Task<Void, Never>?
@@ -18,14 +16,10 @@ public final class MotionManager: ObservableObject {
         self.motionManager = motionManager
         self.sample = .neutral
         self.isRunning = false
-        self.activeMode = nil
-        self.isLiveMotionAvailable = motionManager.isDeviceMotionAvailable
     }
 
-    public func start(mode: MotionInputMode) {
+    public func start() {
         stop()
-        activeMode = mode
-        isLiveMotionAvailable = motionManager.isDeviceMotionAvailable
         startRealTimeMotion()
     }
 
@@ -33,7 +27,6 @@ public final class MotionManager: ObservableObject {
         motionManager.stopDeviceMotionUpdates()
         samplingTask?.cancel()
         samplingTask = nil
-        activeMode = nil
         isRunning = false
     }
 
@@ -48,11 +41,9 @@ public final class MotionManager: ObservableObject {
         isRunning = true
 
         samplingTask = Task { @MainActor [weak self] in
-            while let self, !Task.isCancelled, self.activeMode == .realTime {
+            while let self, !Task.isCancelled {
                 if let motion = self.motionManager.deviceMotion {
-                    let now = Date().timeIntervalSince1970
                     let next = MotionSample(
-                        timestamp: now,
                         lateralAcceleration: motion.userAcceleration.x,
                         longitudinalAcceleration: -motion.userAcceleration.y,
                         verticalAcceleration: motion.userAcceleration.z

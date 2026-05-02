@@ -1,6 +1,5 @@
 import AVFAudio
 import Foundation
-import MotionComfortCore
 
 // 可选音频层：负责生成循环声，不承担主防晕视觉逻辑。
 @MainActor
@@ -173,14 +172,6 @@ public final class AudioComfortEngine: ObservableObject {
         do {
             try AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
         } catch {
-        }
-    }
-
-    // 目前 Monotone 走固定音量，不再跟随 motion 强度变化。
-    public func update(with sample: MotionSample) {
-        _ = sample
-        guard activeMode == .monotone else {
-            return
         }
     }
 

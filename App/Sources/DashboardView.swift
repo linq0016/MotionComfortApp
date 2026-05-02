@@ -24,6 +24,7 @@ struct DashboardView: View {
     @State private var launchDimDismissTask: Task<Void, Never>?
     @State private var settingsCompactHeight: CGFloat = 360.0
     @State private var settingsSheetDetent: PresentationDetent = .height(360.0)
+    @State private var isSettingsDetentHapticsArmed = false
 
     init(
         model: ComfortSessionViewModel,
@@ -106,6 +107,15 @@ struct DashboardView: View {
             .presentationBackground {
                 SettingsSheetBackground()
             }
+            .onAppear {
+                isSettingsDetentHapticsArmed = true
+            }
+            .onDisappear {
+                isSettingsDetentHapticsArmed = false
+            }
+        }
+        .onChange(of: settingsSheetDetent) { oldValue, newValue in
+            handleSettingsDetentChange(from: oldValue, to: newValue)
         }
         .task {
             DynamicRenderPreheater.prewarm()
@@ -269,6 +279,18 @@ struct DashboardView: View {
         }
     }
 
+    private func handleSettingsDetentChange(from oldValue: PresentationDetent, to newValue: PresentationDetent) {
+        guard isSettingsPresented, isSettingsDetentHapticsArmed else {
+            return
+        }
+
+        guard (oldValue == .large) != (newValue == .large) else {
+            return
+        }
+
+        AppHaptics.selectionChanged()
+    }
+
     private func launchSession(style: VisualGuideStyle) {
         model.beginSessionLaunch(
             style: style,
@@ -281,17 +303,6 @@ struct DashboardView: View {
             get: { dashboardState.value.audioMode },
             set: { model.audioMode = $0 }
         )
-    }
-
-    private var audioModeDetailText: LocalizedStringKey {
-        switch dashboardState.value.audioMode {
-        case .melodic:
-            return "dashboard.audio_mode.detail.melodic"
-        case .monotone:
-            return "dashboard.audio_mode.detail.mono"
-        case .off:
-            return "dashboard.audio_mode.detail.off"
-        }
     }
 
     private var audioModeDetailLocalizationValue: String.LocalizationValue {
@@ -480,7 +491,10 @@ private struct ReliableGlassButton<Label: View>: View {
     @ViewBuilder let label: () -> Label
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            AppHaptics.buttonTap()
+            action()
+        } label: {
             label()
         }
         .buttonStyle(
@@ -491,6 +505,9 @@ private struct ReliableGlassButton<Label: View>: View {
                 strokeLineWidth: strokeLineWidth
             )
         )
+        .onAppear {
+            AppHaptics.prepareButtonTap()
+        }
     }
 }
 
@@ -501,7 +518,10 @@ private struct ModeLaunchCard: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            action()
+            AppHaptics.buttonTap()
+        } label: {
             VStack(alignment: .leading, spacing: 10.0) {
                 HStack(alignment: .center, spacing: 10.0) {
                     Image(iconName)
@@ -530,6 +550,9 @@ private struct ModeLaunchCard: View {
             .padding(.vertical, 24.0)
         }
         .buttonStyle(ModeLaunchCardButtonStyle())
+        .onAppear {
+            AppHaptics.prepareButtonTap()
+        }
     }
 }
 

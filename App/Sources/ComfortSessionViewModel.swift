@@ -72,7 +72,6 @@ final class ComfortSessionViewModel: ObservableObject {
             syncDerivedSessionState()
         }
     }
-    @Published var motionInputMode: MotionInputMode = .realTime
     @Published var dynamicSpeedMultiplier = 2.0
     @Published var motionSensitivityFactor = 1.0
     @Published var audioMode: AudioMode = .melodic {
@@ -148,7 +147,7 @@ final class ComfortSessionViewModel: ObservableObject {
 
     // 启动当前选择的 motion 和 audio 模式。
     func start() {
-        motionManager.start(mode: motionInputMode)
+        motionManager.start()
     }
 
     func beginSessionLaunch(
@@ -236,14 +235,10 @@ final class ComfortSessionViewModel: ObservableObject {
         sessionLaunchState = .idle
     }
 
-    // 把最新运动快照同步到页面和音频层。
+    // 把最新运动快照同步到页面。
     private func ingest(_ sample: MotionSample) {
         self.sample = sample
         renderState.update(sample: sample)
-
-        if isRunning {
-            audioEngine.update(with: sample)
-        }
     }
 
     private func syncDerivedSessionState() {
@@ -434,12 +429,6 @@ final class ComfortSessionViewModel: ObservableObject {
                 self.sessionLaunchOverlayState = .none
                 self.sessionLaunchState = .idle
             }
-        }
-    }
-
-    func completeSessionFadeIn() {
-        guard case .presenting = sessionLaunchState else {
-            return
         }
     }
 

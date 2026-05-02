@@ -30,14 +30,12 @@ extension MotionSample {
             return self
         case .landscapeLeft:
             return MotionSample(
-                timestamp: timestamp,
                 lateralAcceleration: -longitudinalAcceleration,
                 longitudinalAcceleration: lateralAcceleration,
                 verticalAcceleration: verticalAcceleration
             )
         case .landscapeRight:
             return MotionSample(
-                timestamp: timestamp,
                 lateralAcceleration: longitudinalAcceleration,
                 longitudinalAcceleration: -lateralAcceleration,
                 verticalAcceleration: verticalAcceleration

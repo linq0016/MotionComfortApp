@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		139016A935D61DBCD073ECA5 /* MotionInputMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22CB95C6460D4B3F4317E005 /* MotionInputMode.swift */; };
 		1C2C0BE5BF2EF5A6CD323C54 /* InterfaceOrientationSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B14CE6A0852EC363843A281 /* InterfaceOrientationSupport.swift */; };
 		1EBF733DABC6E2D0D5D8BD82 /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
 		1F33F113962A0342CCBF30E3 /* AudioComfortEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE25798B7BC90E5CC0225B1F /* AudioComfortEngine.swift */; };
@@ -19,7 +18,7 @@
 		3531CBE230F22F0959A3E2F0 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5835B1AD956D796F087A9FEE /* PrivacyInfo.xcprivacy */; };
 		4047511AAA69076A6644324C /* MotionComfortApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C0C127A85D1D9E3A3250555 /* MotionComfortApp.swift */; };
 		4B2BB8C22DABFCAF9B7C95E4 /* MotionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D0523F47FAFF246C331DA0E /* MotionManager.swift */; };
-		68AC87E5E852D245DF0A0528 /* MathSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6E9DD2657BEDEECD3072A3F /* MathSupport.swift */; };
+		57F3C719D20A0995F268CA78 /* AppHaptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB0FFD746EC0493933B76F5A /* AppHaptics.swift */; };
 		6FA6B7DE478A03DF6792A031 /* VisualGuideStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AED548E8A4B5948ECDC8702F /* VisualGuideStyle.swift */; };
 		72B12B23E2ACB94B2A4A972C /* DynamicSpaceOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D0544A824A436E7BA5F27F8 /* DynamicSpaceOverlay.swift */; };
 		7554B2761694F8CB529F8ACB /* FlowFieldSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C87D5E483454F259BE3E6B98 /* FlowFieldSupport.swift */; };
@@ -27,7 +26,6 @@
 		7866D40E8BD0D22402405151 /* ReferenceFlowOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC269D3D1E1DAF571FA07CF8 /* ReferenceFlowOverlay.swift */; };
 		7F3EE2CD8CC5C3AC5B8FF37E /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D3CF65ED7E94C90D977498F /* DashboardView.swift */; };
 		81F87F35E289D355C04C721D /* InterfaceRenderOrientation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E22921B4585FC5FE4956E2 /* InterfaceRenderOrientation.swift */; };
-		8AF3DDAEB876CF1FDED2D4D3 /* MotionComfortCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		8DEA1804DD3CA5C90C33AA5E /* PeripheralCueOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4A21DC17180624BDB45D2E7 /* PeripheralCueOverlay.swift */; };
 		9472A062B3ED1FD74BE798E0 /* ComfortSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD4D41F7A73555BC0B8DC3B0 /* ComfortSessionViewModel.swift */; };
 		9F898868B1A481AE992512EA /* FullscreenSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB452209C83D694142D121F5 /* FullscreenSessionView.swift */; };
@@ -37,20 +35,11 @@
 		C11B8352EF683FB2C3FA4E89 /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
 		D0E7EFEB74D3B209F29C9445 /* MotionComfortAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */; };
 		D757F3C0A9F91877AD012744 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 92E6C0019BB1ED3F04118408 /* Assets.xcassets */; };
-		D89298D90E2D8999CE56A5E1 /* MotionComfortCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */; };
 		E2AE1751622914086F5DAD61 /* MotionSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77CC77D34BEE923AF3B0B2A5 /* MotionSample.swift */; };
 		EA82D86667A905D7779E5BEA /* MotionComfortVisual.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E9D576541804142D51D06E41 /* MotionComfortVisual.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		EB531C5D92DAAA6EF71682BE /* CueStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11682D824853FBBBEA3C1F16 /* CueStateTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		1E12C4AECE4D37DEF3F03904 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = DF78F3399681127337512D0E /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = C741237864A32D9464BFC3CC;
-			remoteInfo = MotionComfortCore;
-		};
 		27F5FB015917391857F9521D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = DF78F3399681127337512D0E /* Project object */;
@@ -89,17 +78,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		1B7C34807440C15319896974 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				8AF3DDAEB876CF1FDED2D4D3 /* MotionComfortCore.framework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		B94EC5244A27B33A377C2205 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -116,9 +94,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		11682D824853FBBBEA3C1F16 /* CueStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CueStateTests.swift; sourceTree = "<group>"; };
 		1D0544A824A436E7BA5F27F8 /* DynamicSpaceOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicSpaceOverlay.swift; sourceTree = "<group>"; };
-		22CB95C6460D4B3F4317E005 /* MotionInputMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionInputMode.swift; sourceTree = "<group>"; };
 		3D0523F47FAFF246C331DA0E /* MotionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionManager.swift; sourceTree = "<group>"; };
 		50E22921B4585FC5FE4956E2 /* InterfaceRenderOrientation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceRenderOrientation.swift; sourceTree = "<group>"; };
 		5835B1AD956D796F087A9FEE /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -127,7 +103,6 @@
 		75A6908D8E63FDED07FDD9E0 /* MotionComfortApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MotionComfortApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		77CC77D34BEE923AF3B0B2A5 /* MotionSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionSample.swift; sourceTree = "<group>"; };
 		8B14CE6A0852EC363843A281 /* InterfaceOrientationSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceOrientationSupport.swift; sourceTree = "<group>"; };
-		91B5EC0182C29C428285C38E /* MotionComfortCoreTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MotionComfortCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		92E6C0019BB1ED3F04118408 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9C0C127A85D1D9E3A3250555 /* MotionComfortApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionComfortApp.swift; sourceTree = "<group>"; };
 		AB452209C83D694142D121F5 /* FullscreenSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullscreenSessionView.swift; sourceTree = "<group>"; };
@@ -142,20 +117,12 @@
 		E5B9F249E0FAFD31AB6E0B16 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		E5E297BD8D8BADEC501785BD /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		E9D576541804142D51D06E41 /* MotionComfortVisual.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MotionComfortVisual.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		EB0FFD746EC0493933B76F5A /* AppHaptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHaptics.swift; sourceTree = "<group>"; };
 		F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MotionComfortAudio.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		F6E9DD2657BEDEECD3072A3F /* MathSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathSupport.swift; sourceTree = "<group>"; };
 		FD4D41F7A73555BC0B8DC3B0 /* ComfortSessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComfortSessionViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		3C36993BC3109F227DEA39FB /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				D89298D90E2D8999CE56A5E1 /* MotionComfortCore.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		A492C3B88AADCDF79D3D56D4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -188,7 +155,6 @@
 		13C572B481556EB25489E1E2 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
-				F6E9DD2657BEDEECD3072A3F /* MathSupport.swift */,
 				77CC77D34BEE923AF3B0B2A5 /* MotionSample.swift */,
 			);
 			name = Sources;
@@ -201,7 +167,6 @@
 				75A6908D8E63FDED07FDD9E0 /* MotionComfortApp.app */,
 				F17F62CBB8B555860F499663 /* MotionComfortAudio.framework */,
 				C368DB31848AE72B4C73B50E /* MotionComfortCore.framework */,
-				91B5EC0182C29C428285C38E /* MotionComfortCoreTests.xctest */,
 				E9D576541804142D51D06E41 /* MotionComfortVisual.framework */,
 			);
 			name = Products;
@@ -221,7 +186,6 @@
 			isa = PBXGroup;
 			children = (
 				AD5738EEE3897E6B0DBBEE1A /* App */,
-				75B8DA8081C929A3CB0FA7C4 /* MotionComfortCoreTests */,
 				EA9C45C78992DC3FE78EF776 /* Resources */,
 				B089A1907D5C9576FE823964 /* Sources */,
 				4F8C8B7B0D65DBA136CC436E /* Sources */,
@@ -229,15 +193,6 @@
 				CB94E36AF8122CFCBE1A6782 /* Sources */,
 				3AF0618018DA868692371376 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		75B8DA8081C929A3CB0FA7C4 /* MotionComfortCoreTests */ = {
-			isa = PBXGroup;
-			children = (
-				11682D824853FBBBEA3C1F16 /* CueStateTests.swift */,
-			);
-			name = MotionComfortCoreTests;
-			path = Tests/MotionComfortCoreTests;
 			sourceTree = "<group>";
 		};
 		AD5738EEE3897E6B0DBBEE1A /* App */ = {
@@ -252,6 +207,7 @@
 		B089A1907D5C9576FE823964 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				EB0FFD746EC0493933B76F5A /* AppHaptics.swift */,
 				FD4D41F7A73555BC0B8DC3B0 /* ComfortSessionViewModel.swift */,
 				5D3CF65ED7E94C90D977498F /* DashboardView.swift */,
 				AB452209C83D694142D121F5 /* FullscreenSessionView.swift */,
@@ -270,7 +226,6 @@
 				C87D5E483454F259BE3E6B98 /* FlowFieldSupport.swift */,
 				50E22921B4585FC5FE4956E2 /* InterfaceRenderOrientation.swift */,
 				65489C6CA0910899D6F95843 /* LiveViewCameraSupport.swift */,
-				22CB95C6460D4B3F4317E005 /* MotionInputMode.swift */,
 				3D0523F47FAFF246C331DA0E /* MotionManager.swift */,
 				E4A21DC17180624BDB45D2E7 /* PeripheralCueOverlay.swift */,
 				AC269D3D1E1DAF571FA07CF8 /* ReferenceFlowOverlay.swift */,
@@ -293,26 +248,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		1731D51D32D5B3A5D6C2F82F /* MotionComfortCoreTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 1BDA0BC12FF9A351248A2DA2 /* Build configuration list for PBXNativeTarget "MotionComfortCoreTests" */;
-			buildPhases = (
-				E9A9B8ED60033F3729CE469F /* Sources */,
-				3C36993BC3109F227DEA39FB /* Frameworks */,
-				1B7C34807440C15319896974 /* Embed Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				117395F7CD2B7A6A2C8A5ABD /* PBXTargetDependency */,
-			);
-			name = MotionComfortCoreTests;
-			packageProductDependencies = (
-			);
-			productName = MotionComfortCoreTests;
-			productReference = 91B5EC0182C29C428285C38E /* MotionComfortCoreTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
 		33CF73E190B63CED57C969D7 /* MotionComfortAudio */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 411357F2F8C8A7ADC3210062 /* Build configuration list for PBXNativeTarget "MotionComfortAudio" */;
@@ -423,7 +358,6 @@
 				4F4108D2ACF64EE49210BFF1 /* MotionComfortApp */,
 				33CF73E190B63CED57C969D7 /* MotionComfortAudio */,
 				C741237864A32D9464BFC3CC /* MotionComfortCore */,
-				1731D51D32D5B3A5D6C2F82F /* MotionComfortCoreTests */,
 				ED67040FDE2A6D537413A368 /* MotionComfortVisual */,
 			);
 		};
@@ -476,7 +410,6 @@
 				7554B2761694F8CB529F8ACB /* FlowFieldSupport.swift in Sources */,
 				81F87F35E289D355C04C721D /* InterfaceRenderOrientation.swift in Sources */,
 				B3F5147D32C1FE5B12BA3520 /* LiveViewCameraSupport.swift in Sources */,
-				139016A935D61DBCD073ECA5 /* MotionInputMode.swift in Sources */,
 				4B2BB8C22DABFCAF9B7C95E4 /* MotionManager.swift in Sources */,
 				8DEA1804DD3CA5C90C33AA5E /* PeripheralCueOverlay.swift in Sources */,
 				7866D40E8BD0D22402405151 /* ReferenceFlowOverlay.swift in Sources */,
@@ -488,6 +421,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				57F3C719D20A0995F268CA78 /* AppHaptics.swift in Sources */,
 				9472A062B3ED1FD74BE798E0 /* ComfortSessionViewModel.swift in Sources */,
 				7F3EE2CD8CC5C3AC5B8FF37E /* DashboardView.swift in Sources */,
 				9F898868B1A481AE992512EA /* FullscreenSessionView.swift in Sources */,
@@ -500,16 +434,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				68AC87E5E852D245DF0A0528 /* MathSupport.swift in Sources */,
 				E2AE1751622914086F5DAD61 /* MotionSample.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		E9A9B8ED60033F3729CE469F /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				EB531C5D92DAAA6EF71682BE /* CueStateTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -529,11 +454,6 @@
 			isa = PBXTargetDependency;
 			target = 33CF73E190B63CED57C969D7 /* MotionComfortAudio */;
 			targetProxy = A69949FC0B71C00461CB8ABA /* PBXContainerItemProxy */;
-		};
-		117395F7CD2B7A6A2C8A5ABD /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = C741237864A32D9464BFC3CC /* MotionComfortCore */;
-			targetProxy = 1E12C4AECE4D37DEF3F03904 /* PBXContainerItemProxy */;
 		};
 		136C3115688BE8D2B1862C31 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -587,7 +507,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 0.9.4;
 				DEVELOPMENT_TEAM = 9NWVQ7RFAT;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
@@ -597,7 +516,6 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.linq.StellarMotionComfort;
 				PRODUCT_NAME = Stellar;
 				SDKROOT = iphoneos;
@@ -614,7 +532,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 0.9.4;
 				DEVELOPMENT_TEAM = 9NWVQ7RFAT;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
@@ -624,7 +541,6 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.linq.StellarMotionComfort;
 				PRODUCT_NAME = Stellar;
 				SDKROOT = iphoneos;
@@ -659,23 +575,6 @@
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Debug;
-		};
-		5F55A05688E5D73459EDC9A3 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.MotionComfortCoreTests;
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
 		};
 		683FAF6914600EBE7414667A /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -724,23 +623,6 @@
 				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;
-		};
-		7BC1702CA660EF1D23835599 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.MotionComfortCoreTests;
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
 		};
 		7DFFB9B8FC8EAC9AB2282AE9 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -800,7 +682,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 0.9.4;
+				CURRENT_PROJECT_VERSION = 1.0.2;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -813,7 +695,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.9.4;
+				MARKETING_VERSION = 1.0.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -882,7 +764,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 0.9.4;
+				CURRENT_PROJECT_VERSION = 1.0.2;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -901,7 +783,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 0.9.4;
+				MARKETING_VERSION = 1.0.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -916,15 +798,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1BDA0BC12FF9A351248A2DA2 /* Build configuration list for PBXNativeTarget "MotionComfortCoreTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				7BC1702CA660EF1D23835599 /* Debug */,
-				5F55A05688E5D73459EDC9A3 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
 		288ABB46EEAE47951314A3A2 /* Build configuration list for PBXNativeTarget "MotionComfortVisual" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

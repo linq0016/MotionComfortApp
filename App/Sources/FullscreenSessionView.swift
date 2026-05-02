@@ -1,6 +1,5 @@
 import MotionComfortVisual
 import MotionComfortAudio
-import MotionComfortCore
 import Foundation
 import SwiftUI
 import UIKit
@@ -319,6 +318,7 @@ private struct SessionHUDLayer: View {
                 in: .circle
             )
             .onTapGesture {
+                AppHaptics.buttonTap()
                 onClose()
             }
     }
@@ -908,7 +908,7 @@ struct AudioModeGlassControl: View {
                             .frame(height: controlHeight - (innerPadding * 2.0))
                             .contentShape(Rectangle())
                             .onTapGesture {
-                                selection = mode
+                                select(mode)
                             }
                     }
                 }
@@ -942,6 +942,12 @@ struct AudioModeGlassControl: View {
 
     private func selectionOffset(for totalWidth: CGFloat) -> CGFloat {
         segmentWidth(for: totalWidth) * CGFloat(selectedIndex)
+    }
+
+    private func select(_ mode: AudioMode) {
+        guard selection != mode else { return }
+        AppHaptics.selectionChanged()
+        selection = mode
     }
 
     private var selectedIndex: Int {
