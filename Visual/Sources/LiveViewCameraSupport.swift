@@ -390,6 +390,20 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
         }
 
         session.addOutput(videoOutput)
+        configureVideoStabilization()
+    }
+
+    private func configureVideoStabilization() {
+        guard let connection = videoOutput.connection(with: .video) else {
+#if DEBUG
+            print("Live View video stabilization [configured]: no video connection")
+#endif
+            return
+        }
+
+        if connection.isVideoStabilizationSupported {
+            connection.preferredVideoStabilizationMode = .standard
+        }
     }
 
     private func analyze(pixelBuffer: CVPixelBuffer) -> LiveViewSceneAnalysis {
