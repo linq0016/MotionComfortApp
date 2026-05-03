@@ -134,8 +134,8 @@ struct FullscreenSessionView: View {
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(12.0)
-            .frame(width: 200.0, height: 150.0, alignment: .center)
+            .padding(10.0)
+            .frame(width: 240.0, height: 120.0, alignment: .center)
             .glassEffect(
                 .clear.tint(Color.black.opacity(0.36)),
                 in: .rect(cornerRadius: 26.0)
