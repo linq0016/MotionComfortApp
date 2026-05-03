@@ -102,10 +102,27 @@ private struct LiveViewCameraConfiguration: Sendable {
     var analysis = LiveViewAnalysisConfiguration()
 }
 
+private struct LiveViewFormatProfile: Sendable {
+    var width: Int
+    var height: Int
+    var colorSpace: AVCaptureColorSpace
+    var stabilizationMode: AVCaptureVideoStabilizationMode
+}
+
 private struct LiveViewCaptureConfiguration: Sendable {
     var targetFrameDuration = CMTime(value: 1, timescale: 60)
-    var targetFormatWidth = 1280
-    var targetFormatHeight = 720
+    var preferredFormatProfile = LiveViewFormatProfile(
+        width: 1920,
+        height: 1080,
+        colorSpace: .HLG_BT2020,
+        stabilizationMode: .cinematic
+    )
+    var fallbackFormatProfile = LiveViewFormatProfile(
+        width: 1280,
+        height: 720,
+        colorSpace: .P3_D65,
+        stabilizationMode: .cinematic
+    )
     var fallbackPresets: [AVCaptureSession.Preset] = [.inputPriority, .hd1280x720, .high]
 }
 
@@ -140,6 +157,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
     private var lastPolaritySwitchAt: TimeInterval?
     private var sessionStartReferenceTime: TimeInterval?
     private var currentOrientation: InterfaceRenderOrientation = .portrait
+    private var selectedFormatProfile: LiveViewFormatProfile?
 
     private let configuration = LiveViewCameraConfiguration()
 
@@ -286,7 +304,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
             session.commitConfiguration()
         }
 
-        session.automaticallyConfiguresCaptureDeviceForWideColor = true
+        session.automaticallyConfiguresCaptureDeviceForWideColor = false
 
         if let preset = configuration.capture.fallbackPresets.first(where: { session.canSetSessionPreset($0) }) {
             session.sessionPreset = preset
@@ -324,15 +342,33 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
     }
 
     private func configureVideoDevice(on device: AVCaptureDevice) throws {
-        guard let selectedFormat = bestFormat(for: device) else {
+        guard let selection = bestFormat(for: device) else {
             return
         }
 
         try device.lockForConfiguration()
         defer { device.unlockForConfiguration() }
 
-        device.activeFormat = selectedFormat
+        selectedFormatProfile = selection.matchedProfile
+        device.activeFormat = selection.format
+        configureHDRPreviewOnLockedDevice(device, matchedProfile: selection.matchedProfile)
         applyTargetFrameDurationOnLockedDevice(device)
+    }
+
+    private func configureHDRPreviewOnLockedDevice(
+        _ device: AVCaptureDevice,
+        matchedProfile: LiveViewFormatProfile?
+    ) {
+        guard let matchedProfile else {
+            return
+        }
+
+        device.automaticallyAdjustsVideoHDREnabled = false
+        device.isVideoHDREnabled = device.activeFormat.isVideoHDRSupported
+
+        if device.activeFormat.supportedColorSpaces.contains(matchedProfile.colorSpace) {
+            device.activeColorSpace = matchedProfile.colorSpace
+        }
     }
 
     private func applyTargetFrameDuration(on device: AVCaptureDevice) throws {
@@ -351,31 +387,55 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
         device.activeVideoMaxFrameDuration = configuration.capture.targetFrameDuration
     }
 
-    private func bestFormat(for device: AVCaptureDevice) -> AVCaptureDevice.Format? {
-        let targetWidth = configuration.capture.targetFormatWidth
-        let targetHeight = configuration.capture.targetFormatHeight
+    private func bestFormat(for device: AVCaptureDevice) -> (format: AVCaptureDevice.Format, matchedProfile: LiveViewFormatProfile?)? {
+        if let selectedFormat = format(for: configuration.capture.preferredFormatProfile, device: device) {
+            return (selectedFormat, configuration.capture.preferredFormatProfile)
+        }
 
-        return device.formats.max { lhs, rhs in
-            formatScore(lhs, targetWidth: targetWidth, targetHeight: targetHeight)
-                < formatScore(rhs, targetWidth: targetWidth, targetHeight: targetHeight)
+        if let selectedFormat = format(for: configuration.capture.fallbackFormatProfile, device: device) {
+            return (selectedFormat, configuration.capture.fallbackFormatProfile)
+        }
+
+        return legacyBestFormat(for: device).map { ($0, nil) }
+    }
+
+    private func format(
+        for profile: LiveViewFormatProfile,
+        device: AVCaptureDevice
+    ) -> AVCaptureDevice.Format? {
+        let candidates = device.formats.filter { format in
+            let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+            let maxFrameRate = format.videoSupportedFrameRateRanges.map(\.maxFrameRate).max() ?? 0.0
+            return Int(dimensions.width) == profile.width
+                && Int(dimensions.height) == profile.height
+                && maxFrameRate >= 60.0
+                && format.isVideoHDRSupported
+                && format.supportedColorSpaces.contains(profile.colorSpace)
+                && format.isVideoStabilizationModeSupported(profile.stabilizationMode)
+        }
+
+        return candidates.min { lhs, rhs in
+            frameRateDistance(fromTarget: lhs) < frameRateDistance(fromTarget: rhs)
         }
     }
 
-    private func formatScore(
-        _ format: AVCaptureDevice.Format,
-        targetWidth: Int,
-        targetHeight: Int
-    ) -> Int {
-        let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
-        let maxFrameRate = Int(format.videoSupportedFrameRateRanges.map(\.maxFrameRate).max() ?? 0.0)
-        let supports60fps = maxFrameRate >= 60 ? 1 : 0
-        let mediumResolution = (960...1920).contains(Int(dimensions.width)) ? 1 : 0
-        let distancePenalty = abs(Int(dimensions.width) - targetWidth) + abs(Int(dimensions.height) - targetHeight)
+    private func legacyBestFormat(for device: AVCaptureDevice) -> AVCaptureDevice.Format? {
+        let candidates = device.formats.filter { format in
+            let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+            let maxFrameRate = format.videoSupportedFrameRateRanges.map(\.maxFrameRate).max() ?? 0.0
+            return dimensions.width == 1280
+                && dimensions.height == 720
+                && maxFrameRate >= 60.0
+        }
 
-        return (supports60fps * 1_000_000)
-            + (mediumResolution * 100_000)
-            + (maxFrameRate * 10)
-            - distancePenalty
+        return candidates.min { lhs, rhs in
+            frameRateDistance(fromTarget: lhs) < frameRateDistance(fromTarget: rhs)
+        }
+    }
+
+    private func frameRateDistance(fromTarget format: AVCaptureDevice.Format) -> Double {
+        let maxFrameRate = format.videoSupportedFrameRateRanges.map(\.maxFrameRate).max() ?? 0.0
+        return abs(maxFrameRate - 60.0)
     }
 
     private func configureVideoOutput() {
@@ -395,14 +455,11 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
     private func configureVideoStabilization() {
         guard let connection = videoOutput.connection(with: .video) else {
-#if DEBUG
-            print("Live View video stabilization [configured]: no video connection")
-#endif
             return
         }
 
         if connection.isVideoStabilizationSupported {
-            connection.preferredVideoStabilizationMode = .standard
+            connection.preferredVideoStabilizationMode = selectedFormatProfile?.stabilizationMode ?? .standard
         }
     }
 
@@ -650,6 +707,8 @@ private struct LiveViewCameraPreview: UIViewRepresentable {
     final class PreviewView: UIView {
         private weak var appliedSession: AVCaptureSession?
         private var appliedRotationAngle: CGFloat?
+        private var appliedDynamicRange: CALayer.DynamicRange?
+        private let preferredPreviewDynamicRange: CALayer.DynamicRange = .constrainedHigh
 
         override class var layerClass: AnyClass {
             AVCaptureVideoPreviewLayer.self
@@ -664,7 +723,8 @@ private struct LiveViewCameraPreview: UIViewRepresentable {
 
             if appliedSession === session,
                previewLayer.videoGravity == .resizeAspectFill,
-               appliedRotationAngle == rotationAngle {
+               appliedRotationAngle == rotationAngle,
+               appliedDynamicRange == preferredPreviewDynamicRange {
                 return
             }
 
@@ -678,6 +738,11 @@ private struct LiveViewCameraPreview: UIViewRepresentable {
 
             if previewLayer.videoGravity != .resizeAspectFill {
                 previewLayer.videoGravity = .resizeAspectFill
+            }
+
+            if appliedDynamicRange != preferredPreviewDynamicRange {
+                previewLayer.preferredDynamicRange = preferredPreviewDynamicRange
+                appliedDynamicRange = preferredPreviewDynamicRange
             }
 
             if let connection = previewLayer.connection,
