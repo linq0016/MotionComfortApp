@@ -1,12 +1,14 @@
 #include <metal_stdlib>
 using namespace metal;
 
+// 星点顶点：positionAndSize 为像素 x/y、尺寸、透明度；其余向量携带颜色、图集索引与旋转。
 struct DynamicSpriteVertex {
     float4 positionAndSize;
     float4 colorAndSoftness;
     float4 rotationAndMisc;
 };
 
+// 星云顶点：positionAndUV 为像素 x/y 与局部 u/v，colorAndAlpha 为 RGBA，atlasAndMisc.x 为图集索引。
 struct DynamicNebulaQuadVertex {
     float4 positionAndUV;
     float4 colorAndAlpha;
@@ -35,6 +37,7 @@ struct DynamicNebulaVertexOut {
     float atlasIndex;
 };
 
+// 顶点阶段把左上角为原点的像素坐标转换为 Metal 的标准化设备坐标。
 vertex DynamicVertexOut dynamicSpriteVertex(
     const device DynamicSpriteVertex *vertices [[buffer(0)]],
     constant DynamicViewportUniforms &uniforms [[buffer(1)]],
@@ -101,6 +104,7 @@ fragment half4 dynamicSpriteFragment(
     );
 }
 
+// 按图集索引采样单朵星云，应用内缩采样范围和透明边缘过渡。
 fragment half4 dynamicNebulaQuadFragment(
     DynamicNebulaVertexOut inFragment [[stage_in]],
     texture2d<half> spriteTexture [[texture(0)]],

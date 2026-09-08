@@ -1,7 +1,7 @@
 import AVFAudio
 import Foundation
 
-// 可选音频层：负责生成循环声，不承担主防晕视觉逻辑。
+// 音频层：准备单音与旋律资源，通过 AVAudioEngine 管理循环播放。
 @MainActor
 public final class AudioComfortEngine: ObservableObject {
     @Published public private(set) var isPlaying: Bool
@@ -16,6 +16,7 @@ public final class AudioComfortEngine: ObservableObject {
         let monotoneAssetURL: URL?
     }
 
+    // 参数分为采样规格、播放音量和声源合成；声源振幅与播放音量分别作用于生成和播放阶段。
     private struct AudioComfortConfiguration: Sendable {
         var sampleRate: Double = 44_100.0
         var mixerOutputVolume: Float = 1.0
@@ -43,6 +44,7 @@ public final class AudioComfortEngine: ObservableObject {
         )
     }
 
+    // 合成时长以秒计、频率以 Hz 计，layers 定义各正弦波的频率与振幅。
     private struct LoopSynthesisConfiguration: Sendable {
         var duration: Double
         var layers: [(frequency: Double, amplitude: Double)]
@@ -92,6 +94,7 @@ public final class AudioComfortEngine: ObservableObject {
         }
     }
 
+    // 后台读取或生成音频缓冲区，完成后回到主 actor 安装资源并处理待播放模式。
     public func prewarmResourcesIfNeeded() {
         guard format != nil, prewarmTask == nil, !didFinishPrewarm else {
             return

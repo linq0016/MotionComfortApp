@@ -47,6 +47,18 @@ struct FullscreenSessionView: View {
             )
                 .ignoresSafeArea()
 
+            SessionInteractionLayer(
+                visualStyle: model.visualGuideStyle,
+                orientation: orientationObserver.orientation,
+                onInteraction: {
+                    if areHUDControlsVisible {
+                        scheduleHUDHide()
+                    }
+                }
+            )
+                .ignoresSafeArea()
+                .id(model.visualGuideStyle)
+
             SessionHUDLayer(
                 isVisible: areHUDControlsVisible,
                 orientation: orientationObserver.orientation,
@@ -410,6 +422,7 @@ private struct MotionControlsLayer: View {
         }
     }
 
+    // 灵敏度在松手后提交；巡航速度经 DynamicRenderControl 实时预览后再提交。
     private var dualControlCard: some View {
         VStack(spacing: 0.0) {
             Spacer(minLength: 0.0)
@@ -606,6 +619,7 @@ private struct MotionControlsLayer: View {
         min(max(sliderPosition, 0.0), 1.0)
     }
 
+    // 滑杆向右时 factor 减小；渲染层以加速度除以 factor，得到更强的运动响应。
     private func sliderPosition(forMotionSensitivityFactor factor: Double) -> Double {
         let clampedFactor = min(max(factor, 0.5), 1.5)
         return 1.5 - clampedFactor
@@ -627,6 +641,7 @@ private struct MotionControlsLayer: View {
     }
 }
 
+// UISlider 桥接层：统一处理步进、默认值吸附、双击复位及编辑回调。
 @MainActor
 private struct NativeSnapSlider: UIViewRepresentable {
     @Binding var value: Double
@@ -875,6 +890,198 @@ private struct SessionCueOverlay: View {
             liveViewCamera: liveViewCamera
         )
     }
+}
+
+// 按视觉模式挂载交互内容，与视觉渲染层和 HUD 分层组合。
+private struct SessionInteractionLayer: View {
+    let visualStyle: VisualGuideStyle
+    let orientation: InterfaceRenderOrientation
+    let onInteraction: () -> Void
+
+    var body: some View {
+        Group {
+            switch visualStyle {
+            case .minimal:
+                MinimalAmbientDotsLayer(
+                    orientation: orientation,
+                    onInteraction: onInteraction
+                )
+            case .dynamic:
+                Color.clear
+            case .liveView:
+                Color.clear
+            }
+        }
+    }
+}
+
+// 中央安全区内随机生成圆点，时间线驱动呼吸与消散，点击触发扩散动画。
+private struct MinimalAmbientDotsLayer: View {
+    let orientation: InterfaceRenderOrientation
+    let onInteraction: () -> Void
+
+    @State private var dots: [AmbientDot] = []
+    @State private var nextSpawnAt: TimeInterval = 0
+
+    // 数量与生命周期：生成间隔、淡入、停留、淡出和点击消散，时间单位为秒。
+    private let maxDotCount = 5
+    private let spawnIntervalRange = 1.7...2.3
+    private let fadeInDuration = 0.45
+    private let steadyDuration = 2.8
+    private let fadeOutDuration = 0.55
+    private let burstDuration = 0.7
+    // 外观：呼吸周期及缩放、形变幅度。
+    private let breathPeriod = 2.8
+    private let breathAmplitude = 0.04
+    private let shapeAmplitude = 0.02
+    // 扩散与点击范围：半径以 pt 计，burstScale 为点击后的放大倍数。
+    private let blurRadius: CGFloat = 2
+    private let burstBlurRadius: CGFloat = 12
+    private let burstScale: CGFloat = 1.7
+    private let hitRadius: CGFloat = 34
+
+    var body: some View {
+        GeometryReader { proxy in
+            let safeRect = CGRect(x: proxy.size.width * 0.25, y: proxy.size.height * 0.25,
+                                  width: proxy.size.width * 0.5, height: proxy.size.height * 0.5)
+            TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { timeline in
+                let now = timeline.date.timeIntervalSinceReferenceDate
+                Canvas { context, _ in
+                    context.clip(to: Path(safeRect))
+                    for dot in dots {
+                        draw(dot, at: now, in: &context)
+                    }
+                }
+                .allowsHitTesting(false)
+                .overlay {
+                    Color.clear
+                        .frame(width: safeRect.width, height: safeRect.height)
+                        .contentShape(Rectangle())
+                        .onTapGesture { point in
+                            burst(at: CGPoint(x: point.x + safeRect.minX, y: point.y + safeRect.minY))
+                        }
+                        .position(x: safeRect.midX, y: safeRect.midY)
+                }
+                .onChange(of: timeline.date) { _, _ in
+                    update(at: now, in: safeRect)
+                }
+            }
+            .onAppear { reset() }
+            .onChange(of: proxy.size) { _, _ in reset() }
+            .onChange(of: orientation) { _, _ in reset() }
+        }
+    }
+
+    private func reset() {
+        dots.removeAll()
+        nextSpawnAt = Date.timeIntervalSinceReferenceDate + Double.random(in: spawnIntervalRange)
+    }
+
+    private func update(at now: TimeInterval, in safeRect: CGRect) {
+        if dots.contains(where: { now >= $0.expiresAt }) {
+            dots.removeAll { now >= $0.expiresAt }
+        }
+        guard now >= nextSpawnAt else { return }
+        nextSpawnAt = now + Double.random(in: spawnIntervalRange)
+        guard dots.count < maxDotCount else { return }
+
+        let radius = CGFloat.random(in: 18...24)
+        // 按最大缩放和模糊范围计算圆点占用空间，用于边界留白与点间避让。
+        let extent = radius * 1.04 * burstScale * 1.02 + burstBlurRadius * 3
+        let placement = safeRect.insetBy(dx: extent, dy: extent)
+        guard placement.width > 0, placement.height > 0 else { return }
+        for _ in 0..<24 {
+            let point = CGPoint(x: .random(in: placement.minX...placement.maxX),
+                                y: .random(in: placement.minY...placement.maxY))
+            guard dots.allSatisfy({
+                hypot($0.position.x - point.x, $0.position.y - point.y) >= $0.extent + extent + 18
+            }) else { continue }
+            dots.append(AmbientDot(position: point, radius: radius, extent: extent,
+                                   createdAt: now, expiresAt: now + fadeInDuration + steadyDuration + fadeOutDuration,
+                                   seed: .random(in: 0...(2 * .pi))))
+            break
+        }
+    }
+
+    private func burst(at point: CGPoint) {
+        let now = Date.timeIntervalSinceReferenceDate
+        guard let index = dots.firstIndex(where: {
+            $0.burstAt == nil && now < $0.expiresAt &&
+            hypot($0.position.x - point.x, $0.position.y - point.y) <= hitRadius
+        }) else { return }
+        dots[index].burstOrigin = appearance(of: dots[index], at: now)
+        dots[index].burstAt = now
+        dots[index].expiresAt = now + burstDuration
+        AppHaptics.buttonTap()
+        onInteraction()
+    }
+
+    // 根据圆点年龄或点击后的进度，计算透明度、缩放、形变和模糊程度。
+    private func appearance(of dot: AmbientDot, at now: TimeInterval) -> AmbientDotAppearance {
+        if let start = dot.burstAt {
+            let progress = min(max((now - start) / burstDuration, 0), 1)
+            let expansion = 1 - pow(1 - progress, 3)
+            let fade = smooth((progress - 0.18 / burstDuration) / (1 - 0.18 / burstDuration))
+            var value = dot.burstOrigin
+            value.scale *= 1 + (burstScale - 1) * expansion
+            value.alpha *= 1 - fade
+            value.blur += (burstBlurRadius - blurRadius) * smooth(progress)
+            return value
+        }
+        let age = max(0, now - dot.createdAt)
+        let wave = sin(age * 2 * .pi / breathPeriod + dot.seed)
+        let alpha = smooth(age / fadeInDuration) *
+            (1 - smooth((age - fadeInDuration - steadyDuration) / fadeOutDuration))
+        return AmbientDotAppearance(alpha: alpha, scale: 1 + breathAmplitude * wave,
+                                    aspect: 1 + shapeAmplitude * sin(age * 1.3 + dot.seed),
+                                    blur: blurRadius)
+    }
+
+    private func draw(_ dot: AmbientDot, at now: TimeInterval, in context: inout GraphicsContext) {
+        let value = appearance(of: dot, at: now)
+        guard value.alpha > 0.001 else { return }
+        let radius = dot.radius * value.scale
+        var layer = context
+        layer.translateBy(x: dot.position.x, y: dot.position.y)
+        layer.scaleBy(x: value.aspect, y: 1 / value.aspect)
+        layer.opacity = value.alpha
+        layer.addFilter(.blur(radius: value.blur))
+        let tint = Color(red: 0.86, green: 0.95, blue: 1)
+        let gradient = Gradient(stops: [
+            .init(color: tint.opacity(0.50), location: 0),
+            .init(color: tint.opacity(0.50), location: 0.80),
+            .init(color: tint.opacity(0.40), location: 0.86),
+            .init(color: tint.opacity(0.20), location: 0.92),
+            .init(color: tint.opacity(0.05), location: 0.97),
+            .init(color: tint.opacity(0), location: 1)
+        ])
+        layer.fill(Path(ellipseIn: CGRect(x: -radius, y: -radius, width: radius * 2, height: radius * 2)),
+                   with: .radialGradient(gradient, center: .zero, startRadius: 0, endRadius: radius))
+    }
+
+    private func smooth(_ value: Double) -> Double {
+        let t = min(max(value, 0), 1)
+        return t * t * (3 - 2 * t)
+    }
+}
+
+private struct AmbientDot: Identifiable {
+    let id = UUID()
+    let position: CGPoint
+    let radius: CGFloat
+    let extent: CGFloat
+    let createdAt: TimeInterval
+    var expiresAt: TimeInterval
+    let seed: Double
+    var burstAt: TimeInterval?
+    var burstOrigin = AmbientDotAppearance()
+}
+
+private struct AmbientDotAppearance {
+    var alpha: Double = 0
+    var scale: CGFloat = 1
+    var aspect: CGFloat = 1
+    var blur: CGFloat = 3
 }
 
 struct AudioModeGlassControl: View {

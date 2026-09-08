@@ -24,6 +24,7 @@ enum SessionLaunchOverlayState: Equatable {
     case denied
 }
 
+// 页面状态按使用方拆分：外壳负责模式与全屏呈现，首页额外显示加载和权限提示。
 struct AppShellSessionState: Equatable {
     var visualGuideStyle: VisualGuideStyle = .dynamic
     var audioMode: AudioMode = .melodic
@@ -38,6 +39,7 @@ struct DashboardSessionState: Equatable {
     var isSessionPresented = false
 }
 
+// 渲染层单独接收高频运动快照。
 @MainActor
 final class SessionRenderState: ObservableObject {
     @Published private(set) var sample: MotionSample = .neutral
@@ -47,6 +49,7 @@ final class SessionRenderState: ObservableObject {
     }
 }
 
+// 只有页面状态发生变化时才发布新的快照。
 @MainActor
 final class SessionStateStore<State: Equatable>: ObservableObject {
     @Published private(set) var value: State
@@ -145,11 +148,12 @@ final class ComfortSessionViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
-    // 启动当前选择的 motion 和 audio 模式。
+    // 启动运动采样；音频由独立的启动入口控制。
     func start() {
         motionManager.start()
     }
 
+    // 按视觉模式准备传感器、相机或 Metal 资源，并进入对应的加载流程。
     func beginSessionLaunch(
         style: VisualGuideStyle,
         loadingFeedbackStart: Date? = nil
@@ -470,6 +474,7 @@ final class ComfortSessionViewModel: ObservableObject {
         deniedDismissTask = nil
     }
 
+    // token 标识本轮准备任务，完成后按当前模式推进会话状态。
     private func startLaunchPreparationTask(
         for style: VisualGuideStyle,
         operation: @escaping @Sendable (UUID) async -> Void

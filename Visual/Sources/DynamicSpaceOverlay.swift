@@ -5,6 +5,7 @@ import MotionComfortCore
 import SwiftUI
 import UIKit
 
+// 连接速度滑杆与 Metal 渲染器，分别管理拖动预览值和已提交速度。
 @MainActor
 public final class DynamicRenderControl {
     private weak var renderer: (any DynamicRenderPreviewReceiver)?
@@ -223,6 +224,7 @@ private final class DynamicRenderView: MTKView {
     }
 }
 
+// 星空参数分为数量、空间深度与巡航、加速度漂移、星云样式、星点强度五组。
 private struct DynamicSpaceConfiguration {
     let counts = DynamicSpaceCountsConfiguration()
     let world = DynamicSpaceWorldConfiguration()
@@ -251,6 +253,7 @@ private struct DynamicSpaceMotionConfiguration {
     let velocityFriction: Float = 0.10
 }
 
+// atlas 参数控制纹理网格与采样边缘；屏幕尺寸由基础缩放、深度和个体差异共同决定。
 private struct DynamicSpaceNebulaConfiguration {
     let atlasColumns = 4
     let atlasRows = 3
@@ -333,6 +336,7 @@ private struct DynamicSpaceSceneState {
     }
 }
 
+// 与 Metal shader 对应的顶点和视口数据；屏幕坐标及尺寸使用 drawable 像素。
 private struct DynamicSpriteVertex {
     var positionAndSize: SIMD4<Float> = .zero
     var colorAndSoftness: SIMD4<Float> = .zero
@@ -450,6 +454,7 @@ private struct DynamicRenderResources {
     }
 }
 
+// 预热并缓存渲染管线与纹理，供进入星空模式时创建渲染器使用。
 private final class DynamicRenderResourceCache: @unchecked Sendable {
     static let shared = DynamicRenderResourceCache()
 
@@ -624,6 +629,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
         rebuildScene(for: size)
     }
 
+    // 每帧更新场景与顶点，再依次绘制星云、星尘、光晕和清晰星点。
     func draw(in view: MTKView) {
         guard
             drawableSize.width > 0.0,
@@ -774,6 +780,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
         }
     }
 
+    // 加速度驱动横纵漂移与粒子强度，巡航倍率单独控制前进速度；deltaTime 以秒计。
     private func updateScene(deltaTime: Float) {
         let frameScale = deltaTime * 60.0
         state.elapsedTime += deltaTime
@@ -872,6 +879,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
         }
     }
 
+    // 将一朵星云展开为两个三角形，写入旋转后的屏幕位置与纹理坐标。
     private func appendNebulaQuad(
         center: SIMD2<Float>,
         size: Float,
@@ -1298,6 +1306,7 @@ private enum DynamicPalette {
     ]
 }
 
+// 在 CPU 上生成星点纹理和多格星云图集，随后上传为 Metal 纹理。
 private enum DynamicTextureFactory {
     static func makeBlurBitmap(size: Int) -> DynamicTextureBitmap {
         makeBitmap(size: size) { context, size in

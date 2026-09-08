@@ -17,11 +17,26 @@ struct MotionComfortApp: App {
 
     var body: some Scene {
         WindowGroup {
+            #if DEBUG && targetEnvironment(simulator)
+            if ProcessInfo.processInfo.arguments.contains("--preview-minimal") {
+                FullscreenSessionView(model: model, renderState: model.renderState,
+                                      orientationObserver: orientationObserver, onClose: {})
+                    .background(InterfaceOrientationReader(observer: orientationObserver))
+                    .onAppear {
+                        model.visualGuideStyle = .minimal
+                        model.audioMode = .off
+                    }
+            } else {
+                AppRootView(model: model, orientationObserver: orientationObserver)
+            }
+            #else
             AppRootView(model: model, orientationObserver: orientationObserver)
+            #endif
         }
     }
 }
 
+// 应用外壳：衔接欢迎页、首页和全屏会话，并管理偏好恢复与前后台音频策略。
 private struct AppRootView: View {
     let model: ComfortSessionViewModel
     @ObservedObject private var appShellState: SessionStateStore<AppShellSessionState>
@@ -208,6 +223,7 @@ private struct AppRootView: View {
         }
     }
 
+    // 分别管理全屏视图的挂载与淡入淡出状态，同步首页背景的活动状态。
     private func handleSessionPresentationChanged(_ isPresented: Bool) {
         if isPresented {
             cancelSessionDismissTask()

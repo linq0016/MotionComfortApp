@@ -8,7 +8,7 @@ struct FlowGridRenderState {
     var smoothedMagnitude: Double = 0.0
 }
 
-// 共享参数表：集中控制点阵的速度、密度、亮度和尺寸。
+// 点阵参数按布局、运动响应、外观、安全区分组，Minimal 与 Live View 各使用一套预设。
 struct FlowGridConfiguration: Sendable {
     var layout: FlowGridLayoutConfiguration
     var motion: FlowGridMotionConfiguration
@@ -144,6 +144,7 @@ struct FlowGridStaticLayout: Sendable {
     let points: [FlowGridStaticPoint]
 }
 
+// 按尺寸、方向和配置缓存静态点位，逐帧渲染时叠加运动偏移与外观变化。
 final class FlowGridLayoutCache: @unchecked Sendable {
     static let shared = FlowGridLayoutCache()
 
@@ -250,7 +251,7 @@ struct FlowGridPhase {
         lastTimestamp = timestamp
     }
 
-    // 这里是核心：把传感器数据变成点阵的位移、大小和亮度状态。
+    // 平滑三轴输入，计算运动强度与漂移速度，再累积为点阵偏移。
     mutating func advance(
         sample: MotionSample,
         timestamp: TimeInterval,

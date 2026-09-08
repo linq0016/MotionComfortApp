@@ -97,6 +97,7 @@ public enum LiveViewPreviewState: String, Sendable {
     case unavailable
 }
 
+// 相机参数分为采集规格和亮度分析两组；分析结果决定叠加点阵使用明点还是暗点。
 private struct LiveViewCameraConfiguration: Sendable {
     var capture = LiveViewCaptureConfiguration()
     var analysis = LiveViewAnalysisConfiguration()
@@ -109,6 +110,7 @@ private struct LiveViewFormatProfile: Sendable {
     var stabilizationMode: AVCaptureVideoStabilizationMode
 }
 
+// 采集参数包含目标帧率、首选与备用格式、session preset；格式指定色域与防抖模式。
 private struct LiveViewCaptureConfiguration: Sendable {
     var targetFrameDuration = CMTime(value: 1, timescale: 60)
     var preferredFormatProfile = LiveViewFormatProfile(
@@ -146,6 +148,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
     let session = AVCaptureSession()
 
+    // 采集配置与启停在 sessionQueue 调度，视频帧分析回调由 analysisQueue 执行。
     private let sessionQueue = DispatchQueue(label: "com.motioncomfort.liveview.session", qos: .userInitiated)
     private let analysisQueue = DispatchQueue(label: "com.motioncomfort.liveview.analysis", qos: .utility)
     private let videoOutput = AVCaptureVideoDataOutput()
@@ -648,6 +651,7 @@ public enum LiveViewCameraPreflight {
     }
 }
 
+// 从视频帧提取场景亮度，点阵明暗模式变化时发布给主线程界面。
 extension LiveViewCameraModel: AVCaptureVideoDataOutputSampleBufferDelegate {
     public func captureOutput(
         _ output: AVCaptureOutput,
@@ -690,6 +694,7 @@ private struct LiveViewPreviewSurface: View {
     }
 }
 
+// 将 AVCaptureVideoPreviewLayer 嵌入 SwiftUI，并同步预览方向与动态范围。
 private struct LiveViewCameraPreview: UIViewRepresentable {
     let session: AVCaptureSession
     let orientation: InterfaceRenderOrientation

@@ -3,6 +3,7 @@ import MotionComfortVisual
 import SwiftUI
 import UIKit
 
+// 首页组合模式卡、音频选择和设置入口，通过 dashboardState 接收页面状态。
 struct DashboardView: View {
     @Environment(\.locale) private var locale
     let model: ComfortSessionViewModel
@@ -572,6 +573,7 @@ private struct ModeLaunchCardButtonStyle: ButtonStyle {
     }
 }
 
+// 设置内容由开关、重置和说明组成；说明区是否呈现由方向和面板展开状态决定。
 private struct SettingsPanel: View {
     @Binding var quickStartEnabled: Bool
     @Binding var backgroundAudioEnabled: Bool
@@ -641,6 +643,7 @@ private struct SettingsPanel: View {
         .padding(.horizontal, 2.0)
     }
 
+    // 用当前宽度下的隐藏内容测量收起高度，文字换行随语言与屏幕宽度变化。
     private var compactHeightMeasurement: some View {
         GeometryReader { proxy in
             VStack(alignment: .leading, spacing: 22.0) {
@@ -882,6 +885,7 @@ private struct SettingsPanelCompactHeightPreferenceKey: PreferenceKey {
     }
 }
 
+// 用 UILabel 排版两端对齐的段落，并缓存文字与样式签名以复用格式化结果。
 private struct JustifiedParagraphText: UIViewRepresentable {
     let text: String
     let fontSize: CGFloat
@@ -1343,6 +1347,7 @@ struct MotionComfortLogoImage: View {
     }
 }
 
+// 欢迎页与首页共用的光晕背景；活动时推进动画，暂停时显示最后记录的时间帧。
 struct SharedChromeBackground: View {
     var orientation: InterfaceRenderOrientation = .portrait
     var isActive = true
