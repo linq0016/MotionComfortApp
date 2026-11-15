@@ -148,7 +148,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
     let session = AVCaptureSession()
 
-    // 采集配置与启停在 sessionQueue 调度，视频帧分析回调由 analysisQueue 执行。
+    // 采集配置与启停在 sessionQueue 调度；视频帧分析回调与分析状态的读写都在 analysisQueue 执行。
     private let sessionQueue = DispatchQueue(label: "com.motioncomfort.liveview.session", qos: .userInitiated)
     private let analysisQueue = DispatchQueue(label: "com.motioncomfort.liveview.analysis", qos: .utility)
     private let videoOutput = AVCaptureVideoDataOutput()
@@ -175,14 +175,6 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
     public func start() {
         let currentStatus = AVCaptureDevice.authorizationStatus(for: .video)
-        analysisQueue.async { [weak self] in
-            guard let self else {
-                return
-            }
-
-            self.sessionStartReferenceTime = Date().timeIntervalSinceReferenceDate
-            self.lastPolaritySwitchAt = nil
-        }
 
         DispatchQueue.main.async {
             self.status = currentStatus
@@ -225,15 +217,6 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
     }
 
     public func stop() {
-        analysisQueue.async { [weak self] in
-            guard let self else {
-                return
-            }
-
-            self.sessionStartReferenceTime = nil
-            self.lastPolaritySwitchAt = nil
-        }
-
         sessionQueue.async { [weak self] in
             guard let self else {
                 return
@@ -243,10 +226,13 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
                 self.session.stopRunning()
             }
 
-            self.latestSceneAnalysis = LiveViewSceneAnalysis()
-            self.latestOverlayRenderState = LiveViewOverlayRenderState()
-            self.smoothedLuminance = nil
-            self.lastPolaritySwitchAt = nil
+            self.analysisQueue.async {
+                self.sessionStartReferenceTime = nil
+                self.latestSceneAnalysis = LiveViewSceneAnalysis()
+                self.latestOverlayRenderState = LiveViewOverlayRenderState()
+                self.smoothedLuminance = nil
+                self.lastPolaritySwitchAt = nil
+            }
         }
 
         DispatchQueue.main.async {
@@ -288,6 +274,12 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
                     }
                     return
                 }
+            }
+
+            let startReferenceTime = Date().timeIntervalSinceReferenceDate
+            self.analysisQueue.async {
+                self.sessionStartReferenceTime = startReferenceTime
+                self.lastPolaritySwitchAt = nil
             }
 
             if !self.session.isRunning {

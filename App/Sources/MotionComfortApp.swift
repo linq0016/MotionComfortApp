@@ -1,6 +1,7 @@
 import MotionComfortAudio
 import MotionComfortVisual
 import SwiftUI
+import UIKit
 
 private enum AppShellTiming {
     static let minimumLaunchPlaceholderDuration: Duration = .milliseconds(325)
@@ -189,6 +190,7 @@ private struct AppRootView: View {
     private func resetAppStartupState() {
         hasCompletedWelcome = false
         quickStartEnabled = false
+        backgroundAudioEnabled = false
         hasShownLiveViewGuidanceToast = false
         lastVisualGuideStyle = VisualGuideStyle.dynamic.rawValue
         lastAudioMode = AudioMode.melodic.rawValue
@@ -225,6 +227,9 @@ private struct AppRootView: View {
 
     // 分别管理全屏视图的挂载与淡入淡出状态，同步首页背景的活动状态。
     private func handleSessionPresentationChanged(_ isPresented: Bool) {
+        // 全屏会话期间保持屏幕常亮，其余界面沿用系统自动锁定。
+        UIApplication.shared.isIdleTimerDisabled = isPresented
+
         if isPresented {
             cancelSessionDismissTask()
             cancelSessionFadeTask()

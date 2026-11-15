@@ -248,7 +248,7 @@ private struct DynamicSpaceWorldConfiguration {
 private struct DynamicSpaceMotionConfiguration {
     let cameraSensitivityX: Float = 0.050
     let cameraSensitivityY: Float = 0.050
-    let sensorSmoothing: Float = 0.42
+    let sensorSmoothing: Float = 0.3
     let velocityGain: Float = 3.0
     let velocityFriction: Float = 0.10
 }

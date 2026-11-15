@@ -378,6 +378,7 @@ struct DashboardView: View {
 
         launchDimDismissTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
             isLaunchDimVisible = false
             launchDimDismissTask = nil
         }

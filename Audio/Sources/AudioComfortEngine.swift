@@ -1,4 +1,5 @@
 import AVFAudio
+import Combine
 import Foundation
 
 // 音频层：准备单音与旋律资源，通过 AVAudioEngine 管理循环播放。
@@ -69,6 +70,12 @@ public final class AudioComfortEngine: ObservableObject {
     private var prewarmTask: Task<Void, Never>?
     private var didFinishPrewarm = false
     private var pendingPlaybackMode: AudioMode?
+    private var systemAudioEventObservers: Set<AnyCancellable> = []
+    private var lastOutputWasBuiltIn = true
+
+    // 会话的激活与停用是同步阻塞调用，统一在该串行队列执行；playbackRequestID 用于丢弃过期的起播结果。
+    private let sessionQueue = DispatchQueue(label: "com.motioncomfort.audio.session", qos: .userInitiated)
+    private var playbackRequestID = 0
 
     public init(sampleRate: Double = 44_100.0) {
         var configuration = AudioComfortConfiguration()
@@ -92,6 +99,8 @@ public final class AudioComfortEngine: ObservableObject {
         if format == nil {
             assertionFailure("Unable to create stereo audio format.")
         }
+
+        observeSystemAudioEvents()
     }
 
     // 后台读取或生成音频缓冲区，完成后回到主 actor 安装资源并处理待播放模式。
@@ -118,7 +127,6 @@ public final class AudioComfortEngine: ObservableObject {
     // 切换到指定音频模式，并开始循环播放。
     public func setMode(_ mode: AudioMode) {
         guard mode != .off else {
-            pendingPlaybackMode = nil
             stopPlayback()
             return
         }
@@ -128,6 +136,7 @@ public final class AudioComfortEngine: ObservableObject {
         }
 
         guard mode.isImplemented else {
+            playbackRequestID += 1
             player.stop()
             player.reset()
             engine.pause()
@@ -138,17 +147,32 @@ public final class AudioComfortEngine: ObservableObject {
 
         prewarmResourcesIfNeeded()
 
-        guard !(isPlaying && activeMode == mode && buffers[mode] != nil) else {
+        guard !(isPlaying && activeMode == mode && buffers[mode] != nil && engine.isRunning) else {
             return
         }
 
-        guard let buffer = buffers[mode] else {
+        guard buffers[mode] != nil else {
             waitForPreparedBuffer(for: mode)
             return
         }
 
+        playbackRequestID += 1
+        let requestID = playbackRequestID
+        sessionQueue.async { [weak self] in
+            let didActivate = Self.activatePlaybackSession()
+            Task { @MainActor [weak self] in
+                self?.startPlayback(mode, requestID: requestID, didActivate: didActivate)
+            }
+        }
+    }
+
+    // 会话激活完成后启动引擎并起播；期间若已停止或换了模式，本次结果作废。
+    private func startPlayback(_ mode: AudioMode, requestID: Int, didActivate: Bool) {
+        guard didActivate, requestID == playbackRequestID, let buffer = buffers[mode] else {
+            return
+        }
+
         do {
-            try configureAudioSession()
             try startEngineIfNeeded()
         } catch {
             return
@@ -162,26 +186,106 @@ public final class AudioComfortEngine: ObservableObject {
 
         activeMode = mode
         isPlaying = true
+        lastOutputWasBuiltIn = isOutputBuiltIn
     }
 
     // 完整停止音频播放，并释放当前会话。
     public func stopPlayback() {
+        pendingPlaybackMode = nil
+        playbackRequestID += 1
         player.stop()
         player.reset()
         engine.pause()
         activeMode = .off
         isPlaying = false
 
-        do {
-            try AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
-        } catch {
+        sessionQueue.async {
+            try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
         }
     }
 
-    private func configureAudioSession() throws {
-        let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playback, mode: .default)
-        try session.setActive(true)
+    // 系统通知可能来自任意线程，先转到主队列再读写播放状态。
+    private func observeSystemAudioEvents() {
+        NotificationCenter.default
+            .publisher(for: AVAudioSession.interruptionNotification, object: AVAudioSession.sharedInstance())
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] notification in
+                self?.handleInterruption(notification)
+            }
+            .store(in: &systemAudioEventObservers)
+
+        // 换设备时路由变化与引擎配置变化的到达顺序不固定，两者走同一处理。
+        NotificationCenter.default
+            .publisher(for: AVAudioSession.routeChangeNotification, object: AVAudioSession.sharedInstance())
+            .merge(with: NotificationCenter.default.publisher(for: .AVAudioEngineConfigurationChange, object: engine))
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.handleOutputHardwareChange()
+            }
+            .store(in: &systemAudioEventObservers)
+    }
+
+    // 中断开始时只记录已停止，保留 activeMode；系统建议恢复或 App 回到前台时从头重播。
+    private func handleInterruption(_ notification: Notification) {
+        guard let typeValue = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue)
+        else {
+            return
+        }
+
+        switch type {
+        case .began:
+            isPlaying = false
+        case .ended:
+            let optionsValue = notification.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0
+            guard AVAudioSession.InterruptionOptions(rawValue: optionsValue).contains(.shouldResume),
+                  activeMode != .off
+            else {
+                return
+            }
+
+            setMode(activeMode)
+        @unknown default:
+            break
+        }
+    }
+
+    private var isOutputBuiltIn: Bool {
+        AVAudioSession.sharedInstance().currentRoute.outputs.allSatisfy {
+            $0.portType == .builtInSpeaker || $0.portType == .builtInReceiver
+        }
+    }
+
+    // 耳机或蓝牙断开、输出落回内置扬声器时静音并保留 activeMode，回到前台或重选模式时重播；
+    // 其余硬件变化若让引擎停止，则重新启动并重播。
+    private func handleOutputHardwareChange() {
+        let isBuiltIn = isOutputBuiltIn
+        let lostExternalOutput = !lastOutputWasBuiltIn && isBuiltIn
+        lastOutputWasBuiltIn = isBuiltIn
+
+        guard isPlaying else {
+            return
+        }
+
+        if lostExternalOutput {
+            playbackRequestID += 1
+            player.stop()
+            engine.pause()
+            isPlaying = false
+        } else {
+            setMode(activeMode)
+        }
+    }
+
+    nonisolated private static func activatePlaybackSession() -> Bool {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default)
+            try session.setActive(true)
+            return true
+        } catch {
+            return false
+        }
     }
 
     private func startEngineIfNeeded() throws {
@@ -208,6 +312,7 @@ public final class AudioComfortEngine: ObservableObject {
 
     private func waitForPreparedBuffer(for mode: AudioMode) {
         pendingPlaybackMode = mode
+        playbackRequestID += 1
         player.stop()
         player.reset()
         engine.pause()

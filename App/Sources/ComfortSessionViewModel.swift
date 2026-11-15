@@ -377,7 +377,7 @@ final class ComfortSessionViewModel: ObservableObject {
                 try? await Task.sleep(for: .seconds(remainingDelay))
             }
             await MainActor.run {
-                guard case .preparing = self.sessionLaunchState else {
+                guard !Task.isCancelled, case .preparing = self.sessionLaunchState else {
                     return
                 }
 
@@ -401,7 +401,10 @@ final class ComfortSessionViewModel: ObservableObject {
             }
 
             await MainActor.run {
-                guard case .preparing(let currentStyle) = self.sessionLaunchState, currentStyle == style else {
+                guard !Task.isCancelled,
+                      case .preparing(let currentStyle) = self.sessionLaunchState,
+                      currentStyle == style
+                else {
                     return
                 }
 
@@ -426,7 +429,10 @@ final class ComfortSessionViewModel: ObservableObject {
 
             try? await Task.sleep(for: SessionLaunchTiming.deniedToastVisibility)
             await MainActor.run {
-                guard case .denied(let deniedStyle) = self.sessionLaunchState, deniedStyle == style else {
+                guard !Task.isCancelled,
+                      case .denied(let deniedStyle) = self.sessionLaunchState,
+                      deniedStyle == style
+                else {
                     return
                 }
 

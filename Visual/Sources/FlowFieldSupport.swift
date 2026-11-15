@@ -21,9 +21,9 @@ struct FlowGridConfiguration: Sendable {
             dotSpacing: 40.0
         ),
         motion: FlowGridMotionConfiguration(
-            sensorSmoothing: 0.08,
+            sensorSmoothing: 0.3,
             velocityMultiplier: 15.0,
-            velocityFriction: 0.15,
+            velocityFriction: 0.1,
             magnitudeSmoothing: 0.9,
             magnitudeDecaySmoothing: 0.94,
             maxAccelThreshold: 0.4,
@@ -59,9 +59,9 @@ struct FlowGridConfiguration: Sendable {
             dotSpacing: 32.0
         ),
         motion: FlowGridMotionConfiguration(
-            sensorSmoothing: 0.08,
+            sensorSmoothing: 0.3,
             velocityMultiplier: 15.0,
-            velocityFriction: 0.15,
+            velocityFriction: 0.1,
             magnitudeSmoothing: 0.9,
             magnitudeDecaySmoothing: 0.94,
             maxAccelThreshold: 0.4,

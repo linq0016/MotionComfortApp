@@ -36,7 +36,9 @@ public final class MotionManager: ObservableObject {
             return
         }
 
-        motionManager.deviceMotionUpdateInterval = 1.0 / 120.0
+        // 三种视觉模式的渲染上限为 60 帧，采样与轮询间隔与其保持一致。
+        let updateInterval = 1.0 / 60.0
+        motionManager.deviceMotionUpdateInterval = updateInterval
         motionManager.startDeviceMotionUpdates()
         isRunning = true
 
@@ -52,7 +54,7 @@ public final class MotionManager: ObservableObject {
                     self.sample = next
                 }
 
-                try? await Task.sleep(for: .seconds(1.0 / 120.0))
+                try? await Task.sleep(for: .seconds(updateInterval))
             }
         }
     }
