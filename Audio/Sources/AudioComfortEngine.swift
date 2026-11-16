@@ -14,10 +14,10 @@ public final class AudioComfortEngine: ObservableObject {
 
     private struct PreparedAudioResources: @unchecked Sendable {
         let buffers: [AudioMode: PreparedAudioBuffer]
-        let monotoneAssetURL: URL?
+        let introBuffers: [AudioMode: PreparedAudioBuffer]
     }
 
-    // 参数分为采样规格、播放音量和声源合成；声源振幅与播放音量分别作用于生成和播放阶段。
+    // 参数分为采样规格、播放音量和单音素材；素材振幅与播放音量分别作用于生成和播放阶段。
     private struct AudioComfortConfiguration: Sendable {
         var sampleRate: Double = 44_100.0
         var mixerOutputVolume: Float = 1.0
@@ -26,46 +26,34 @@ public final class AudioComfortEngine: ObservableObject {
             .monotone: 0.18,
             .melodic: 0.19
         ]
-        var silentLoop = LoopSynthesisConfiguration(
-            duration: 1.0,
-            layers: [(frequency: 220.0, amplitude: 0.0)],
-            modulationFrequency: 0.0
-        )
-        var monotoneFallbackLoop = LoopSynthesisConfiguration(
-            duration: 1.0,
-            layers: [(frequency: 100.0, amplitude: 0.18)],
-            modulationFrequency: 0.0
-        )
+        // 停止或切换模式前，播放器音量降到 0 所用的秒数。
+        var fadeOutDuration: Double = 0.2
         var monotoneAsset = MonotoneAssetConfiguration(
             frequency: 100.0,
             amplitude: 0.7,
             duration: 1.0,
-            cacheDirectoryName: "MotionComfortAudio",
-            fileName: "monotone_100hz.wav"
+            fadeInDuration: 0.5,
+            cacheDirectoryName: "MotionComfortAudio"
         )
     }
 
-    // 合成时长以秒计、频率以 Hz 计，layers 定义各正弦波的频率与振幅。
-    private struct LoopSynthesisConfiguration: Sendable {
-        var duration: Double
-        var layers: [(frequency: Double, amplitude: Double)]
-        var modulationFrequency: Double
-    }
-
+    // fadeInDuration 是起播引子里音量从 0 升到满幅的秒数。
     private struct MonotoneAssetConfiguration: Sendable {
         var frequency: Double
         var amplitude: Float
         var duration: Double
+        var fadeInDuration: Double
         var cacheDirectoryName: String
-        var fileName: String
     }
 
-    private let configuration: AudioComfortConfiguration
-    private let engine: AVAudioEngine
-    private let player: AVAudioPlayerNode
+    nonisolated private let configuration: AudioComfortConfiguration
+    // 引擎与播放器的启停会阻塞调用线程，只在 sessionQueue 上操作。
+    nonisolated private let engine: AVAudioEngine
+    nonisolated private let player: AVAudioPlayerNode
     private let format: AVAudioFormat?
     private var buffers: [AudioMode: AVAudioPCMBuffer]
-    private var monotoneAssetURL: URL?
+    // 起播时先播一次的淡入引子，随后无缝接上循环缓冲。
+    private var introBuffers: [AudioMode: AVAudioPCMBuffer] = [:]
     private let melodicAssetURL: URL?
     private var prewarmTask: Task<Void, Never>?
     private var didFinishPrewarm = false
@@ -73,7 +61,8 @@ public final class AudioComfortEngine: ObservableObject {
     private var systemAudioEventObservers: Set<AnyCancellable> = []
     private var lastOutputWasBuiltIn = true
 
-    // 会话的激活与停用是同步阻塞调用，统一在该串行队列执行；playbackRequestID 用于丢弃过期的起播结果。
+    // 会话激活停用、引擎与播放器启停都是同步阻塞调用，统一在该串行队列按调用顺序执行；
+    // playbackRequestID 用于丢弃过期的起播结果。
     private let sessionQueue = DispatchQueue(label: "com.motioncomfort.audio.session", qos: .userInitiated)
     private var playbackRequestID = 0
 
@@ -88,7 +77,6 @@ public final class AudioComfortEngine: ObservableObject {
         self.isPlaying = false
         self.activeMode = .off
         self.buffers = [:]
-        self.monotoneAssetURL = nil
         self.melodicAssetURL = Self.findMelodicAsset()
         self.prewarmTask = nil
 
@@ -124,6 +112,12 @@ public final class AudioComfortEngine: ObservableObject {
         }
     }
 
+    // 等待音频缓冲预热完成；尚未开始时先启动，已完成时立即返回。
+    public func ensureAudioResourcesReady() async {
+        prewarmResourcesIfNeeded()
+        await prewarmTask?.value
+    }
+
     // 切换到指定音频模式，并开始循环播放。
     public func setMode(_ mode: AudioMode) {
         guard mode != .off else {
@@ -135,54 +129,83 @@ public final class AudioComfortEngine: ObservableObject {
             return
         }
 
-        guard mode.isImplemented else {
-            playbackRequestID += 1
-            player.stop()
-            player.reset()
-            engine.pause()
-            activeMode = mode
-            isPlaying = false
-            return
-        }
-
         prewarmResourcesIfNeeded()
 
         guard !(isPlaying && activeMode == mode && buffers[mode] != nil && engine.isRunning) else {
             return
         }
 
-        guard buffers[mode] != nil else {
+        guard let buffer = buffers[mode] else {
             waitForPreparedBuffer(for: mode)
             return
         }
 
         playbackRequestID += 1
         let requestID = playbackRequestID
+        let preparedBuffer = PreparedAudioBuffer(buffer: buffer)
+        let preparedIntro = introBuffers[mode].map { PreparedAudioBuffer(buffer: $0) }
+        let volume = configuration.playbackVolumes[mode] ?? 0.0
         sessionQueue.async { [weak self] in
-            let didActivate = Self.activatePlaybackSession()
+            guard let self else {
+                return
+            }
+
+            let didStart = Self.activatePlaybackSession()
+                && self.startLoop(preparedBuffer, intro: preparedIntro, volume: volume)
             Task { @MainActor [weak self] in
-                self?.startPlayback(mode, requestID: requestID, didActivate: didActivate)
+                self?.finishPlaybackStart(mode, requestID: requestID, didStart: didStart)
             }
         }
     }
 
-    // 会话激活完成后启动引擎并起播；期间若已停止或换了模式，本次结果作废。
-    private func startPlayback(_ mode: AudioMode, requestID: Int, didActivate: Bool) {
-        guard didActivate, requestID == playbackRequestID, let buffer = buffers[mode] else {
-            return
+    // 在 sessionQueue 上启动引擎并循环播放缓冲区；有引子时先播一次引子。
+    nonisolated private func startLoop(
+        _ preparedBuffer: PreparedAudioBuffer,
+        intro: PreparedAudioBuffer?,
+        volume: Float
+    ) -> Bool {
+        do {
+            if !engine.isRunning {
+                try engine.start()
+            }
+        } catch {
+            return false
         }
 
-        do {
-            try startEngineIfNeeded()
-        } catch {
-            return
+        fadeOutAndStopPlayer()
+        if let intro {
+            player.scheduleBuffer(intro.buffer, at: nil, options: [], completionHandler: nil)
+        }
+        player.scheduleBuffer(preparedBuffer.buffer, at: nil, options: [.loops], completionHandler: nil)
+        player.volume = volume
+        player.play()
+        return true
+    }
+
+    // 在 sessionQueue 上把混音器输出音量按余弦曲线降到 0 再停播，避免声音被瞬间切断。
+    // 渐降作用在混音器输出上：它对音量变化做平滑过渡，播放器输入音量逐级变化时会带出杂音。
+    nonisolated private func fadeOutAndStopPlayer(fadesOut: Bool = true) {
+        let mixer = engine.mainMixerNode
+        if fadesOut, player.isPlaying, engine.isRunning, configuration.fadeOutDuration > 0.0 {
+            let stepInterval = 0.005
+            let stepCount = max(Int(configuration.fadeOutDuration / stepInterval), 1)
+            for step in 1...stepCount {
+                let progress = Double(step) / Double(stepCount)
+                mixer.outputVolume = configuration.mixerOutputVolume * Float(0.5 * (1.0 + cos(Double.pi * progress)))
+                Thread.sleep(forTimeInterval: stepInterval)
+            }
         }
 
         player.stop()
         player.reset()
-        player.scheduleBuffer(buffer, at: nil, options: [.loops], completionHandler: nil)
-        player.volume = configuration.playbackVolumes[mode] ?? 0.0
-        player.play()
+        mixer.outputVolume = configuration.mixerOutputVolume
+    }
+
+    // 起播完成后记录播放状态；期间若已停止或换了模式，本次结果作废。
+    private func finishPlaybackStart(_ mode: AudioMode, requestID: Int, didStart: Bool) {
+        guard didStart, requestID == playbackRequestID else {
+            return
+        }
 
         activeMode = mode
         isPlaying = true
@@ -193,14 +216,24 @@ public final class AudioComfortEngine: ObservableObject {
     public func stopPlayback() {
         pendingPlaybackMode = nil
         playbackRequestID += 1
-        player.stop()
-        player.reset()
-        engine.pause()
+        haltPlayback(deactivatingSession: true)
         activeMode = .off
         isPlaying = false
+    }
 
-        sessionQueue.async {
-            try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+    // 在 sessionQueue 上停播并暂停引擎，可选停用会话；fadesOut 为假时立即静音。
+    private func haltPlayback(deactivatingSession: Bool, fadesOut: Bool = true) {
+        sessionQueue.async { [weak self] in
+            guard let self else {
+                return
+            }
+
+            self.fadeOutAndStopPlayer(fadesOut: fadesOut)
+            self.engine.pause()
+
+            if deactivatingSession {
+                try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+            }
         }
     }
 
@@ -269,8 +302,7 @@ public final class AudioComfortEngine: ObservableObject {
 
         if lostExternalOutput {
             playbackRequestID += 1
-            player.stop()
-            engine.pause()
+            haltPlayback(deactivatingSession: false, fadesOut: false)
             isPlaying = false
         } else {
             setMode(activeMode)
@@ -288,17 +320,13 @@ public final class AudioComfortEngine: ObservableObject {
         }
     }
 
-    private func startEngineIfNeeded() throws {
-        if !engine.isRunning {
-            try engine.start()
-        }
-    }
-
     private func installPreparedResources(_ resources: PreparedAudioResources) {
         for (mode, preparedBuffer) in resources.buffers {
             buffers[mode] = preparedBuffer.buffer
         }
-        monotoneAssetURL = resources.monotoneAssetURL ?? monotoneAssetURL
+        for (mode, preparedBuffer) in resources.introBuffers {
+            introBuffers[mode] = preparedBuffer.buffer
+        }
         didFinishPrewarm = true
         prewarmTask = nil
 
@@ -313,9 +341,7 @@ public final class AudioComfortEngine: ObservableObject {
     private func waitForPreparedBuffer(for mode: AudioMode) {
         pendingPlaybackMode = mode
         playbackRequestID += 1
-        player.stop()
-        player.reset()
-        engine.pause()
+        haltPlayback(deactivatingSession: false)
         activeMode = mode
         isPlaying = false
 
@@ -329,7 +355,6 @@ public final class AudioComfortEngine: ObservableObject {
         melodicAssetURL: URL?
     ) -> PreparedAudioResources {
         var preparedBuffers: [AudioMode: PreparedAudioBuffer] = [:]
-        var monotoneAssetURL: URL?
 
         if let melodicBuffer = makeBuffer(
             for: .melodic,
@@ -342,41 +367,53 @@ public final class AudioComfortEngine: ObservableObject {
         if let monotoneBuffer = makeBuffer(
             for: .monotone,
             configuration: configuration,
-            melodicAssetURL: melodicAssetURL,
-            monotoneAssetURL: &monotoneAssetURL
+            melodicAssetURL: melodicAssetURL
         ) {
             preparedBuffers[.monotone] = PreparedAudioBuffer(buffer: monotoneBuffer)
         }
 
+        var preparedIntroBuffers: [AudioMode: PreparedAudioBuffer] = [:]
+        if let monotoneBuffer = preparedBuffers[.monotone]?.buffer,
+           let monotoneIntro = makeFadeInIntro(
+               from: monotoneBuffer,
+               duration: configuration.monotoneAsset.fadeInDuration
+           ) {
+            preparedIntroBuffers[.monotone] = PreparedAudioBuffer(buffer: monotoneIntro)
+        }
+
         return PreparedAudioResources(
             buffers: preparedBuffers,
-            monotoneAssetURL: monotoneAssetURL
+            introBuffers: preparedIntroBuffers
         )
     }
 
     nonisolated private static func makeBuffer(
         for mode: AudioMode,
         configuration: AudioComfortConfiguration,
-        melodicAssetURL: URL?,
-        monotoneAssetURL: inout URL?
+        melodicAssetURL: URL?
     ) -> AVAudioPCMBuffer? {
         switch mode {
         case .off:
-            return makeLoopBuffer(
-                sampleRate: configuration.sampleRate,
-                configuration: configuration.silentLoop
-            )
+            return nil
         case .monotone:
-            monotoneAssetURL = prepareMonotoneAsset(configuration: configuration)
+            // 缓存文件读不出来或规格不符时删除并重建一次；仍失败则单音没有缓冲。
+            let expectedFrameCount = AVAudioFrameCount(configuration.sampleRate * configuration.monotoneAsset.duration)
+            for _ in 0..<2 {
+                guard let url = prepareMonotoneAsset(configuration: configuration) else {
+                    return nil
+                }
 
-            if let url = monotoneAssetURL, let loaded = loadBuffer(from: url) {
-                return loaded
+                if let loaded = loadBuffer(from: url),
+                   loaded.format.sampleRate == configuration.sampleRate,
+                   loaded.format.channelCount == 2,
+                   loaded.frameLength == expectedFrameCount {
+                    return loaded
+                }
+
+                try? FileManager.default.removeItem(at: url)
             }
 
-            return makeLoopBuffer(
-                sampleRate: configuration.sampleRate,
-                configuration: configuration.monotoneFallbackLoop
-            )
+            return nil
         case .melodic:
             guard let url = melodicAssetURL else {
                 return nil
@@ -386,56 +423,33 @@ public final class AudioComfortEngine: ObservableObject {
         }
     }
 
-    nonisolated private static func makeBuffer(
-        for mode: AudioMode,
-        configuration: AudioComfortConfiguration,
-        melodicAssetURL: URL?
+    // 复制循环缓冲，让开头 duration 秒按余弦曲线从 0 升到满幅（两端斜率为 0），作为起播引子。
+    nonisolated private static func makeFadeInIntro(
+        from source: AVAudioPCMBuffer,
+        duration: Double
     ) -> AVAudioPCMBuffer? {
-        var monotoneAssetURL: URL?
-        return makeBuffer(
-            for: mode,
-            configuration: configuration,
-            melodicAssetURL: melodicAssetURL,
-            monotoneAssetURL: &monotoneAssetURL
-        )
-    }
-
-    nonisolated private static func makeLoopBuffer(
-        sampleRate: Double,
-        configuration: LoopSynthesisConfiguration
-    ) -> AVAudioPCMBuffer? {
-        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)
-        guard let format else {
-            assertionFailure("Unable to create loop buffer without a valid audio format.")
+        guard duration > 0.0,
+              let sourceChannels = source.floatChannelData,
+              let intro = AVAudioPCMBuffer(pcmFormat: source.format, frameCapacity: source.frameLength),
+              let introChannels = intro.floatChannelData
+        else {
             return nil
         }
 
-        let frameCount = AVAudioFrameCount(format.sampleRate * configuration.duration)
-        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else {
-            assertionFailure("Unable to create PCM buffer.")
-            return nil
-        }
+        intro.frameLength = source.frameLength
+        let frameCount = Int(source.frameLength)
+        let fadeFrameCount = min(Int(duration * source.format.sampleRate), frameCount)
 
-        buffer.frameLength = frameCount
-        for channel in 0..<Int(format.channelCount) {
-            let samples = buffer.floatChannelData![channel]
-
-            for frame in 0..<Int(frameCount) {
-                let time = Double(frame) / format.sampleRate
-                let modulation = configuration.modulationFrequency > 0.0
-                    ? 0.88 + (0.12 * sin(2.0 * Double.pi * configuration.modulationFrequency * time))
+        for channel in 0..<Int(source.format.channelCount) {
+            for frame in 0..<frameCount {
+                let gain = frame < fadeFrameCount
+                    ? Float(0.5 * (1.0 - cos(Double.pi * Double(frame) / Double(fadeFrameCount))))
                     : 1.0
-                var mixedValue = 0.0
-
-                for layer in configuration.layers {
-                    mixedValue += sin(2.0 * Double.pi * layer.frequency * time) * layer.amplitude
-                }
-
-                samples[frame] = Float(mixedValue * modulation)
+                introChannels[channel][frame] = sourceChannels[channel][frame] * gain
             }
         }
 
-        return buffer
+        return intro
     }
 
     nonisolated private static func loadBuffer(from url: URL) -> AVAudioPCMBuffer? {
@@ -471,9 +485,22 @@ public final class AudioComfortEngine: ObservableObject {
             return nil
         }
 
-        let url = directory.appendingPathComponent(configuration.monotoneAsset.fileName)
+        // 文件名带上全部波形参数，参数变化后旧文件不再命中。
+        let fileName = String(
+            format: "monotone_%gHz_%g_%gs_%g.wav",
+            configuration.monotoneAsset.frequency,
+            Double(configuration.monotoneAsset.amplitude),
+            configuration.monotoneAsset.duration,
+            configuration.sampleRate
+        )
+        let url = directory.appendingPathComponent(fileName)
         if fileManager.fileExists(atPath: url.path) {
             return url
+        }
+
+        // 生成新文件前清掉目录里其他参数留下的旧文件。
+        for staleURL in (try? fileManager.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? [] {
+            try? fileManager.removeItem(at: staleURL)
         }
 
         guard let format = AVAudioFormat(standardFormatWithSampleRate: configuration.sampleRate, channels: 2) else {
@@ -506,13 +533,13 @@ public final class AudioComfortEngine: ObservableObject {
     }
 
     nonisolated private static func findMelodicAsset() -> URL? {
-        if let url = Bundle.main.url(forResource: "GStringsFinal", withExtension: "wav") {
+        if let url = Bundle.main.url(forResource: "GStringsFinal", withExtension: "m4a") {
             return url
         }
 
         return Bundle.main.url(
             forResource: "GStringsFinal",
-            withExtension: "wav",
+            withExtension: "m4a",
             subdirectory: "Audio/Resources"
         )
     }

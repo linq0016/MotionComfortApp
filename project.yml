@@ -1,6 +1,6 @@
 name: MotionComfort
 options:
-  bundleIdPrefix: com.example
+  bundleIdPrefix: com.linq
   developmentLanguage: en
   knownRegions:
     - Base
@@ -11,7 +11,7 @@ settings:
     SWIFT_VERSION: 6.0
     IPHONEOS_DEPLOYMENT_TARGET: 26.0
     MARKETING_VERSION: 1.1.0
-    CURRENT_PROJECT_VERSION: 2
+    CURRENT_PROJECT_VERSION: 3
 targets:
   MotionComfortApp:
     type: application
@@ -42,14 +42,14 @@ targets:
       - path: App/Resources/InfoPlist.xcstrings
         buildPhase: resources
     resources:
-      - path: Audio/Resources/GStringsFinal.wav
+      - path: Audio/Resources/GStringsFinal.m4a
     preBuildScripts:
       - name: Copy Melodic Asset
-        script: cp "${SRCROOT}/Audio/Resources/GStringsFinal.wav" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GStringsFinal.wav"
+        script: cp "${SRCROOT}/Audio/Resources/GStringsFinal.m4a" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/GStringsFinal.m4a"
         inputFiles:
-          - Audio/Resources/GStringsFinal.wav
+          - Audio/Resources/GStringsFinal.m4a
         outputFiles:
-          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GStringsFinal.wav
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GStringsFinal.m4a
     info:
       path: App/Info.plist
       properties:

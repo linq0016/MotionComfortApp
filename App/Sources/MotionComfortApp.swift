@@ -18,21 +18,7 @@ struct MotionComfortApp: App {
 
     var body: some Scene {
         WindowGroup {
-            #if DEBUG && targetEnvironment(simulator)
-            if ProcessInfo.processInfo.arguments.contains("--preview-minimal") {
-                FullscreenSessionView(model: model, renderState: model.renderState,
-                                      orientationObserver: orientationObserver, onClose: {})
-                    .background(InterfaceOrientationReader(observer: orientationObserver))
-                    .onAppear {
-                        model.visualGuideStyle = .minimal
-                        model.audioMode = .off
-                    }
-            } else {
-                AppRootView(model: model, orientationObserver: orientationObserver)
-            }
-            #else
             AppRootView(model: model, orientationObserver: orientationObserver)
-            #endif
         }
     }
 }
@@ -114,6 +100,12 @@ private struct AppRootView: View {
         }
         .onChange(of: scenePhase) { _, nextPhase in
             syncBackgroundAudioPolicy(for: nextPhase)
+            // 后台没有画面使用运动数据，暂停采样；回到可见状态时恢复。
+            if nextPhase == .background {
+                model.suspendMotionSampling()
+            } else {
+                model.resumeMotionSampling()
+            }
             if nextPhase != .active {
                 persistMotionControlPreferencesImmediately()
             }
@@ -216,10 +208,13 @@ private struct AppRootView: View {
         switch phase {
         case .active:
             model.startAudioIfNeeded()
-        case .inactive, .background:
+        case .background:
             if !backgroundAudioEnabled {
                 model.stopAudioPlayback()
             }
+        case .inactive:
+            // 下拉通知中心、打开控制中心等短暂失活不打断播放。
+            break
         @unknown default:
             break
         }

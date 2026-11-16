@@ -148,11 +148,11 @@ struct DashboardView: View {
 
                 if isEnglishInterface {
                     VStack(alignment: .leading, spacing: 0.0) {
-                        Text("Stellar:")
+                        Text(verbatim: "Stellar:")
                             .font(.system(size: 32.0, weight: .bold, design: .rounded))
                             .foregroundStyle(.white)
 
-                        Text("Motion Comfort")
+                        Text(verbatim: "Motion Comfort")
                             .font(.system(size: 24.0, weight: .bold, design: .rounded))
                             .foregroundStyle(.white)
                     }

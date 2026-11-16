@@ -93,7 +93,6 @@ final class ComfortSessionViewModel: ObservableObject {
         }
     }
 
-    private(set) var sample: MotionSample = .neutral
     @Published private(set) var isRunning = false
     @Published private(set) var sessionLaunchState: SessionLaunchState = .idle {
         didSet {
@@ -192,24 +191,12 @@ final class ComfortSessionViewModel: ObservableObject {
         audioEngine.stopPlayback()
     }
 
-    func completeSessionPresentation() {
-        guard case .preparing(let style) = sessionLaunchState else {
-            return
-        }
-
-        schedulePresentation(for: style)
+    func suspendMotionSampling() {
+        motionManager.suspendSampling()
     }
 
-    func cancelSessionLaunchIfNeeded() {
-        cancelTransientLaunchTasks()
-
-        if case .preparing(let style) = sessionLaunchState, style == .liveView {
-            liveViewCamera.stop()
-        }
-
-        sessionLaunchOverlayState = .none
-        loadingVisibleAt = nil
-        sessionLaunchState = .idle
+    func resumeMotionSampling() {
+        motionManager.resumeSampling()
     }
 
     var isLaunchInteractionLocked: Bool {
@@ -228,20 +215,8 @@ final class ComfortSessionViewModel: ObservableObject {
         return false
     }
 
-    // 停止会话，并把视觉状态收回到中性值。
-    func stop() {
-        cancelTransientLaunchTasks()
-        motionManager.stop()
-        audioEngine.stopPlayback()
-        liveViewCamera.stop()
-        sessionLaunchOverlayState = .none
-        loadingVisibleAt = nil
-        sessionLaunchState = .idle
-    }
-
     // 把最新运动快照同步到页面。
     private func ingest(_ sample: MotionSample) {
-        self.sample = sample
         renderState.update(sample: sample)
     }
 
@@ -389,13 +364,22 @@ final class ComfortSessionViewModel: ObservableObject {
 
     private func schedulePresentation(for style: VisualGuideStyle) {
         presentationTask?.cancel()
-        loadingFeedbackTask?.cancel()
-        let remainingDelay = remainingLoadingVisibility
         presentationTask = Task { [weak self] in
             guard let self else {
                 return
             }
 
+            // 视觉模式的资源此时已就绪；开着音频时再等音频缓冲，加载提示在等待期间照常出现。
+            if self.audioMode != .off {
+                await self.audioEngine.ensureAudioResourcesReady()
+            }
+
+            guard !Task.isCancelled else {
+                return
+            }
+
+            self.loadingFeedbackTask?.cancel()
+            let remainingDelay = self.remainingLoadingVisibility
             if remainingDelay > .zero {
                 try? await Task.sleep(for: remainingDelay)
             }

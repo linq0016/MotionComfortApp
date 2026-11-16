@@ -1,11 +1,10 @@
 #include <metal_stdlib>
 using namespace metal;
 
-// 星点顶点：positionAndSize 为像素 x/y、尺寸、透明度；其余向量携带颜色、图集索引与旋转。
+// 星点顶点：positionAndSize 为像素 x/y、尺寸、透明度；color.xyz 为 RGB，w 未使用。
 struct DynamicSpriteVertex {
     float4 positionAndSize;
-    float4 colorAndSoftness;
-    float4 rotationAndMisc;
+    float4 color;
 };
 
 // 星云顶点：positionAndUV 为像素 x/y 与局部 u/v，colorAndAlpha 为 RGBA，atlasAndMisc.x 为图集索引。
@@ -19,15 +18,12 @@ struct DynamicViewportUniforms {
     float2 viewportSize;
     float2 atlasGrid;
     float nebulaAtlasInset;
-    float nebulaBoundaryFeather;
 };
 
 struct DynamicVertexOut {
     float4 position [[position]];
     float pointSize [[point_size]];
     float4 color;
-    float atlasIndex;
-    float rotation;
 };
 
 struct DynamicNebulaVertexOut {
@@ -56,11 +52,9 @@ vertex DynamicVertexOut dynamicSpriteVertex(
     outVertex.position = float4(ndc, 0.0, 1.0);
     outVertex.pointSize = max(inVertex.positionAndSize.z, 1.0);
     outVertex.color = float4(
-        inVertex.colorAndSoftness.xyz,
+        inVertex.color.xyz,
         inVertex.positionAndSize.w
     );
-    outVertex.atlasIndex = inVertex.colorAndSoftness.w;
-    outVertex.rotation = inVertex.rotationAndMisc.x;
     return outVertex;
 }
 
@@ -130,9 +124,8 @@ fragment half4 dynamicNebulaQuadFragment(
     half4 sampled = spriteTexture.sample(textureSampler, atlasCoord);
 
     half brightness = half(inFragment.color.a);
-    half alphaGuard = half(smoothstep(0.01, uniforms.nebulaBoundaryFeather, float(sampled.a)));
     return half4(
         half3(inFragment.color.rgb) * sampled.rgb * brightness,
-        sampled.a * brightness * alphaGuard
+        sampled.a * brightness
     );
 }

@@ -17,11 +17,4 @@ public enum AudioMode: String, CaseIterable, Identifiable, Sendable {
             return String(localized: "audio_mode.mono")
         }
     }
-
-    public var isImplemented: Bool {
-        switch self {
-        case .off, .monotone, .melodic:
-            return true
-        }
-    }
 }

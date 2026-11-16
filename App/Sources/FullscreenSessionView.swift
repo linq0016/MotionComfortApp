@@ -504,32 +504,6 @@ private struct MotionControlsLayer: View {
             .foregroundStyle(Color.white.opacity(0.86))
     }
 
-    private func controlSlider(_ value: Binding<Double>) -> some View {
-        controlSlider(
-            value,
-            defaultPosition: nil,
-            commitsPreviewToBinding: true,
-            reportsContinuousChanges: true,
-            onPreviewChanged: nil,
-            onFinalValue: nil,
-            onEditingBegan: onEditingBegan,
-            onEditingEnded: onEditingEnded
-        )
-    }
-
-    private func controlSlider(_ value: Binding<Double>, defaultPosition: Double?) -> some View {
-        controlSlider(
-            value,
-            defaultPosition: defaultPosition,
-            commitsPreviewToBinding: true,
-            reportsContinuousChanges: true,
-            onPreviewChanged: nil,
-            onFinalValue: nil,
-            onEditingBegan: onEditingBegan,
-            onEditingEnded: onEditingEnded
-        )
-    }
-
     private func controlSlider(
         _ value: Binding<Double>,
         defaultPosition: Double?,
@@ -865,9 +839,7 @@ private struct NativeSnapSlider: UIViewRepresentable {
 
 @MainActor
 private final class SnapMarkedSlider: UISlider {
-    var defaultPosition: CGFloat? {
-        didSet {}
-    }
+    var defaultPosition: CGFloat?
 }
 
 private struct SessionCueOverlay: View {

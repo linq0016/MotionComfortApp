@@ -265,7 +265,6 @@ private struct DynamicSpaceNebulaConfiguration {
     let tileContentScale: CGFloat = 0.25
     let tileEdgeFade: CGFloat = 0.20
     let atlasInset: Float = 0.10
-    let boundaryFeather: Float = 0.10
 }
 
 private struct DynamicSpaceParticleConfiguration {
@@ -281,7 +280,7 @@ private struct DynamicParticle {
     var colorIndex: Int32
     var isSharp: Bool
     var baseAlpha: Float
-    var phase: Float
+    var phase: Double
     var currentAlpha: Float
     var currentScale: Float
     var isReserve: Bool
@@ -329,7 +328,7 @@ private struct DynamicSpaceSceneState {
     var currentWarpSpeed: Float
     var universeSpreadX: Float = 0.0
     var universeSpreadY: Float = 0.0
-    var elapsedTime: Float = 0.0
+    var elapsedTime: Double = 0.0
 
     init(config: DynamicSpaceConfiguration) {
         currentWarpSpeed = config.world.idleSpeed
@@ -339,8 +338,7 @@ private struct DynamicSpaceSceneState {
 // 与 Metal shader 对应的顶点和视口数据；屏幕坐标及尺寸使用 drawable 像素。
 private struct DynamicSpriteVertex {
     var positionAndSize: SIMD4<Float> = .zero
-    var colorAndSoftness: SIMD4<Float> = .zero
-    var rotationAndMisc: SIMD4<Float> = .zero
+    var color: SIMD4<Float> = .zero
 }
 
 private struct DynamicNebulaQuadVertex {
@@ -353,7 +351,6 @@ private struct DynamicViewportUniforms {
     var viewportSize: SIMD2<Float>
     var atlasGrid: SIMD2<Float>
     var nebulaAtlasInset: Float
-    var nebulaBoundaryFeather: Float
 }
 
 private enum DynamicRendererSetupError: Error {
@@ -458,9 +455,10 @@ private struct DynamicRenderResources {
 private final class DynamicRenderResourceCache: @unchecked Sendable {
     static let shared = DynamicRenderResourceCache()
 
+    // lock 保护缓存读写；buildLock 让并发的构建请求排队，后到者直接复用先完成的结果。
     private let lock = NSLock()
+    private let buildLock = NSLock()
     private var cachedResources: DynamicRenderResources?
-    private var isPrewarming = false
 
     private init() {}
 
@@ -472,28 +470,12 @@ private final class DynamicRenderResourceCache: @unchecked Sendable {
     }
 
     func prewarmIfNeeded(pixelFormat: MTLPixelFormat = .bgra8Unorm) {
-        lock.lock()
-        let hasMatchingResources = cachedResources?.pixelFormat == pixelFormat
-        if hasMatchingResources || isPrewarming {
-            lock.unlock()
+        guard !hasCachedResources(pixelFormat: pixelFormat) else {
             return
         }
-        isPrewarming = true
-        lock.unlock()
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self else {
-                return
-            }
-
-            let preparedResources = try? DynamicRenderResources.make(pixelFormat: pixelFormat)
-
-            self.lock.lock()
-            if let preparedResources {
-                self.cachedResources = preparedResources
-            }
-            self.isPrewarming = false
-            self.lock.unlock()
+            _ = try? self?.resources(pixelFormat: pixelFormat)
         }
     }
 
@@ -508,35 +490,54 @@ private final class DynamicRenderResourceCache: @unchecked Sendable {
     }
 
     private func hasCachedResources(pixelFormat: MTLPixelFormat) -> Bool {
-        lock.lock()
-        let hasMatchingResources = cachedResources?.pixelFormat == pixelFormat
-        lock.unlock()
-        return hasMatchingResources
+        matchingCachedResources(pixelFormat: pixelFormat) != nil
     }
 
-    func resources(pixelFormat: MTLPixelFormat) throws -> DynamicRenderResources {
+    private func matchingCachedResources(pixelFormat: MTLPixelFormat) -> DynamicRenderResources? {
         lock.lock()
-        if let cachedResources, cachedResources.pixelFormat == pixelFormat {
-            lock.unlock()
+        defer { lock.unlock() }
+
+        guard let cachedResources, cachedResources.pixelFormat == pixelFormat else {
+            return nil
+        }
+
+        return cachedResources
+    }
+
+    // 唯一的构建入口：预热、会话启动和渲染器创建都经由这里，进程内只构建一次。
+    func resources(pixelFormat: MTLPixelFormat) throws -> DynamicRenderResources {
+        if let cachedResources = matchingCachedResources(pixelFormat: pixelFormat) {
             return cachedResources
         }
-        lock.unlock()
+
+        buildLock.lock()
+        defer { buildLock.unlock() }
+
+        if let cachedResources = matchingCachedResources(pixelFormat: pixelFormat) {
+            return cachedResources
+        }
 
         let preparedResources = try DynamicRenderResources.make(pixelFormat: pixelFormat)
 
         lock.lock()
-        if cachedResources == nil || cachedResources?.pixelFormat != pixelFormat {
-            cachedResources = preparedResources
-        }
-        let resolvedResources = cachedResources ?? preparedResources
-        isPrewarming = false
+        cachedResources = preparedResources
         lock.unlock()
-        return resolvedResources
+        return preparedResources
     }
+}
+
+// 一帧绘制所用的一组顶点缓冲。
+private struct DynamicFrameVertexBuffers {
+    let nebula: MTLBuffer
+    let dust: MTLBuffer
+    let halo: MTLBuffer
+    let sharp: MTLBuffer
 }
 
 @MainActor
 private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRenderPreviewReceiver {
+    private static let maxFramesInFlight = 3
+
     var sample: MotionSample = .neutral
     var speedMultiplier: Float = 1.0
     var motionSensitivityFactor: Float = 1.0
@@ -552,6 +553,8 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
 
     private var state: DynamicSpaceSceneState
     private var lastUpdateTime: TimeInterval?
+    // 已经过去但尚未计入时间步长的零头，留到后续帧补齐。
+    private var pendingFrameTime: TimeInterval = 0.0
     private var drawableSize: CGSize = .zero
 
     private var nebulaVertices: [DynamicNebulaQuadVertex]
@@ -559,10 +562,10 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
     private var haloVertices: [DynamicSpriteVertex]
     private var sharpVertices: [DynamicSpriteVertex]
 
-    private let nebulaBuffer: MTLBuffer
-    private let dustBuffer: MTLBuffer
-    private let haloBuffer: MTLBuffer
-    private let sharpBuffer: MTLBuffer
+    // 三组顶点缓冲轮换使用，信号量保证即将写入的那一组已被 GPU 用完。
+    private let frameBuffers: [DynamicFrameVertexBuffers]
+    private let frameSemaphore: DispatchSemaphore
+    private var frameIndex = 0
 
     private var nebulaCount = 0
     private var dustCount = 0
@@ -593,19 +596,29 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
         let dustStride = MemoryLayout<DynamicSpriteVertex>.stride * config.counts.dustCount
         let particleStride = MemoryLayout<DynamicSpriteVertex>.stride * config.counts.particleCount
 
-        guard
-            let nebulaBuffer = device.makeBuffer(length: nebulaStride, options: [.storageModeShared]),
-            let dustBuffer = device.makeBuffer(length: dustStride, options: [.storageModeShared]),
-            let haloBuffer = device.makeBuffer(length: particleStride, options: [.storageModeShared]),
-            let sharpBuffer = device.makeBuffer(length: particleStride, options: [.storageModeShared])
-        else {
-            throw DynamicRendererSetupError.bufferCreation
+        var frameBuffers: [DynamicFrameVertexBuffers] = []
+        for _ in 0..<Self.maxFramesInFlight {
+            guard
+                let nebulaBuffer = device.makeBuffer(length: nebulaStride, options: [.storageModeShared]),
+                let dustBuffer = device.makeBuffer(length: dustStride, options: [.storageModeShared]),
+                let haloBuffer = device.makeBuffer(length: particleStride, options: [.storageModeShared]),
+                let sharpBuffer = device.makeBuffer(length: particleStride, options: [.storageModeShared])
+            else {
+                throw DynamicRendererSetupError.bufferCreation
+            }
+
+            frameBuffers.append(
+                DynamicFrameVertexBuffers(
+                    nebula: nebulaBuffer,
+                    dust: dustBuffer,
+                    halo: haloBuffer,
+                    sharp: sharpBuffer
+                )
+            )
         }
 
-        self.nebulaBuffer = nebulaBuffer
-        self.dustBuffer = dustBuffer
-        self.haloBuffer = haloBuffer
-        self.sharpBuffer = sharpBuffer
+        self.frameBuffers = frameBuffers
+        self.frameSemaphore = DispatchSemaphore(value: Self.maxFramesInFlight)
 
         self.nebulaVertices = Array(repeating: DynamicNebulaQuadVertex(), count: config.counts.nebulaCloudCount * 6)
         self.dustVertices = Array(repeating: DynamicSpriteVertex(), count: config.counts.dustCount)
@@ -638,16 +651,25 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
             return
         }
 
-        let now = Date().timeIntervalSinceReferenceDate
+        // 回调时刻有几毫秒抖动，而画面按固定周期上屏；时间步长取整到 1 或 2 个周期，零头顺延。
+        let now = CACurrentMediaTime()
         let deltaTime: Float
         if let lastUpdateTime {
-            deltaTime = Float(min(max(now - lastUpdateTime, 1.0 / 120.0), 1.0 / 30.0))
+            let frameDuration = 1.0 / 60.0
+            let elapsed = pendingFrameTime + (now - lastUpdateTime)
+            let frames = min(max((elapsed / frameDuration).rounded(), 1.0), 2.0)
+            pendingFrameTime = min(max(elapsed - frames * frameDuration, -frameDuration), frameDuration)
+            deltaTime = Float(frames * frameDuration)
         } else {
             deltaTime = 1.0 / 60.0
         }
+
         lastUpdateTime = now
 
         updateScene(deltaTime: deltaTime)
+
+        // 等到有一组缓冲空闲再取 drawable；这一帧画完后由完成回调归还名额。
+        frameSemaphore.wait()
 
         guard
             let renderPassDescriptor = view.currentRenderPassDescriptor,
@@ -655,19 +677,31 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
             let commandBuffer = commandQueue.makeCommandBuffer(),
             let encoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
         else {
+            frameSemaphore.signal()
             return
         }
+
+        commandBuffer.addCompletedHandler { [frameSemaphore] _ in
+            frameSemaphore.signal()
+        }
+
+        let buffers = frameBuffers[frameIndex]
+        frameIndex = (frameIndex + 1) % Self.maxFramesInFlight
+
+        upload(nebulaVertices, count: nebulaCount, to: buffers.nebula)
+        upload(dustVertices, count: dustCount, to: buffers.dust)
+        upload(haloVertices, count: haloCount, to: buffers.halo)
+        upload(sharpVertices, count: sharpCount, to: buffers.sharp)
 
         var uniforms = DynamicViewportUniforms(
             viewportSize: SIMD2(Float(drawableSize.width), Float(drawableSize.height)),
             atlasGrid: SIMD2(Float(config.nebula.atlasColumns), Float(config.nebula.atlasRows)),
-            nebulaAtlasInset: config.nebula.atlasInset,
-            nebulaBoundaryFeather: config.nebula.boundaryFeather
+            nebulaAtlasInset: config.nebula.atlasInset
         )
 
         drawNebulaQuads(
             encoder: encoder,
-            buffer: nebulaBuffer,
+            buffer: buffers.nebula,
             count: nebulaCount,
             texture: cloudAtlasTexture,
             uniforms: &uniforms
@@ -675,7 +709,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
         drawSprites(
             encoder: encoder,
             pipeline: additivePipeline,
-            buffer: dustBuffer,
+            buffer: buffers.dust,
             count: dustCount,
             texture: sharpTexture,
             uniforms: &uniforms
@@ -683,7 +717,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
         drawSprites(
             encoder: encoder,
             pipeline: additivePipeline,
-            buffer: haloBuffer,
+            buffer: buffers.halo,
             count: haloCount,
             texture: blurTexture,
             uniforms: &uniforms
@@ -691,7 +725,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
         drawSprites(
             encoder: encoder,
             pipeline: additivePipeline,
-            buffer: sharpBuffer,
+            buffer: buffers.sharp,
             count: sharpCount,
             texture: sharpTexture,
             uniforms: &uniforms
@@ -732,7 +766,7 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
                 colorIndex: Int32.random(in: 0..<Int32(DynamicPalette.colors.count)),
                 isSharp: isSharp,
                 baseAlpha: isSharp ? Float.random(in: 0.48...0.82) : Float.random(in: 0.32...0.58),
-                phase: Float.random(in: 0.0...(Float.pi * 2.0)),
+                phase: Double.random(in: 0.0...(Double.pi * 2.0)),
                 currentAlpha: 0.0,
                 currentScale: 1.0,
                 isReserve: index >= config.particles.baseParticleCount
@@ -783,24 +817,37 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
     // 加速度驱动横纵漂移与粒子强度，巡航倍率单独控制前进速度；deltaTime 以秒计。
     private func updateScene(deltaTime: Float) {
         let frameScale = deltaTime * 60.0
-        state.elapsedTime += deltaTime
+        state.elapsedTime += Double(deltaTime)
         let accel = SIMD2<Float>(
             Float(sample.lateralAcceleration),
             Float(sample.longitudinalAcceleration)
         )
-        state.filteredAccel = (accel * config.motion.sensorSmoothing) + (state.filteredAccel * (1.0 - config.motion.sensorSmoothing))
-        state.filteredVerticalAcceleration = (Float(sample.verticalAcceleration) * config.motion.sensorSmoothing)
-            + (state.filteredVerticalAcceleration * (1.0 - config.motion.sensorSmoothing))
+        // 平滑与速度系数都按 60 帧定义，按 frameScale 换算后在不同帧率下响应一致。
+        let sensorRetention = pow(1.0 - config.motion.sensorSmoothing, frameScale)
+        let verticalAcceleration = Float(sample.verticalAcceleration)
+        state.filteredAccel = accel + ((state.filteredAccel - accel) * sensorRetention)
+        state.filteredVerticalAcceleration = verticalAcceleration
+            + ((state.filteredVerticalAcceleration - verticalAcceleration) * sensorRetention)
         let sensitivityFactor = min(max(motionSensitivityFactor, 0.5), 1.5)
         let adjustedLateralAcceleration = state.filteredAccel.x / sensitivityFactor
         let adjustedLongitudinalAcceleration = state.filteredAccel.y / sensitivityFactor
         let adjustedVerticalAcceleration = state.filteredVerticalAcceleration / sensitivityFactor
 
-        state.currentVelocity.x += ((-adjustedLateralAcceleration * config.motion.velocityGain) - state.currentVelocity.x) * config.motion.velocityFriction
-        state.currentVelocity.y += (((-(adjustedLongitudinalAcceleration + adjustedVerticalAcceleration)) * config.motion.velocityGain) - state.currentVelocity.y) * config.motion.velocityFriction
+        let targetVelocity = SIMD2<Float>(
+            -adjustedLateralAcceleration * config.motion.velocityGain,
+            -(adjustedLongitudinalAcceleration + adjustedVerticalAcceleration) * config.motion.velocityGain
+        )
 
-        state.camX += state.currentVelocity.x * config.motion.cameraSensitivityX * frameScale
-        state.camY += state.currentVelocity.y * config.motion.cameraSensitivityY * frameScale
+        // 位移取这段时间内按 60 帧逐帧累加的结果，未追上的速度差按等比数列求和。
+        let friction = config.motion.velocityFriction
+        let velocityRetention = pow(1.0 - friction, frameScale)
+        let transientFrames = (1.0 - friction) * (1.0 - velocityRetention) / friction
+        let displacement = (targetVelocity * frameScale)
+            + ((state.currentVelocity - targetVelocity) * transientFrames)
+
+        state.camX += displacement.x * config.motion.cameraSensitivityX
+        state.camY += displacement.y * config.motion.cameraSensitivityY
+        state.currentVelocity = targetVelocity + ((state.currentVelocity - targetVelocity) * velocityRetention)
 
         let accelMagnitude = sqrt(
             (adjustedLateralAcceleration * adjustedLateralAcceleration)
@@ -811,11 +858,10 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
         let targetIntensity = pow(rawIntensity, 0.82)
         let attackRate: Float = 0.24
         let releaseRate: Float = 0.045
-        if targetIntensity > state.motionEnvelope {
-            state.motionEnvelope += (targetIntensity - state.motionEnvelope) * attackRate * frameScale
-        } else {
-            state.motionEnvelope += (targetIntensity - state.motionEnvelope) * releaseRate * frameScale
-        }
+        // 各追赶系数按 60 帧定义，换算成本帧的保留比例后在不同帧率下过渡一致。
+        let envelopeRate = targetIntensity > state.motionEnvelope ? attackRate : releaseRate
+        state.motionEnvelope = targetIntensity
+            + ((state.motionEnvelope - targetIntensity) * pow(1.0 - envelopeRate, frameScale))
         let reserveRaw = max((state.motionEnvelope - 0.18) / 0.82, 0.0)
         let reserveIntensity = reserveRaw * reserveRaw * (3.0 - 2.0 * reserveRaw)
         let activeBrightness = state.motionEnvelope * 1.05
@@ -823,7 +869,9 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
 
         let clampedMultiplier = min(max(speedMultiplier, 0.0), 6.0)
         let targetWarpSpeed = config.world.idleSpeed * clampedMultiplier
-        state.currentWarpSpeed += (targetWarpSpeed - state.currentWarpSpeed) * 0.05 * frameScale
+        let warpSpeedRate: Float = 0.05
+        state.currentWarpSpeed = targetWarpSpeed
+            + ((state.currentWarpSpeed - targetWarpSpeed) * pow(1.0 - warpSpeedRate, frameScale))
 
         buildNebulas(timeMs: state.elapsedTime * 1000.0)
         buildDust(activeBrightness: activeBrightness, frameScale: frameScale)
@@ -834,14 +882,10 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
             reserveIntensity: reserveIntensity,
             frameScale: frameScale
         )
-
-        upload(nebulaVertices, count: nebulaCount, to: nebulaBuffer)
-        upload(dustVertices, count: dustCount, to: dustBuffer)
-        upload(haloVertices, count: haloCount, to: haloBuffer)
-        upload(sharpVertices, count: sharpCount, to: sharpBuffer)
     }
 
-    private func buildNebulas(timeMs: Float) {
+    // timeMs 与各角度用 64 位浮点计算，长时间运行后动画仍保持精度。
+    private func buildNebulas(timeMs: Double) {
         let centerX = Float(drawableSize.width) * 0.5
         let centerY = Float(drawableSize.height) * 0.5
         let clusterRadiusX = Float(drawableSize.width) * 0.35
@@ -850,9 +894,9 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
         nebulaCount = 0
 
         for nebula in state.nebulas {
-            let lissajousX = sin((timeMs * nebula.driftSpeedX) + nebula.driftPhaseX)
-            let lissajousY = sin((timeMs * nebula.driftSpeedY * 1.37) + nebula.driftPhaseY)
-            let breathAlpha = sin((timeMs * nebula.alphaFreq) + nebula.alphaPhase) * 0.25 + 0.75
+            let lissajousX = Float(sin((timeMs * Double(nebula.driftSpeedX)) + Double(nebula.driftPhaseX)))
+            let lissajousY = Float(sin((timeMs * Double(nebula.driftSpeedY) * 1.37) + Double(nebula.driftPhaseY)))
+            let breathAlpha = Float(sin((timeMs * Double(nebula.alphaFreq)) + Double(nebula.alphaPhase))) * 0.25 + 0.75
             let alpha = min(config.nebula.baseAlpha * breathAlpha * nebula.brightnessScale, 1.0)
             let color = DynamicPalette.colors[Int(nebula.colorIndex)]
             let relX = (nebula.anchorX + lissajousX * nebula.wanderRadiusX) * clusterRadiusX
@@ -863,7 +907,10 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
             let screenX = centerX + relX
             let screenY = centerY + relY
             let renderSize = baseScreenSize * randomJitter * depthFactor
-            let rotation = nebula.rotationPhase + timeMs * nebula.rotationSpeed
+            let rotation = Float(
+                (Double(nebula.rotationPhase) + (timeMs * Double(nebula.rotationSpeed)))
+                    .truncatingRemainder(dividingBy: 2.0 * Double.pi)
+            )
             let isVisible = screenX > -renderSize && screenX < Float(drawableSize.width) + renderSize && screenY > -renderSize && screenY < Float(drawableSize.height) + renderSize
             guard isVisible else {
                 continue
@@ -944,6 +991,8 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
         let universeSpreadY = state.universeSpreadY
         let minZ = config.world.minZ
         let maxZ = config.world.maxZ
+        let alphaRiseRetention = pow(Float(1.0 - 0.2), frameScale)
+        let alphaFallRetention = pow(Float(1.0 - 0.08), frameScale)
         dustCount = 0
 
         state.dusts.withUnsafeMutableBufferPointer { dusts in
@@ -991,14 +1040,14 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
                 let isVisible = screenX > 0.0 && screenX < screenWidth && screenY > 0.0 && screenY < screenHeight
                 let depthAlpha = dust.z > maxZ - 1.2 ? (maxZ - dust.z) / 1.2 : 1.0
                 let targetAlpha = min(dust.baseAlpha + 0.28 + activeBrightness * 0.85, 0.98) * depthAlpha
-                let dustAlphaRate: Float = targetAlpha > dust.currentAlpha ? 0.2 : 0.08
-                dust.currentAlpha += (targetAlpha - dust.currentAlpha) * dustAlphaRate * frameScale
+                let alphaRetention = targetAlpha > dust.currentAlpha ? alphaRiseRetention : alphaFallRetention
+                dust.currentAlpha = targetAlpha + ((dust.currentAlpha - targetAlpha) * alphaRetention)
 
                 if dust.currentAlpha > 0.01 && isVisible {
                     let color = SIMD3<Float>(repeating: 1.0)
                     dustVertices[dustCount] = DynamicSpriteVertex(
                         positionAndSize: SIMD4(screenX, screenY, renderSize, min(dust.currentAlpha, 1.0)),
-                        colorAndSoftness: SIMD4(color.x, color.y, color.z, 1.0)
+                        color: SIMD4(color.x, color.y, color.z, 0.0)
                     )
                     dustCount += 1
                 }
@@ -1029,6 +1078,10 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
         let universeSpreadY = state.universeSpreadY
         let minZ = config.world.minZ
         let maxZ = config.world.maxZ
+        let scaleRiseRetention = pow(Float(1.0 - 0.15), frameScale)
+        let scaleFallRetention = pow(Float(1.0 - 0.06), frameScale)
+        let alphaRiseRetention = pow(Float(1.0 - 0.15), frameScale)
+        let alphaFallRetention = pow(Float(1.0 - 0.055), frameScale)
         haloCount = 0
         sharpCount = 0
 
@@ -1078,27 +1131,27 @@ private final class DynamicMetalRenderer: NSObject, MTKViewDelegate, DynamicRend
                 let screenY = centerY + relY * halfScreenWidth * scale
                 let reserveScaleBoost: Float = particle.isReserve ? (1.0 + reserveIntensity * 0.28) : 1.0
                 let targetScale: Float = (particle.isSharp ? (1.0 + accelIntensity * 0.22) : activeHaloScale) * reserveScaleBoost
-                let scaleRate: Float = targetScale > particle.currentScale ? 0.15 : 0.06
-                particle.currentScale += (targetScale - particle.currentScale) * scaleRate * frameScale
+                let scaleRetention = targetScale > particle.currentScale ? scaleRiseRetention : scaleFallRetention
+                particle.currentScale = targetScale + ((particle.currentScale - targetScale) * scaleRetention)
                 let sizeBoost: Float = particle.isSharp ? 2.18 : 2.00
                 let renderSize = max(particle.size * scale * particle.currentScale * sizeBoost, 2.2)
                 let isVisible = screenX > -renderSize && screenX < screenWidth + renderSize && screenY > -renderSize && screenY < screenHeight + renderSize
 
-                particle.phase += 0.03 * frameScale
-                let breath = sin(particle.phase) * 0.15 + 0.85
+                particle.phase += Double(0.03 * frameScale)
+                let breath = Float(sin(particle.phase)) * 0.15 + 0.85
                 let depthAlpha = particle.z > maxZ - 1.2 ? (maxZ - particle.z) / 1.2 : 1.0
                 let alphaFloor: Float = particle.isSharp ? 0.44 : 0.52
                 let alphaGain: Float = particle.isSharp ? 1.45 : 1.70
                 let reserveAlphaBoost: Float = particle.isReserve ? reserveIntensity : 1.0
                 let targetAlpha = min(particle.baseAlpha + alphaFloor + activeBrightness * alphaGain, 1.0) * breath * depthAlpha * reserveAlphaBoost
-                let particleAlphaRate: Float = targetAlpha > particle.currentAlpha ? 0.15 : 0.055
-                particle.currentAlpha += (targetAlpha - particle.currentAlpha) * particleAlphaRate * frameScale
+                let alphaRetention = targetAlpha > particle.currentAlpha ? alphaRiseRetention : alphaFallRetention
+                particle.currentAlpha = targetAlpha + ((particle.currentAlpha - targetAlpha) * alphaRetention)
 
                 if particle.currentAlpha > 0.001 && isVisible {
                     let color = DynamicPalette.colors[Int(particle.colorIndex)]
                     let sprite = DynamicSpriteVertex(
                         positionAndSize: SIMD4(screenX, screenY, renderSize, min(particle.currentAlpha, 1.0)),
-                        colorAndSoftness: SIMD4(color.x, color.y, color.z, particle.isSharp ? 0.5 : 1.0)
+                        color: SIMD4(color.x, color.y, color.z, 0.0)
                     )
                     if particle.isSharp {
                         sharpVertices[sharpCount] = sprite
@@ -1414,14 +1467,13 @@ private enum DynamicTextureFactory {
         let canvasRect = CGRect(x: 0.0, y: 0.0, width: canvasSide, height: canvasSide)
         let resolvedContentScale = max(0.10, min(contentScale, 1.0))
         let contentSide = canvasSide * resolvedContentScale
-        let safeInset = max((canvasSide - contentSide) * 0.5, 0.0)
         let contentRect = CGRect(
             x: canvasRect.midX - contentSide * 0.5,
             y: canvasRect.midY - contentSide * 0.5,
             width: contentSide,
             height: contentSide
         )
-        return CloudTileLayout(canvasRect: canvasRect, safeInset: safeInset, contentRect: contentRect)
+        return CloudTileLayout(contentRect: contentRect)
     }
 
     private static func drawCloudTile(in cg: CGContext, layout: CloudTileLayout, tileIndex: Int) {
@@ -1687,7 +1739,5 @@ private struct DynamicTextureBitmap {
 }
 
 private struct CloudTileLayout {
-    let canvasRect: CGRect
-    let safeInset: CGFloat
     let contentRect: CGRect
 }

@@ -30,17 +30,40 @@ public final class MotionManager: ObservableObject {
         isRunning = false
     }
 
-    // 读取 deviceMotion 的实时数据，并持续产出 MotionSample。
+    // 进入后台时暂停传感器与轮询；isRunning 保持不变，会话状态不受影响。
+    public func suspendSampling() {
+        guard isRunning, samplingTask != nil else {
+            return
+        }
+
+        motionManager.stopDeviceMotionUpdates()
+        samplingTask?.cancel()
+        samplingTask = nil
+    }
+
+    public func resumeSampling() {
+        guard isRunning, samplingTask == nil else {
+            return
+        }
+
+        beginSampling()
+    }
+
     private func startRealTimeMotion() {
         guard motionManager.isDeviceMotionAvailable else {
             return
         }
 
+        beginSampling()
+        isRunning = true
+    }
+
+    // 读取 deviceMotion 的实时数据，并持续产出 MotionSample。
+    private func beginSampling() {
         // 三种视觉模式的渲染上限为 60 帧，采样与轮询间隔与其保持一致。
         let updateInterval = 1.0 / 60.0
         motionManager.deviceMotionUpdateInterval = updateInterval
         motionManager.startDeviceMotionUpdates()
-        isRunning = true
 
         samplingTask = Task { @MainActor [weak self] in
             while let self, !Task.isCancelled {

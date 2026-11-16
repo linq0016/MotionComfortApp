@@ -78,12 +78,37 @@ enum LiveViewDotPolarity: Sendable, Equatable {
     }
 }
 
-struct LiveViewSceneAnalysis: Sendable {
-    var leadingBandLuminance: Double = 0.0
-    var trailingBandLuminance: Double = 0.0
-    var topBandLuminance: Double = 0.0
-    var bottomBandLuminance: Double = 0.0
-    var dominantDotPolarity: LiveViewDotPolarity = .light
+// Y 平面的读取方式：每个样本的字节数、有效位右移量，以及黑白电平。
+private struct LiveViewLumaLayout {
+    let bytesPerSample: Int
+    let shift: UInt16
+    let blackLevel: Double
+    let whiteLevel: Double
+
+    // 可直接按像素读取 Y 平面的格式，不含压缩格式。
+    static let supportedPixelFormatTypes: [OSType] = [
+        kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange,
+        kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
+        kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange,
+        kCVPixelFormatType_420YpCbCr10BiPlanarFullRange,
+        kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange,
+        kCVPixelFormatType_422YpCbCr10BiPlanarFullRange
+    ]
+
+    static func layout(for pixelFormatType: OSType) -> LiveViewLumaLayout? {
+        switch pixelFormatType {
+        case kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange:
+            return LiveViewLumaLayout(bytesPerSample: 1, shift: 0, blackLevel: 16.0, whiteLevel: 235.0)
+        case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange:
+            return LiveViewLumaLayout(bytesPerSample: 1, shift: 0, blackLevel: 0.0, whiteLevel: 255.0)
+        case kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange, kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange:
+            return LiveViewLumaLayout(bytesPerSample: 2, shift: 6, blackLevel: 64.0, whiteLevel: 940.0)
+        case kCVPixelFormatType_420YpCbCr10BiPlanarFullRange, kCVPixelFormatType_422YpCbCr10BiPlanarFullRange:
+            return LiveViewLumaLayout(bytesPerSample: 2, shift: 6, blackLevel: 0.0, whiteLevel: 1023.0)
+        default:
+            return nil
+        }
+    }
 }
 
 struct LiveViewOverlayRenderState: Equatable, Sendable {
@@ -107,23 +132,20 @@ private struct LiveViewFormatProfile: Sendable {
     var width: Int
     var height: Int
     var colorSpace: AVCaptureColorSpace
-    var stabilizationMode: AVCaptureVideoStabilizationMode
 }
 
-// 采集参数包含目标帧率、首选与备用格式、session preset；格式指定色域与防抖模式。
+// 采集参数包含目标帧率、首选与备用格式、session preset；格式指定分辨率与色域。
 private struct LiveViewCaptureConfiguration: Sendable {
     var targetFrameDuration = CMTime(value: 1, timescale: 60)
     var preferredFormatProfile = LiveViewFormatProfile(
         width: 1920,
         height: 1080,
-        colorSpace: .HLG_BT2020,
-        stabilizationMode: .cinematic
+        colorSpace: .HLG_BT2020
     )
     var fallbackFormatProfile = LiveViewFormatProfile(
         width: 1280,
         height: 720,
-        colorSpace: .P3_D65,
-        stabilizationMode: .cinematic
+        colorSpace: .P3_D65
     )
     var fallbackPresets: [AVCaptureSession.Preset] = [.inputPriority, .hd1280x720, .high]
 }
@@ -154,13 +176,11 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
     private let videoOutput = AVCaptureVideoDataOutput()
 
     private var isConfigured = false
-    private var latestSceneAnalysis = LiveViewSceneAnalysis()
     private var latestOverlayRenderState = LiveViewOverlayRenderState()
     private var smoothedLuminance: Double?
     private var lastPolaritySwitchAt: TimeInterval?
     private var sessionStartReferenceTime: TimeInterval?
     private var currentOrientation: InterfaceRenderOrientation = .portrait
-    private var selectedFormatProfile: LiveViewFormatProfile?
 
     private let configuration = LiveViewCameraConfiguration()
 
@@ -228,7 +248,6 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
             self.analysisQueue.async {
                 self.sessionStartReferenceTime = nil
-                self.latestSceneAnalysis = LiveViewSceneAnalysis()
                 self.latestOverlayRenderState = LiveViewOverlayRenderState()
                 self.smoothedLuminance = nil
                 self.lastPolaritySwitchAt = nil
@@ -242,21 +261,10 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
         }
     }
 
+    // 分析用的视频帧保持传感器原始方向；方向只用于换算亮度条带，预览的旋转由预览层自己处理。
     func updateOrientation(_ orientation: InterfaceRenderOrientation) {
         analysisQueue.async { [weak self] in
             self?.currentOrientation = orientation
-        }
-
-        sessionQueue.async { [weak self] in
-            guard let self else {
-                return
-            }
-
-            let rotationAngle = orientation.videoRotationAngle
-            if let connection = self.videoOutput.connection(with: .video),
-               connection.isVideoRotationAngleSupported(rotationAngle) {
-                connection.videoRotationAngle = rotationAngle
-            }
         }
     }
 
@@ -321,7 +329,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
             }
             session.addInput(input)
 
-            configureVideoOutput()
+            configureVideoOutput(for: device)
             try applyTargetFrameDuration(on: device)
 
             isConfigured = true
@@ -344,7 +352,6 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
         try device.lockForConfiguration()
         defer { device.unlockForConfiguration() }
 
-        selectedFormatProfile = selection.matchedProfile
         device.activeFormat = selection.format
         configureHDRPreviewOnLockedDevice(device, matchedProfile: selection.matchedProfile)
         applyTargetFrameDurationOnLockedDevice(device)
@@ -358,8 +365,11 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
             return
         }
 
-        device.automaticallyAdjustsVideoHDREnabled = false
-        device.isVideoHDREnabled = device.activeFormat.isVideoHDRSupported
+        // HLG 格式的高动态范围始终开启，没有 EDR 开关；对不支持 EDR 的格式设置 isVideoHDREnabled 会抛异常。
+        if device.activeFormat.isVideoHDRSupported {
+            device.automaticallyAdjustsVideoHDREnabled = false
+            device.isVideoHDREnabled = true
+        }
 
         if device.activeFormat.supportedColorSpaces.contains(matchedProfile.colorSpace) {
             device.activeColorSpace = matchedProfile.colorSpace
@@ -401,12 +411,14 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
         let candidates = device.formats.filter { format in
             let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
             let maxFrameRate = format.videoSupportedFrameRateRanges.map(\.maxFrameRate).max() ?? 0.0
+            // HLG 10-bit 格式自带高动态范围，系统对它的 isVideoHDRSupported 恒为 false；其余色域才要求支持 EDR。
+            let supportsProfileDynamicRange = profile.colorSpace == .HLG_BT2020 || format.isVideoHDRSupported
             return Int(dimensions.width) == profile.width
                 && Int(dimensions.height) == profile.height
                 && maxFrameRate >= 60.0
-                && format.isVideoHDRSupported
+                && supportsProfileDynamicRange
                 && format.supportedColorSpaces.contains(profile.colorSpace)
-                && format.isVideoStabilizationModeSupported(profile.stabilizationMode)
+                && format.isVideoStabilizationModeSupported(.previewOptimized)
         }
 
         return candidates.min { lhs, rhs in
@@ -433,11 +445,8 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
         return abs(maxFrameRate - 60.0)
     }
 
-    private func configureVideoOutput() {
+    private func configureVideoOutput(for device: AVCaptureDevice) {
         videoOutput.alwaysDiscardsLateVideoFrames = true
-        videoOutput.videoSettings = [
-            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
-        ]
         videoOutput.setSampleBufferDelegate(self, queue: analysisQueue)
 
         guard session.canAddOutput(videoOutput) else {
@@ -445,40 +454,61 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
         }
 
         session.addOutput(videoOutput)
-        configureVideoStabilization()
+        // 这一路只用于亮度分析，不设防抖；防抖设在预览连接上。
+        applyAnalysisPixelFormat(for: device)
     }
 
-    private func configureVideoStabilization() {
-        guard let connection = videoOutput.connection(with: .video) else {
+    // 亮度分析直接读取 Y 平面：相机原生格式可直读时用原生格式，系统不做整帧转换。
+    private func applyAnalysisPixelFormat(for device: AVCaptureDevice) {
+        let nativeType = CMFormatDescriptionGetMediaSubType(device.activeFormat.formatDescription)
+        let availableTypes = videoOutput.availableVideoPixelFormatTypes
+        let supportedTypes = LiveViewLumaLayout.supportedPixelFormatTypes
+        let pixelFormatType = ([nativeType] + supportedTypes).first { type in
+            supportedTypes.contains(type) && availableTypes.contains(type)
+        }
+
+        guard let pixelFormatType else {
             return
         }
 
-        if connection.isVideoStabilizationSupported {
-            connection.preferredVideoStabilizationMode = selectedFormatProfile?.stabilizationMode ?? .standard
-        }
+        videoOutput.videoSettings = [
+            kCVPixelBufferPixelFormatTypeKey as String: pixelFormatType
+        ]
     }
 
-    private func analyze(pixelBuffer: CVPixelBuffer) -> LiveViewSceneAnalysis {
+    // 统计画面四边的平均亮度，返回点阵应使用的明暗模式。
+    private func analyze(pixelBuffer: CVPixelBuffer) -> LiveViewDotPolarity {
+        let previousPolarity = latestOverlayRenderState.dominantDotPolarity
+
+        guard let lumaLayout = LiveViewLumaLayout.layout(for: CVPixelBufferGetPixelFormatType(pixelBuffer)) else {
+            return previousPolarity
+        }
+
         CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
         defer {
             CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
         }
 
-        let width = CVPixelBufferGetWidth(pixelBuffer)
-        let height = CVPixelBufferGetHeight(pixelBuffer)
-        let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
+        let width = CVPixelBufferGetWidthOfPlane(pixelBuffer, 0)
+        let height = CVPixelBufferGetHeightOfPlane(pixelBuffer, 0)
+        let bytesPerRow = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0)
 
-        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
-            return latestSceneAnalysis
+        guard let baseAddress = CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0) else {
+            return previousPolarity
         }
 
-        let bandWidth = max(Int(Double(width) * configuration.analysis.horizontalBandRatio), configuration.analysis.minimumBandSize)
-        let bandHeight = max(Int(Double(height) * configuration.analysis.verticalBandRatio), configuration.analysis.minimumBandSize)
+        // 视频帧是横向的传感器原始方向：竖屏显示时，屏幕左右两边对应帧的上下两边，条带比例随之互换。
+        let isPortrait = currentOrientation == .portrait
+        let bandRatioX = isPortrait ? configuration.analysis.verticalBandRatio : configuration.analysis.horizontalBandRatio
+        let bandRatioY = isPortrait ? configuration.analysis.horizontalBandRatio : configuration.analysis.verticalBandRatio
+        let bandWidth = max(Int(Double(width) * bandRatioX), configuration.analysis.minimumBandSize)
+        let bandHeight = max(Int(Double(height) * bandRatioY), configuration.analysis.minimumBandSize)
         let strideX = max(width / configuration.analysis.strideDivisor, configuration.analysis.minimumStride)
         let strideY = max(height / configuration.analysis.strideDivisor, configuration.analysis.minimumStride)
 
         let leadingLuminance = averageLuminance(
             baseAddress: baseAddress,
+            lumaLayout: lumaLayout,
             bytesPerRow: bytesPerRow,
             width: width,
             height: height,
@@ -490,6 +520,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
         let trailingLuminance = averageLuminance(
             baseAddress: baseAddress,
+            lumaLayout: lumaLayout,
             bytesPerRow: bytesPerRow,
             width: width,
             height: height,
@@ -501,6 +532,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
         let topLuminance = averageLuminance(
             baseAddress: baseAddress,
+            lumaLayout: lumaLayout,
             bytesPerRow: bytesPerRow,
             width: width,
             height: height,
@@ -512,6 +544,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
         let bottomLuminance = averageLuminance(
             baseAddress: baseAddress,
+            lumaLayout: lumaLayout,
             bytesPerRow: bytesPerRow,
             width: width,
             height: height,
@@ -523,21 +556,12 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
         let overallLuminance = (leadingLuminance + trailingLuminance + topLuminance + bottomLuminance) / 4.0
         let filteredLuminance = applyLuminanceSmoothing(overallLuminance)
-        let timestamp = sessionRelativeTimestamp()
 
-        let rawAnalysis = LiveViewSceneAnalysis(
-            leadingBandLuminance: leadingLuminance,
-            trailingBandLuminance: trailingLuminance,
-            topBandLuminance: topLuminance,
-            bottomBandLuminance: bottomLuminance,
-            dominantDotPolarity: updatedPolarity(
-                for: filteredLuminance,
-                previous: latestSceneAnalysis.dominantDotPolarity,
-                timestamp: timestamp
-            )
+        return updatedPolarity(
+            for: filteredLuminance,
+            previous: previousPolarity,
+            timestamp: sessionRelativeTimestamp()
         )
-
-        return rawAnalysis.rotatedForDisplay(currentOrientation)
     }
 
     private func applyLuminanceSmoothing(_ luminance: Double) -> Double {
@@ -553,6 +577,7 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
 
     private func averageLuminance(
         baseAddress: UnsafeMutableRawPointer,
+        lumaLayout: LiveViewLumaLayout,
         bytesPerRow: Int,
         width: Int,
         height: Int,
@@ -577,12 +602,12 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
             let row = baseAddress.advanced(by: y * bytesPerRow)
 
             for x in stride(from: clampedXLower, to: clampedXUpper, by: strideX) {
-                let pixel = row.advanced(by: x * 4).assumingMemoryBound(to: UInt8.self)
-                let blue = Double(pixel[0]) / 255.0
-                let green = Double(pixel[1]) / 255.0
-                let red = Double(pixel[2]) / 255.0
-                let luminance = (0.2126 * red) + (0.7152 * green) + (0.0722 * blue)
-                sum += luminance
+                let sample = row.advanced(by: x * lumaLayout.bytesPerSample)
+                if lumaLayout.bytesPerSample == 1 {
+                    sum += Double(sample.load(as: UInt8.self))
+                } else {
+                    sum += Double(sample.loadUnaligned(as: UInt16.self) >> lumaLayout.shift)
+                }
                 count += 1.0
             }
         }
@@ -591,7 +616,9 @@ public final class LiveViewCameraModel: NSObject, ObservableObject, @unchecked S
             return 0.0
         }
 
-        return sum / count
+        // 按格式的黑白电平归一化到 0...1。
+        let normalized = ((sum / count) - lumaLayout.blackLevel) / (lumaLayout.whiteLevel - lumaLayout.blackLevel)
+        return min(max(normalized, 0.0), 1.0)
     }
 
     private func sessionRelativeTimestamp() -> TimeInterval {
@@ -654,11 +681,8 @@ extension LiveViewCameraModel: AVCaptureVideoDataOutputSampleBufferDelegate {
             return
         }
 
-        let nextAnalysis = analyze(pixelBuffer: pixelBuffer)
-
-        latestSceneAnalysis = nextAnalysis
         let nextRenderState = LiveViewOverlayRenderState(
-            dominantDotPolarity: nextAnalysis.dominantDotPolarity
+            dominantDotPolarity: analyze(pixelBuffer: pixelBuffer)
         )
 
         guard nextRenderState != latestOverlayRenderState else {
@@ -686,7 +710,7 @@ private struct LiveViewPreviewSurface: View {
     }
 }
 
-// 将 AVCaptureVideoPreviewLayer 嵌入 SwiftUI，并同步预览方向与动态范围。
+// 将 AVCaptureVideoPreviewLayer 嵌入 SwiftUI，并同步预览方向、防抖与动态范围。
 private struct LiveViewCameraPreview: UIViewRepresentable {
     let session: AVCaptureSession
     let orientation: InterfaceRenderOrientation
@@ -704,6 +728,7 @@ private struct LiveViewCameraPreview: UIViewRepresentable {
     final class PreviewView: UIView {
         private weak var appliedSession: AVCaptureSession?
         private var appliedRotationAngle: CGFloat?
+        private var hasAppliedStabilization = false
         private var appliedDynamicRange: CALayer.DynamicRange?
         private let preferredPreviewDynamicRange: CALayer.DynamicRange = .constrainedHigh
 
@@ -721,6 +746,7 @@ private struct LiveViewCameraPreview: UIViewRepresentable {
             if appliedSession === session,
                previewLayer.videoGravity == .resizeAspectFill,
                appliedRotationAngle == rotationAngle,
+               hasAppliedStabilization,
                appliedDynamicRange == preferredPreviewDynamicRange {
                 return
             }
@@ -731,6 +757,7 @@ private struct LiveViewCameraPreview: UIViewRepresentable {
             if appliedSession !== session {
                 previewLayer.session = session
                 appliedSession = session
+                hasAppliedStabilization = false
             }
 
             if previewLayer.videoGravity != .resizeAspectFill {
@@ -747,6 +774,14 @@ private struct LiveViewCameraPreview: UIViewRepresentable {
                appliedRotationAngle != rotationAngle {
                 connection.videoRotationAngle = rotationAngle
                 appliedRotationAngle = rotationAngle
+            }
+
+            // 防抖作用在用户看到的预览上。预览连接只接受 preview 级，电影级在这条连接上不生效。
+            if let connection = previewLayer.connection, !hasAppliedStabilization {
+                if connection.isVideoStabilizationSupported {
+                    connection.preferredVideoStabilizationMode = .previewOptimized
+                }
+                hasAppliedStabilization = true
             }
 
             CATransaction.commit()
@@ -892,31 +927,6 @@ private extension InterfaceRenderOrientation {
             return 180
         case .landscapeRight:
             return 0
-        }
-    }
-}
-
-private extension LiveViewSceneAnalysis {
-    func rotatedForDisplay(_ orientation: InterfaceRenderOrientation) -> LiveViewSceneAnalysis {
-        switch orientation {
-        case .portrait:
-            return self
-        case .landscapeLeft:
-            return LiveViewSceneAnalysis(
-                leadingBandLuminance: topBandLuminance,
-                trailingBandLuminance: bottomBandLuminance,
-                topBandLuminance: trailingBandLuminance,
-                bottomBandLuminance: leadingBandLuminance,
-                dominantDotPolarity: dominantDotPolarity
-            )
-        case .landscapeRight:
-            return LiveViewSceneAnalysis(
-                leadingBandLuminance: bottomBandLuminance,
-                trailingBandLuminance: topBandLuminance,
-                topBandLuminance: leadingBandLuminance,
-                bottomBandLuminance: trailingBandLuminance,
-                dominantDotPolarity: dominantDotPolarity
-            )
         }
     }
 }

@@ -252,25 +252,29 @@ struct FlowGridPhase {
     }
 
     // 平滑三轴输入，计算运动强度与漂移速度，再累积为点阵偏移。
+    // 平滑与速度系数都按 60 帧定义；frameScale 是本次经过的 60 帧帧数，使不同帧率下的流速与响应一致。
     mutating func advance(
         sample: MotionSample,
         timestamp: TimeInterval,
         configuration: FlowGridConfiguration,
         motionSensitivityFactor: Double = 1.0
     ) {
-        guard lastTimestamp != nil else {
+        guard let lastTimestamp else {
             reset(at: timestamp)
             return
         }
 
-        lastTimestamp = timestamp
+        let deltaTime = min(max(timestamp - lastTimestamp, 1.0 / 120.0), 1.0 / 30.0)
+        let frameScale = deltaTime * 60.0
+        self.lastTimestamp = timestamp
 
-        filteredAcceleration.dx = (configuration.motion.sensorSmoothing * sample.lateralAcceleration)
-            + ((1.0 - configuration.motion.sensorSmoothing) * filteredAcceleration.dx)
-        filteredAcceleration.dy = (configuration.motion.sensorSmoothing * sample.longitudinalAcceleration)
-            + ((1.0 - configuration.motion.sensorSmoothing) * filteredAcceleration.dy)
-        filteredVerticalAcceleration = (configuration.motion.sensorSmoothing * sample.verticalAcceleration)
-            + ((1.0 - configuration.motion.sensorSmoothing) * filteredVerticalAcceleration)
+        let sensorRetention = pow(1.0 - configuration.motion.sensorSmoothing, frameScale)
+        filteredAcceleration.dx = sample.lateralAcceleration
+            + ((filteredAcceleration.dx - sample.lateralAcceleration) * sensorRetention)
+        filteredAcceleration.dy = sample.longitudinalAcceleration
+            + ((filteredAcceleration.dy - sample.longitudinalAcceleration) * sensorRetention)
+        filteredVerticalAcceleration = sample.verticalAcceleration
+            + ((filteredVerticalAcceleration - sample.verticalAcceleration) * sensorRetention)
         let sensitivityFactor = min(max(motionSensitivityFactor, 0.5), 1.5)
         let adjustedLateralAcceleration = filteredAcceleration.dx / sensitivityFactor
         let adjustedLongitudinalAcceleration = filteredAcceleration.dy / sensitivityFactor
@@ -282,13 +286,13 @@ struct FlowGridPhase {
                 + (adjustedVerticalAcceleration * adjustedVerticalAcceleration)
         )
 
-        if rawMagnitude >= smoothedMagnitude {
-            smoothedMagnitude = (smoothedMagnitude * configuration.motion.magnitudeSmoothing)
-                + (rawMagnitude * (1.0 - configuration.motion.magnitudeSmoothing))
-        } else {
-            smoothedMagnitude = (smoothedMagnitude * configuration.motion.magnitudeDecaySmoothing)
-                + (rawMagnitude * (1.0 - configuration.motion.magnitudeDecaySmoothing))
-        }
+        let magnitudeRetention = pow(
+            rawMagnitude >= smoothedMagnitude
+                ? configuration.motion.magnitudeSmoothing
+                : configuration.motion.magnitudeDecaySmoothing,
+            frameScale
+        )
+        smoothedMagnitude = rawMagnitude + ((smoothedMagnitude - rawMagnitude) * magnitudeRetention)
 
         let horizontalDirection = configuration.motion.invertHorizontalFlow ? 1.0 : -1.0
         let targetVelocityX = rawMagnitude > configuration.motion.motionDeadzone
@@ -301,11 +305,19 @@ struct FlowGridPhase {
                 * verticalDirection)
             : 0.0
 
-        currentVelocity.dx += (targetVelocityX - currentVelocity.dx) * configuration.motion.velocityFriction
-        currentVelocity.dy += (targetVelocityY - currentVelocity.dy) * configuration.motion.velocityFriction
+        // 位移取这段时间内按 60 帧逐帧累加的结果：目标速度的部分与帧数成正比，
+        // 尚未追上的速度差按等比数列求和（transientFrames）。
+        let friction = configuration.motion.velocityFriction
+        let velocityRetention = pow(1.0 - friction, frameScale)
+        let transientFrames = (1.0 - friction) * (1.0 - velocityRetention) / friction
 
-        currentOffset.x += currentVelocity.dx
-        currentOffset.y += currentVelocity.dy
+        currentOffset.x += (targetVelocityX * frameScale)
+            + ((currentVelocity.dx - targetVelocityX) * transientFrames)
+        currentOffset.y += (targetVelocityY * frameScale)
+            + ((currentVelocity.dy - targetVelocityY) * transientFrames)
+
+        currentVelocity.dx = targetVelocityX + ((currentVelocity.dx - targetVelocityX) * velocityRetention)
+        currentVelocity.dy = targetVelocityY + ((currentVelocity.dy - targetVelocityY) * velocityRetention)
 
         if abs(currentOffset.x) > 100_000.0 {
             currentOffset.x.formTruncatingRemainder(dividingBy: configuration.layout.dotSpacing * 1000.0)
